@@ -1,3 +1,5 @@
+import os
+from dotenv import load_dotenv # 설치한 라이브러리 불러오기
 from fastapi import FastAPI, Response
 from fastapi.staticfiles import StaticFiles
 import sqlite3
@@ -8,7 +10,8 @@ import httpx  # 지도 타일 프록시를 위해 필요
 from contextlib import asynccontextmanager
 
 # 보안을 위해 백엔드에만 키를 저장합니다.
-VWORLD_KEY = "E8951B69-D1A8-3B9D-921F-25502BAE6D7B"
+load_dotenv() # .env 파일에 있는 변수들을 읽어옵니다.
+VWORLD_KEY = os.getenv("VWORLD_KEY")
 EXCEL_FILE = "유휴 공유재산 리스트 지자체 누리집 공개 서식.xlsx"
 
 def get_parcel_geom(address):
