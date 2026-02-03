@@ -7,21 +7,20 @@ import pandas as pd
 import secrets
 from dotenv import load_dotenv
 
-from fastapi import FastAPI, Depends, HTTPException, status, UploadFile, File, Request
+from fastapi import FastAPI, Depends, HTTPException, status, UploadFile, File, Request,Form
 from fastapi.security import HTTPBasic, HTTPBasicCredentials
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
-from fastapi.responses import FileResponse, JSONResponse, HTMLResponse
+from fastapi.responses import FileResponse, JSONResponse, HTMLResponse, RedirectResponse
 from contextlib import asynccontextmanager
+from starlette.middleware.sessions import SessionMiddleware
 
 # 1. 환경 설정 및 보안 변수
 load_dotenv()
 VWORLD_KEY = os.getenv("VWORLD_KEY")
 ADMIN_ID = os.getenv("ADMIN_ID")
 ADMIN_PW = os.getenv("ADMIN_PW")
-
-security = HTTPBasic()
-templates = Jinja2Templates(directory="templates")
+SECRET_KEY = os.getenv("SECRET_KEY", "your-secret-key") # 세션 암호화용 키
 
 # --- [함수] 주소로 필지 경계선 가져오기 ---
 def get_parcel_geom(address):
@@ -47,18 +46,6 @@ def get_parcel_geom(address):
         print(f"경계선 획득 실패 ({address}): {e}")
     return None
 
-# --- [인증] 관리자 확인 함수 ---
-def get_current_username(credentials: HTTPBasicCredentials = Depends(security)):
-    is_user_ok = secrets.compare_digest(credentials.username, ADMIN_ID)
-    is_pass_ok = secrets.compare_digest(credentials.password, ADMIN_PW)
-    if not (is_user_ok and is_pass_ok):
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="로그인 실패",
-            headers={"WWW-Authenticate": "Basic"},
-        )
-    return credentials.username
-
 # --- [서버 시작 시 실행] DB 및 테이블 생성 ---
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -82,17 +69,54 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(lifespan=lifespan)
 
-# --- [API] 관리자 페이지 및 업로드 ---
+# 2. 세션 미들웨어 설정
+app.add_middleware(SessionMiddleware, secret_key=SECRET_KEY)
+
+app.mount("/static", StaticFiles(directory="static"), name="static")
+templates = Jinja2Templates(directory="templates")
+
+# --- [인증 확인 유틸리티] ---
+def is_authenticated(request: Request):
+    """현재 세션에 관리자 정보가 있는지 확인합니다."""
+    return request.session.get("user") == ADMIN_ID
+
+# --- [API] 로그인 및 로그아웃 ---
+@app.post("/api/login")
+async def login(request: Request, username: str = Form(...), password: str = Form(...)):
+    """로그인 처리 및 세션 생성"""
+    if username == ADMIN_ID and password == ADMIN_PW:
+        request.session["user"] = username
+        return {"success": True}
+    return JSONResponse(status_code=401, content={"success": False, "message": "아이디 또는 비밀번호가 틀립니다."})
+
+@app.get("/api/logout")
+async def logout(request: Request):
+    """세션 삭제 및 로그인 페이지로 리다이렉트"""
+    request.session.clear()
+    return RedirectResponse(url="/admin/login")
+
+# --- [페이지 라우팅] ---
+@app.get("/", response_class=HTMLResponse)
+async def read_root(request: Request):
+    return templates.TemplateResponse("index.html", {"request": request})
+
+@app.get("/admin/login", response_class=HTMLResponse)
+async def login_page(request: Request):
+    """로그인 폼 페이지"""
+    return templates.TemplateResponse("login.html", {"request": request})
+
 @app.get("/admin", response_class=HTMLResponse)
-async def get_admin_page(request: Request, username: str = Depends(get_current_username)):
-    """
-    HTTP Basic Auth 인증이 완료된 사용자에게만 
-    templates 폴더 안의 admin.html을 렌더링해서 보여줍니다.
-    """
+async def admin_page(request: Request):
+    """관리자 메인 페이지 (세션 체크)"""
+    if not is_authenticated(request):
+        return RedirectResponse(url="/admin/login")
     return templates.TemplateResponse("admin.html", {"request": request})
 
 @app.post("/api/admin/upload")
-async def upload_excel(file: UploadFile = File(...), username: str = Depends(get_current_username)):
+async def upload_excel(request: Request, file: UploadFile = File(...)):
+    if not is_authenticated(request):
+        raise HTTPException(status_code=401, detail="인증이 필요합니다.")
+        
     try:
         df = pd.read_excel(file.file, sheet_name="목록")
         conn = sqlite3.connect('database.db')
@@ -164,14 +188,6 @@ async def get_lands():
             "properties": dict(row)
         })
     return {"type": "FeatureCollection", "features": features}
-
-# --- [정적 파일 서빙] ---
-@app.get("/")
-async def read_index():
-    return FileResponse("index.html")
-
-# 기타 파일들(이미지, CSS 등)을 위해 현재 폴더를 매핑
-app.mount("/", StaticFiles(directory="."), name="static")
 
 if __name__ == "__main__":
     import uvicorn
