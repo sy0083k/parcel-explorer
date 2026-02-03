@@ -5,86 +5,72 @@
     <title>서산시 유휴공유재산 지도</title>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/openlayers/openlayers.github.io@master/en/v6.15.1/css/ol.css">
     <style>
-        /* 1. 기본 레이아웃 */
         body { margin: 0; display: flex; height: 100vh; font-family: 'Malgun Gothic', sans-serif; overflow: hidden; }
         
-        /* 사이드바 스타일 */
+        /* 사이드바 구성 */
         #sidebar { width: 350px; border-right: 1px solid #ccc; display: flex; flex-direction: column; background: #fff; z-index: 10; }
         #header { padding: 20px; background: #2c3e50; color: white; }
+        
+        /* 검색 필터 영역 */
+        #filter-section { padding: 15px; background: #f8f9fa; border-bottom: 1px solid #ddd; }
+        .filter-group { margin-bottom: 12px; }
+        .filter-group label { display: block; font-size: 0.85em; font-weight: bold; margin-bottom: 5px; color: #555; }
+        .filter-group select { width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 4px; }
+        
+        /* 면적 입력창 스타일 */
+        .area-input-container { display: flex; align-items: center; gap: 5px; }
+        .area-input-container input { width: 45%; padding: 8px; border: 1px solid #ccc; border-radius: 4px; font-size: 0.9em; }
+        .area-input-container span { font-size: 0.8em; color: #666; }
+
+        #btn-search { width: 100%; padding: 10px; background: #3498db; color: white; border: none; border-radius: 4px; cursor: pointer; font-weight: bold; margin-top: 5px; }
+        #btn-search:hover { background: #2980b9; }
+
         #list-container { flex: 1; overflow-y: auto; }
         .list-item { padding: 15px; border-bottom: 1px solid #eee; cursor: pointer; transition: 0.2s; }
         .list-item:hover { background: #f1f4f6; }
         .list-item strong { color: #2c3e50; display: block; margin-bottom: 5px; font-size: 0.95em; }
         .list-item small { color: #666; font-size: 0.85em; }
 
-        /* 지도 영역 */
         #map { flex: 1; position: relative; }
-
-        /* 2. 지도 위 컨트롤 버튼 스타일 */
-        .map-controls {
-            position: absolute;
-            top: 20px;
-            right: 20px;
-            z-index: 1000;
-            display: flex;
-            flex-direction: column;
-            gap: 5px;
-            background: rgba(255, 255, 255, 0.9);
-            padding: 6px;
-            border-radius: 8px;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.15);
-        }
-        .map-controls button {
-            border: 1px solid #ddd;
-            background: #fff;
-            padding: 8px 15px;
-            cursor: pointer;
-            font-size: 12px;
-            font-weight: bold;
-            border-radius: 4px;
-            transition: all 0.2s;
-        }
+        .map-controls { position: absolute; top: 20px; right: 20px; z-index: 1000; display: flex; flex-direction: column; gap: 5px; background: rgba(255, 255, 255, 0.9); padding: 6px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.15); }
+        .map-controls button { border: 1px solid #ddd; background: #fff; padding: 8px 15px; cursor: pointer; font-size: 12px; font-weight: bold; border-radius: 4px; }
         .map-controls button.active { background: #2c3e50; color: white; border-color: #2c3e50; }
 
-        /* 3. 팝업(말풍선) 스타일 */
-        .ol-popup {
-            position: absolute;
-            background-color: white;
-            box-shadow: 0 1px 4px rgba(0,0,0,0.2);
-            padding: 15px;
-            border-radius: 10px;
-            border: 1px solid #cccccc;
-            bottom: 12px;
-            left: -50px;
-            min-width: 300px;
-        }
-        /* 말풍선 아래 화살표 부분 */
-        .ol-popup:after, .ol-popup:before {
-            top: 100%;
-            border: solid transparent;
-            content: " ";
-            height: 0;
-            width: 0;
-            position: absolute;
-            pointer-events: none;
-        }
+        .ol-popup { position: absolute; background-color: white; box-shadow: 0 1px 4px rgba(0,0,0,0.2); padding: 15px; border-radius: 10px; border: 1px solid #cccccc; bottom: 12px; left: -50px; min-width: 200px; }
+        .ol-popup:after, .ol-popup:before { top: 100%; border: solid transparent; content: " "; height: 0; width: 0; position: absolute; pointer-events: none; }
         .ol-popup:after { border-top-color: white; border-width: 10px; left: 48px; margin-left: -10px; }
-        .ol-popup-closer {
-            text-decoration: none;
-            position: absolute;
-            top: 2px;
-            right: 8px;
-            color: #666;
-            font-weight: bold;
-        }
+        .ol-popup-closer { text-decoration: none; position: absolute; top: 2px; right: 8px; color: #666; font-weight: bold; }
     </style>
 </head>
 <body>
     <div id="sidebar">
         <div id="header">
             <h2 style="margin:0; font-size: 1.2em;">서산시 유휴지 확인</h2>
-            <p style="margin:5px 0 0; font-size: 0.8em; opacity: 0.8;">공유재산 필지 경계 서비스</p>
+            <p style="margin:5px 0 0; font-size: 0.8em; opacity: 0.8;">공유재산 필지 검색 서비스</p>
         </div>
+
+        <div id="filter-section">
+            <div class="filter-group">
+                <label>행정구역 (읍면동)</label>
+                <select id="filter-district">
+                    <option value="all">전체보기</option>
+                    <option value="대산읍">대산읍</option>
+                    <option value="인지면">인지면</option>
+                    <option value="부석면">부석면</option>
+                    <option value="동문동">동문동</option>
+                </select>
+            </div>
+            <div class="filter-group">
+                <label>면적 직접 입력 (㎡)</label>
+                <div class="area-input-container">
+                    <input type="number" id="min-area" placeholder="최소" min="0">
+                    <span>~</span>
+                    <input type="number" id="max-area" placeholder="최대" min="0">
+                </div>
+            </div>
+            <button id="btn-search" onclick="applyFilters()">조건에 맞는 토지 찾기</button>
+        </div>
+
         <div id="list-container">
             <p style="padding: 20px; color: #999;">데이터 로딩 중...</p>
         </div>
@@ -105,31 +91,16 @@
 
     <script src="https://cdn.jsdelivr.net/gh/openlayers/openlayers.github.io@master/en/v6.15.1/build/ol.js"></script>
     <script>
-        let map;
-        let vworldKey = "";
-        let baseLayer, satLayer, hybLayer, vectorLayer;
-        let vectorSource;
+        let map, vworldKey, baseLayer, satLayer, hybLayer, vectorLayer;
+        let originalData = null;
 
-        // 팝업 관련 요소
         const container = document.getElementById('popup');
         const content = document.getElementById('popup-content');
         const closer = document.getElementById('popup-closer');
+        const overlay = new ol.Overlay({ element: container, autoPan: true });
 
-        // 팝업 오버레이 생성
-        const overlay = new ol.Overlay({
-            element: container,
-            autoPan: true,
-            autoPanAnimation: { duration: 250 }
-        });
+        closer.onclick = () => { overlay.setPosition(undefined); return false; };
 
-        // 팝업 닫기 버튼 로직
-        closer.onclick = function() {
-            overlay.setPosition(undefined);
-            closer.blur();
-            return false;
-        };
-
-        // 1. 서버에서 API 키 가져오기
         fetch('/api/config')
             .then(res => res.json())
             .then(config => {
@@ -138,112 +109,99 @@
                 loadLandData();
             });
 
-        // 2. 지도 초기화
         function initMap(key) {
-            baseLayer = new ol.layer.Tile({
-                source: new ol.source.XYZ({ url: `https://api.vworld.kr/req/wmts/1.0.0/${key}/Base/{z}/{y}/{x}.png` }),
-                visible: true
-            });
-
-            satLayer = new ol.layer.Tile({
-                source: new ol.source.XYZ({ url: `https://api.vworld.kr/req/wmts/1.0.0/${key}/Satellite/{z}/{y}/{x}.jpeg` }),
-                visible: false
-            });
-
-            hybLayer = new ol.layer.Tile({
-                source: new ol.source.XYZ({ url: `https://api.vworld.kr/req/wmts/1.0.0/${key}/Hybrid/{z}/{y}/{x}.png` }),
-                visible: false
-            });
+            baseLayer = new ol.layer.Tile({ source: new ol.source.XYZ({ url: `https://api.vworld.kr/req/wmts/1.0.0/${key}/Base/{z}/{y}/{x}.png` }), visible: true });
+            satLayer = new ol.layer.Tile({ source: new ol.source.XYZ({ url: `https://api.vworld.kr/req/wmts/1.0.0/${key}/Satellite/{z}/{y}/{x}.jpeg` }), visible: false });
+            hybLayer = new ol.layer.Tile({ source: new ol.source.XYZ({ url: `https://api.vworld.kr/req/wmts/1.0.0/${key}/Hybrid/{z}/{y}/{x}.png` }), visible: false });
 
             map = new ol.Map({
                 target: 'map',
                 layers: [baseLayer, satLayer, hybLayer],
-                overlays: [overlay], // 지도에 팝업 레이어 추가
-                view: new ol.View({
-                    center: ol.proj.fromLonLat([126.4500, 36.7848]),
-                    zoom: 13
-                })
+                overlays: [overlay],
+                view: new ol.View({ center: ol.proj.fromLonLat([126.4500, 36.7848]), zoom: 13 })
             });
 
-            // 지도 클릭 이벤트: 팝업 띄우기
-            map.on('singleclick', function (evt) {
+            map.on('singleclick', (evt) => {
                 const feature = map.forEachFeatureAtPixel(evt.pixel, (f) => f);
-
                 if (feature) {
-                    const props = feature.getProperties();
-                    const coordinate = evt.coordinate;
-                    
-                    content.innerHTML = `
-                        <div style="font-size:14px;">
-                            <strong style="color:#2c3e50;">📍 주소: ${props.address}</strong><br>
-                            <hr style="margin:8px 0; border:0; border-top:1px solid #eee;">
-                            📏 <b>면적:</b> ${props.area}㎡<br>
-                            📂 <b>지목:</b> ${props.land_type}
-                        </div>
-                    `;
-                    overlay.setPosition(coordinate);
+                    const p = feature.getProperties();
+                    content.innerHTML = `📍 <b>주소:</b> ${p.address}<br>📏 <b>면적:</b> ${p.area}㎡<br>📂 <b>지목:</b> ${p.land_type}`;
+                    overlay.setPosition(evt.coordinate);
                 } else {
                     overlay.setPosition(undefined);
                 }
             });
-
-            // 마우스 커서 변경
-            map.on('pointermove', function (e) {
-                const pixel = map.getEventPixel(e.originalEvent);
-                const hit = map.hasFeatureAtPixel(pixel);
-                map.getTarget().style.cursor = hit ? 'pointer' : '';
-            });
         }
 
-        // 3. 배경지도 전환 함수
-        function changeLayer(type) {
-            baseLayer.setVisible(false);
-            satLayer.setVisible(false);
-            hybLayer.setVisible(false);
-
-            if (type === 'Base') baseLayer.setVisible(true);
-            else if (type === 'Satellite') satLayer.setVisible(true);
-            else if (type === 'Hybrid') { satLayer.setVisible(true); hybLayer.setVisible(true); }
-
-            document.querySelectorAll('.map-controls button').forEach(btn => btn.classList.remove('active'));
-            document.getElementById(`btn-${type}`).classList.add('active');
-        }
-
-        // 4. 필지 데이터 로드
         function loadLandData() {
             fetch('/api/lands')
                 .then(res => res.json())
                 .then(data => {
-                    vectorSource = new ol.source.Vector({
-                        features: new ol.format.GeoJSON().readFeatures(data, { featureProjection: 'EPSG:3857' })
-                    });
-
-                    vectorLayer = new ol.layer.Vector({
-                        source: vectorSource,
-                        style: new ol.style.Style({
-                            stroke: new ol.style.Stroke({ color: '#ff3333', width: 3 }),
-                            fill: new ol.style.Fill({ color: 'rgba(255, 51, 51, 0.2)' })
-                        })
-                    });
-                    map.addLayer(vectorLayer);
-                    renderList(data);
+                    originalData = data;
+                    updateMapAndList(data);
                 });
         }
 
-        // 5. 사이드바 리스트 생성
-        function renderList(data) {
-            const container = document.getElementById('list-container');
-            container.innerHTML = '';
+        // 수정한 필터 로직: 숫자 입력을 기반으로 계산
+        function applyFilters() {
+            const district = document.getElementById('filter-district').value;
+            const minArea = parseFloat(document.getElementById('min-area').value) || 0;
+            const maxArea = parseFloat(document.getElementById('max-area').value) || Infinity;
+
+            const filteredFeatures = originalData.features.filter(f => {
+                const matchDistrict = (district === 'all' || f.properties.address.includes(district));
+                const landArea = f.properties.area;
+                const matchArea = (landArea >= minArea && landArea <= maxArea);
+                
+                return matchDistrict && matchArea;
+            });
+
+            updateMapAndList({ type: 'FeatureCollection', features: filteredFeatures });
+        }
+
+        function updateMapAndList(data) {
+            if (vectorLayer) map.removeLayer(vectorLayer);
+
+            const vectorSource = new ol.source.Vector({
+                features: new ol.format.GeoJSON().readFeatures(data, { featureProjection: 'EPSG:3857' })
+            });
+
+            vectorLayer = new ol.layer.Vector({
+                source: vectorSource,
+                style: new ol.style.Style({
+                    stroke: new ol.style.Stroke({ color: '#ff3333', width: 3 }),
+                    fill: new ol.style.Fill({ color: 'rgba(255, 51, 51, 0.2)' })
+                })
+            });
+            map.addLayer(vectorLayer);
+
+            const listArea = document.getElementById('list-container');
+            listArea.innerHTML = data.features.length ? '' : '<p style="padding:20px; color:red;">검색 결과가 없습니다.</p>';
+            
             data.features.forEach((f, idx) => {
                 const item = document.createElement('div');
                 item.className = 'list-item';
                 item.innerHTML = `<strong>${f.properties.address}</strong><small>${f.properties.land_type} | ${f.properties.area}㎡</small>`;
                 item.onclick = () => {
                     const feat = vectorSource.getFeatures()[idx];
-                    map.getView().fit(feat.getGeometry().getExtent(), { padding: [100, 100, 100, 100], duration: 800 });
+                    map.getView().fit(feat.getGeometry().getExtent(), { padding: [100,100,100,100], duration: 800 });
                 };
-                container.appendChild(item);
+                listArea.appendChild(item);
             });
+
+            // 검색된 결과가 있을 때만 지도를 결과 범위에 맞게 조정 (줌 자동 조절)
+            if (data.features.length > 0) {
+                map.getView().fit(vectorSource.getExtent(), { padding: [50, 50, 50, 50], duration: 1000 });
+            }
+        }
+
+        function changeLayer(type) {
+            baseLayer.setVisible(false); satLayer.setVisible(false); hybLayer.setVisible(false);
+            if (type === 'Base') baseLayer.setVisible(true);
+            else if (type === 'Satellite') satLayer.setVisible(true);
+            else if (type === 'Hybrid') { satLayer.setVisible(true); hybLayer.setVisible(true); }
+            document.querySelectorAll('.map-controls button').forEach(btn => btn.classList.remove('active'));
+            document.getElementById(`btn-${type}`).classList.add('active');
         }
     </script>
 </body>
