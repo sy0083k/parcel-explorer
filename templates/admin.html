@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <title>유휴재산 관리자 모드</title>
+    <style>
+        body { font-family: 'Malgun Gothic', sans-serif; display: flex; justify-content: center; align-items: center; height: 100vh; background: #f0f2f5; margin: 0; }
+        .admin-card { background: white; padding: 40px; border-radius: 12px; box-shadow: 0 4px 20px rgba(0,0,0,0.1); text-align: center; width: 400px; }
+        h2 { color: #2c3e50; margin-bottom: 20px; }
+        input[type="file"] { margin: 20px 0; border: 1px solid #ddd; padding: 10px; width: 100%; box-sizing: border-box; }
+        button { background: #3498db; color: white; border: none; padding: 12px 25px; border-radius: 5px; cursor: pointer; font-size: 16px; width: 100%; }
+        button:hover { background: #2980b9; }
+        #status { margin-top: 20px; font-size: 14px; }
+    </style>
+</head>
+<body>
+    <div class="admin-card">
+        <h2>📊 데이터 관리자</h2>
+        <p>최신 유휴재산 엑셀 파일을 업로드하세요.</p>
+        <input type="file" id="excelFile" accept=".xlsx">
+        <button onclick="handleUpload()">DB 업데이트 시작</button>
+        <div id="status"></div>
+    </div>
+
+    <script>
+        async function handleUpload() {
+            const fileInput = document.getElementById('excelFile');
+            if (!fileInput.files[0]) return alert("파일을 선택해주세요.");
+
+            const formData = new FormData();
+            formData.append('file', fileInput.files[0]);
+
+            const status = document.getElementById('status');
+            status.innerText = "처리 중...";
+
+            try {
+                const res = await fetch('/api/admin/upload', {
+                    method: 'POST',
+                    body: formData
+                    // 브라우저가 자동으로 Basic Auth 인증 정보를 포함합니다.
+                });
+
+                if (res.status === 401) {
+                    alert("권한이 없습니다. 다시 로그인해주세요.");
+                    location.reload();
+                    return;
+                }
+
+                const result = await res.json();
+                status.style.color = result.success ? "green" : "red";
+                status.innerText = result.message || result.detail;
+            } catch (e) {
+                status.innerText = "오류 발생: " + e.message;
+            }
+        }
+    </script>
+</body>
+</html>
