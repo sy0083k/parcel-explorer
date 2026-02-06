@@ -37,7 +37,8 @@ async def lifespan(app: FastAPI):
             address TEXT,
             land_type TEXT,
             area REAL,
-            description TEXT,
+            adm_property TEXT,
+            gen_property TEXT,
             contact TEXT,
             geom TEXT
         )
@@ -168,10 +169,10 @@ async def upload_excel(request: Request, background_tasks: BackgroundTasks, file
         for _, row in df.iterrows():
             addr = row['소재지(지번)']        
             cursor.execute("""
-                INSERT INTO idle_land (address, land_type, area, description, contact, geom) 
-                VALUES (?,?,?,?,?,NULL)
+                INSERT INTO idle_land (address, land_type, area, adm_property, gen_property, contact, geom) 
+                VALUES (?,?,?,?,?,?,NULL)
             """, (str(addr), str(row['(공부상)지목']), float(row['(공부상)면적(㎡)']), 
-                  str(row['유휴사유 상세설명']), str(row['담당자연락처'])))            
+                  str(row['행정재산']), str(row['일반재산']), str(row['담당자연락처'])))            
         conn.commit()      
         conn.close()
         
