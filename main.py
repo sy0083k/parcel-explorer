@@ -6,7 +6,7 @@ import requests
 import pandas as pd
 import secrets
 from dotenv import load_dotenv
-from fastapi import FastAPI, Depends, HTTPException, status, UploadFile, File, Request,Form
+from fastapi import FastAPI, Depends, HTTPException, status, UploadFile, File, Request,Form, BackgroundTasks
 from fastapi.security import HTTPBasic, HTTPBasicCredentials
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
@@ -72,30 +72,31 @@ def get_parcel_geom(address):
         print(f"경계선 획득 실패 ({address}): {e}")
     return None
 
-def retry_failed_geoms():
+def update_geoms(max_retries=5):
     """DB를 조회하여 geom이 없는 항목들에 대해 경계선 데이터를 다시 가져옵니다."""
     conn = sqlite3.connect('database.db')
     cursor = conn.cursor()
     
-    # 1. geom 데이터가 없는 항목들 조회
-    cursor.execute("SELECT id, address FROM idle_land WHERE geom IS NULL")
-    failed_items = cursor.fetchall()
-    
     retry_count = 0
-    for item_id, address in failed_items:
-        # API 부하 방지를 위한 미세 지연 (선택 사항)
-        time.sleep(0.5) 
-        geom_data = get_parcel_geom(address)
-        if geom_data:
-            cursor.execute("UPDATE idle_land SET geom = ? WHERE id = ?", (geom_data, item_id))
-            retry_count += 1
-            
-    conn.commit()
+    for attempt in range(1, max_retries + 1):
+        # 1. geom 데이터가 없는 항목들 조회
+        cursor.execute("SELECT id, address FROM idle_land WHERE geom IS NULL")
+        failed_items = cursor.fetchall()
+        
+        if not failed_items: break
+        
+        for item_id, address in failed_items:
+            # API 부하 방지를 위한 미세 지연 (선택 사항)
+            time.sleep(0.5) 
+            geom_data = get_parcel_geom(address)
+            if geom_data:
+                cursor.execute("UPDATE idle_land SET geom = ? WHERE id = ?", (geom_data, item_id))
+                retry_count += 1                
+            conn.commit()
     
     # 최종 상태 확인 (여전히 실패한 건수 계산)
     cursor.execute("SELECT COUNT(*) FROM idle_land WHERE geom IS NULL")
-    failed = cursor.fetchone()[0]
-    
+    failed = cursor.fetchone()[0]    
     conn.close()
     return retry_count, failed
     
@@ -153,7 +154,7 @@ async def get_lands():
     return {"type": "FeatureCollection", "features": features}
     
 @app.post("/api/admin/upload")
-async def upload_excel(request: Request, file: UploadFile = File(...)):
+async def upload_excel(request: Request, background_tasks: BackgroundTasks, file: UploadFile = File(...)):
     if not is_authenticated(request):
         raise HTTPException(status_code=401, detail="인증이 필요합니다.")
         
@@ -163,27 +164,25 @@ async def upload_excel(request: Request, file: UploadFile = File(...)):
         cursor = conn.cursor()
         cursor.execute("DELETE FROM idle_land") # 기존 데이터 초기화
         
-        # 1차 시도: 모든 데이터 DB 추가 (경계선 없어도 저장)
-        print("🚀 1차 데이터 저장 시작...")        
+        print("🚀 엑셀 데이터 저장 시작...")        
         for _, row in df.iterrows():
-            addr = row['소재지(지번)']
-            geom_data = get_parcel_geom(addr)            
+            addr = row['소재지(지번)']        
             cursor.execute("""
                 INSERT INTO idle_land (address, land_type, area, description, contact, geom) 
-                VALUES (?,?,?,?,?,?)
+                VALUES (?,?,?,?,?,NULL)
             """, (str(addr), str(row['(공부상)지목']), float(row['(공부상)면적(㎡)']), 
-                  str(row['유휴사유 상세설명']), str(row['담당자연락처']), geom_data))            
-        conn.commit()
-        
-        # 상태 확인 (실패한 건수 계산)
-        cursor.execute("SELECT COUNT(*) FROM idle_land WHERE geom IS NULL")
-        failed = cursor.fetchone()[0]
-        
-        total_count = len(df)
+                  str(row['유휴사유 상세설명']), str(row['담당자연락처'])))            
+        conn.commit()      
         conn.close()
+        
+        # 🚀 핵심: 엑셀 저장이 끝나면 백그라운드 작업으로 경계선 획득 실행
+        # 이 코드가 실행되면 서버는 클라이언트에게 즉시 응답을 보내고, 작업은 따로 수행됩니다.
+        background_tasks.add_task(update_geoms, 5)
+        
         return {
             "success": True,
-            "message": f"총 {total_count}건 중 {failed}건 경계선 획득 실패"
+            "total": len(df),
+            "message": "엑셀 데이터 입력 완료"
         }
 
     except Exception as e:

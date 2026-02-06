@@ -12,10 +12,6 @@
         button { background: #3498db; color: white; border: none; padding: 12px 25px; border-radius: 5px; cursor: pointer; font-size: 16px; width: 100%; margin-bottom: 10px; }
         button:hover { background: #2980b9; }
         
-        /* 재시도 버튼 전용 스타일 (오렌지색 계열) */
-        #retryBtn { background: #e67e22; display: none; } 
-        #retryBtn:hover { background: #d35400; }
-        
         #status { margin-top: 20px; font-size: 14px; white-space: pre-line; }
     </style>
 </head>
@@ -27,9 +23,7 @@
         
         <input type="file" id="excelFile" accept=".xlsx">
         <button onclick="handleUpload()">DB 업데이트 시작</button>
-        
-        <button id="retryBtn" onclick="handleRetry()">경계선 획득 재시도</button>
-        
+               
         <div id="status"></div>
     </div>
 
@@ -42,50 +36,25 @@
             formData.append('file', fileInput.files[0]);
 
             const status = document.getElementById('status');
-            const retryBtn = document.getElementById('retryBtn');
             
-            status.style.color = "black";
-            status.innerText = "데이터 처리 및 1차 경계선 획득 중...";
-            retryBtn.style.display = "none";
+            status.style.color = "black";            
 
             try {
-                const res = await fetch('/api/admin/upload', { method: 'POST', body: formData });
-                const result = await res.json();
-                
-                status.style.color = result.success ? "green" : "red";
-                status.innerText = result.message;
+				// --- [STEP 1: 엑셀 업로드] ---
+				status.innerText = "1단계: 엑셀 파일 입력 중...";
+				const res = await fetch('/api/admin/upload', { method: 'POST', body: formData });
+				const result = await res.json(); // result로 통일
+				
+				if (!res.ok || !result.success) throw new Error(result.message || "업로드 실패");
 
-                // 백엔드에서 넘겨준 최종 실패 건수가 0보다 크면 재시도 버튼 활성화
-                if (result.failed > 0) {
-                    retryBtn.style.display = "block";
-                }
+				// 최종 결과 표시 (백그라운드에서 돌고 있으므로 완료 문구 표시)
+				status.style.color = "green";
+				status.innerText = "✅ " + result.message;
+				alert("서버에서 데이터 처리를 시작했습니다.\n이제 이 창을 닫으셔도 작업은 중단되지 않습니다.");
+			
             } catch (e) {
                 status.style.color = "red";
                 status.innerText = "오류 발생: " + e;
-            }
-        }
-
-        async function handleRetry() {
-            const status = document.getElementById('status');
-            const retryBtn = document.getElementById('retryBtn');
-            
-            status.style.color = "black";
-            status.innerText = "경계선 데이터 재취득 시도 중...";
-
-            try {
-                const res = await fetch('/api/admin/retry', { method: 'POST' });
-                const result = await res.json();
-                
-                status.style.color = "green";
-                status.innerText = result.message;
-
-                // 더 이상 실패 건수가 없으면 버튼 숨김
-                if (result.failed === 0) {
-                    retryBtn.style.display = "none";
-                }
-            } catch (e) {
-                status.style.color = "red";
-                status.innerText = "재시도 처리 중 오류가 발생했습니다.";
             }
         }
     </script>
