@@ -21,6 +21,9 @@
         #filter-section { flex-shrink: 0; padding: 15px; background: #f8f9fa; border-bottom: 1px solid #ddd; }
         .filter-group { margin-bottom: 12px; }
         .filter-group label { display: block; font-size: 0.85em; font-weight: bold; margin-bottom: 5px; color: #555; }
+		.checkbox-group { display: flex; align-items: center; gap: 8px; margin-bottom: 15px; padding: 10px; background: #ebf5fb; border-radius: 4px; border: 1px solid #d4e6f1; }
+        .checkbox-group input { width: 18px; height: 18px; cursor: pointer; }
+        .checkbox-group label { display: inline; font-size: 0.9em; color: #2980b9; cursor: pointer; font-weight: bold; margin-bottom: 0; }
         .area-input-container { display: flex; align-items: center; gap: 5px; }
         .area-input-container input { width: 45%; padding: 8px; border: 1px solid #ccc; border-radius: 4px; font-size: 0.9em; }
         #btn-search { width: 100%; padding: 10px; background: #3498db; color: white; border: none; border-radius: 4px; cursor: pointer; font-weight: bold; margin-top: 5px; }
@@ -63,6 +66,10 @@
             <p style="margin:5px 0 0; font-size: 0.8em; opacity: 0.8;">공유재산 필지 검색 서비스</p>
         </div>
         <div id="filter-section">
+			<div class="checkbox-group">
+                <input type="checkbox" id="rent-only-filter" onchange="applyFilters()" checked>
+                <label for="rent-only-filter">사용허가/대부 불가 토지 제외</label>
+            </div>
             <div class="filter-group">
                 <label>지역명 검색 (예: 대산읍, 동문동)</label>
                 <input type="text" id="region-search" placeholder="읍/면/동 이름을 입력하세요..." 
@@ -178,19 +185,29 @@
         function loadLandData() {
             fetch('/api/lands').then(res => res.json()).then(data => {
                 originalData = data;
-                updateMapAndList(data);
+				applyFilters();
+                //updateMapAndList(data);
             });
         }
 
         function applyFilters() {
+			const isRentOnly = document.getElementById('rent-only-filter').checked;
 			const searchTerm = regionSearchInput.value.trim(); // 사용자가 입력한 텍스트
             const minArea = parseFloat(document.getElementById('min-area').value) || 0;
             const maxArea = parseFloat(document.getElementById('max-area').value) || Infinity;
 
             const filteredFeatures = originalData.features.filter(f => {
-                const matchRegion = (searchTerm === '' || f.properties.address.includes(searchTerm));
-                const matchArea = (f.properties.area >= minArea && f.properties.area <= maxArea);
-                return matchRegion && matchArea;
+				const p = f.properties;
+                const matchRegion = (searchTerm === '' || p.address.includes(searchTerm));
+                const matchArea = (p.area >= minArea && p.area <= maxArea);
+				let matchRent = true;
+				if (isRentOnly) {
+					const isAdmRentable = (p.adm_property && p.adm_property.toLowerCase() === 'o');
+					const isGenRentable = (p.gen_property && p.gen_property.startsWith('대부'));
+					matchRent = (isAdmRentable || isGenRentable);
+				}
+
+				return matchRegion && matchArea && matchRent;
             });
 
             updateMapAndList({ type: 'FeatureCollection', features: filteredFeatures });
