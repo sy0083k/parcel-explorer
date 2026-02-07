@@ -2,7 +2,7 @@
 <html lang="ko">
 <head>
     <meta charset="UTF-8">
-    <title>서산시 유휴공유재산 지도</title>
+    <title>{{ request.app.state.config.MUNICIPALITY_NAME }} 유휴공유재산 지도</title>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/openlayers/openlayers.github.io@master/en/v6.15.1/css/ol.css">
     <style>
         body { margin: 0; display: flex; height: 100vh; font-family: 'Malgun Gothic', sans-serif; overflow: hidden; }
@@ -62,7 +62,7 @@
 <body>
     <div id="sidebar">
         <div id="header">
-            <h2 style="margin:0; font-size: 1.2em;">서산시 유휴지 확인</h2>
+            <h2 style="margin:0; font-size: 1.2em;">{{ request.app.state.config.MUNICIPALITY_NAME }} 유휴지 확인</h2>
             <p style="margin:5px 0 0; font-size: 0.8em; opacity: 0.8;">공유재산 필지 검색 서비스</p>
         </div>
         <div id="filter-section">

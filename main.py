@@ -5,8 +5,9 @@ import time
 import requests
 import pandas as pd
 import secrets
+import logging
 from dotenv import load_dotenv
-from fastapi import FastAPI, Depends, HTTPException, status, UploadFile, File, Request,Form, BackgroundTasks
+from fastapi import FastAPI, Depends, HTTPException, status, UploadFile, File, Request, Form, BackgroundTasks
 from fastapi.security import HTTPBasic, HTTPBasicCredentials
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
@@ -22,6 +23,8 @@ VWORLD_KEY = os.getenv("VWORLD_KEY")
 ADMIN_ID = os.getenv("ADMIN_ID")
 ADMIN_PW = os.getenv("ADMIN_PW")
 SECRET_KEY = os.getenv("SECRET_KEY", "your-secret-key")
+raw_ips = os.getenv("ALLOWED_IPS", "127.0.0.1")
+ALLOWED_IP_PREFIXES = [ip.strip() for ip in raw_ips.split(",") if ip.strip()]
     
 # ==========================================
 # 2. DB 초기화 및 Lifespan
@@ -104,15 +107,70 @@ def update_geoms(max_retries=5):
 def is_authenticated(request: Request):
     """세션 인증 확인"""
     return request.session.get("user") == ADMIN_ID
+
+def check_internal_network(request: Request):
+    """
+    내부망 IP 접근 제어 함수
+    """
+    # 1. 클라이언트 객체 확인 (방어 코드)
+    if not request.client:
+        print("[보안 경고] 클라이언트 정보 식별 불가")
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN, 
+            detail="Client Unknown"
+        )
+
+    client_ip = request.client.host
+    
+    # 디버깅용 출력 (접속 성공 시 주석 처리 가능)
+    print(f"[접속 시도 IP] {client_ip}")
+
+    # 2. 허용 목록(ALLOWED_IP_PREFIXES)과 대조
+    # 여기서 에러가 났던 이유는 ALLOWED_IP_PREFIXES가 없었기 때문입니다.
+    is_allowed = any(client_ip.startswith(prefix) for prefix in ALLOWED_IP_PREFIXES)
+    
+    if not is_allowed:
+        print(f"[접근 차단] 허용되지 않은 IP: {client_ip}")
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN, 
+            detail="관리자 페이지는 내부 행정망에서만 접근 가능합니다."
+        )
+        
+    return True
     
 # ==========================================
 # 4. 앱 초기화 및 미들웨어 설정
 # ==========================================
 app = FastAPI(lifespan=lifespan)
+
+@app.middleware("http")
+async def add_security_headers(request: Request, call_next):
+    response = await call_next(request)
+    
+    # 1. X-Frame-Options: 클릭재킹 방지 (iframe 내 로딩 차단)
+    # admin.html이 다른 사이트의 iframe에 들어가는 것을 막습니다.
+    response.headers["X-Frame-Options"] = "DENY"
+    
+    # 2. X-Content-Type-Options: MIME 스니핑 차단
+    # 브라우저가 파일 타입을 추측하여 실행하는 것을 방지합니다.
+    response.headers["X-Content-Type-Options"] = "nosniff"
+    
+    # 3. Content-Security-Policy (CSP): XSS 방지 (기초 설정)
+    # 스크립트 소스를 현재 도메인('self')과 신뢰할 수 있는 소스(CDN 등)로 제한
+    # ※ 주의: 사용 중인 CDN 주소(OpenLayers, VWorld 등)를 포함해야 지도가 깨지지 않습니다.
+    # 아래 설정은 예시이며, 지도 서비스에 맞춰 'unsafe-inline' 등이 필요할 수 있습니다.
+    # response.headers["Content-Security-Policy"] = "default-src 'self' https://cdn.jsdelivr.net https://api.vworld.kr; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://api.vworld.kr;"
+    
+    return response
+
 app.add_middleware(SessionMiddleware, secret_key=SECRET_KEY, max_age=None, https_only=True)
 app.mount("/static", StaticFiles(directory="static"), name="static")
 templates = Jinja2Templates(directory="templates")
 
+class Config:
+    MUNICIPALITY_NAME = os.getenv("MUNICIPALITY_NAME")
+
+app.state.config = Config()
 # ==========================================
 # 5. API 엔드포인트 (Auth & Data)
 # ==========================================
@@ -154,7 +212,7 @@ async def get_lands():
         })
     return {"type": "FeatureCollection", "features": features}
     
-@app.post("/api/admin/upload")
+@app.post("/api/admin/upload", dependencies=[Depends(check_internal_network)])
 async def upload_excel(request: Request, background_tasks: BackgroundTasks, file: UploadFile = File(...)):
     if not is_authenticated(request):
         raise HTTPException(status_code=401, detail="인증이 필요합니다.")
@@ -188,18 +246,7 @@ async def upload_excel(request: Request, background_tasks: BackgroundTasks, file
 
     except Exception as e:
         return JSONResponse(status_code=500, content={"success": False, "message": str(e)})
-        
-@app.post("/api/admin/retry")
-async def manual_retry(request: Request):
-    # 1. 여기서 먼저 인증을 확인합니다.
-    if not is_authenticated(request):
-        return JSONResponse(status_code=401, content={"success": False, "message": "권한이 없습니다."})
-    
-    # 2. 인증된 경우에만 핵심 로직 함수를 호출합니다.
-    retry_count, failed = retry_failed_geoms()
-    
-    return {"success": True, "message": f"총 {retry_count}건 중 {failed}건 경계선 획득 실패"}
-        
+                
 # ==========================================
 # 6. 페이지 라우팅 (HTML)
 # ==========================================
@@ -207,12 +254,12 @@ async def manual_retry(request: Request):
 async def read_root(request: Request):
     return templates.TemplateResponse("index.html", {"request": request})
 
-@app.get("/admin/login", response_class=HTMLResponse)
+@app.get("/admin/login", response_class=HTMLResponse, dependencies=[Depends(check_internal_network)])
 async def login_page(request: Request):
     """로그인 폼 페이지"""
     return templates.TemplateResponse("login.html", {"request": request})
 
-@app.get("/admin", response_class=HTMLResponse)
+@app.get("/admin", response_class=HTMLResponse, dependencies=[Depends(check_internal_network)])
 async def admin_page(request: Request):
     """관리자 메인 페이지 (세션 체크)"""
     if not is_authenticated(request):
