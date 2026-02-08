@@ -4,7 +4,7 @@ from fastapi import FastAPI, Request
 from fastapi.responses import HTMLResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
-from app.routers import map_router
+from app.routers import auth, map_router
 
 load_dotenv()
 
@@ -30,7 +30,9 @@ class Config:
     BASE_DIR = BASE_DIR
 
 app.state.config = Config()
+app.state.templates = templates
 
+app.include_router(auth.router, tags=["Authentication"])
 app.include_router(map_router.router, prefix="/api", tags=["Map"])
 
 @app.get("/", response_class=HTMLResponse)
