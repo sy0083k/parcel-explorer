@@ -161,7 +161,12 @@ async def add_security_headers(request: Request, call_next):
     # 스크립트 소스를 현재 도메인('self')과 신뢰할 수 있는 소스(CDN 등)로 제한
     # ※ 주의: 사용 중인 CDN 주소(OpenLayers, VWorld 등)를 포함해야 지도가 깨지지 않습니다.
     # 아래 설정은 예시이며, 지도 서비스에 맞춰 'unsafe-inline' 등이 필요할 수 있습니다.
-    # response.headers["Content-Security-Policy"] = "default-src 'self' https://cdn.jsdelivr.net https://api.vworld.kr; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://api.vworld.kr;"
+    response.headers["Content-Security-Policy"] = (
+    "default-src 'self' https://cdn.jsdelivr.net https://api.vworld.kr; "
+    "script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://api.vworld.kr; "
+    "style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; "  # 이 라인을 추가하세요
+    "img-src 'self' data: https://api.vworld.kr https://xdworld.vworld.kr;" # 지도 타일 이미지를 위해 권장
+)
     
     return response
 
