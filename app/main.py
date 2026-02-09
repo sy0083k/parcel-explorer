@@ -77,4 +77,5 @@ app.include_router(map_router.router, prefix="/api", tags=["Map"])
 async def read_root(request: Request):
     return templates.TemplateResponse("index.html", {"request": request})
 
+# venv\Scripts\activate
 # uvicorn app.main:app --reload

@@ -42,7 +42,7 @@
             try {
 				// --- [STEP 1: 엑셀 업로드] ---
 				status.innerText = "1단계: 엑셀 파일 입력 중...";
-				const res = await fetch('/api/admin/upload', { method: 'POST', body: formData });
+				const res = await fetch('/admin/upload', { method: 'POST', body: formData });
 				const result = await res.json(); // result로 통일
 				
 				if (!res.ok || !result.success) throw new Error(result.message || "업로드 실패");
