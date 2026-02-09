@@ -1,5 +1,4 @@
 import os
-from dotenv import load_dotenv
 from fastapi import FastAPI, Request
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
@@ -8,11 +7,9 @@ from app.routers import map_router, auth, admin
 from starlette.middleware.sessions import SessionMiddleware
 from contextlib import asynccontextmanager
 from app.utils import init_db
+from app.core import get_settings
 
-load_dotenv()
-SECRET_KEY = os.getenv("SECRET_KEY", "your-secret-key")
-raw_ips = os.getenv("ALLOWED_IPS", "127.0.0.1")
-ALLOWED_IP_PREFIXES = [ip.strip() for ip in raw_ips.split(",") if ip.strip()]
+settings = get_settings()
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -20,7 +17,7 @@ async def lifespan(app: FastAPI):
     init_db() 
     yield
 
-app = FastAPI()
+app = FastAPI(lifespan=lifespan)
 
 @app.middleware("http")
 async def add_security_headers(request: Request, call_next):
@@ -48,23 +45,23 @@ async def add_security_headers(request: Request, call_next):
     
     return response
 
-app.add_middleware(SessionMiddleware, secret_key=SECRET_KEY, max_age=None, https_only=True)
+app.add_middleware(SessionMiddleware, secret_key=settings.secret_key, max_age=None, https_only=True)
 
-BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+BASE_DIR = settings.base_dir
 app.mount("/static", StaticFiles(directory=os.path.join(BASE_DIR, "static")), name="static")
 templates = Jinja2Templates(directory=os.path.join(BASE_DIR, "templates"))
 
 # (기존 CSP 미들웨어 및 라우트 로직들...)
 class Config:
-    APP_NAME = os.getenv("APP_NAME")
-    CENTER_LON = os.getenv("MAP_CENTER_LON", 126.4500)
-    CENTER_LAT = os.getenv("MAP_CENTER_LAT", 36.7848)
-    DEFAULT_ZOOM = os.getenv("MAP_DEFAULT_ZOOM")
-    VWORLD_KEY = os.getenv("VWORLD_KEY")
-    BASE_DIR = BASE_DIR
-    ADMIN_ID = os.getenv("ADMIN_ID")
-    ADMIN_PW_HASH = os.getenv("ADMIN_PW_HASH")
-    ALLOWED_IP_PREFIXES = ALLOWED_IP_PREFIXES
+    APP_NAME = settings.app_name
+    CENTER_LON = settings.map_center_lon
+    CENTER_LAT = settings.map_center_lat
+    DEFAULT_ZOOM = settings.map_default_zoom
+    VWORLD_KEY = settings.vworld_key
+    BASE_DIR = settings.base_dir
+    ADMIN_ID = settings.admin_id
+    ADMIN_PW_HASH = settings.admin_pw_hash
+    ALLOWED_IP_PREFIXES = settings.allowed_ip_prefixes
 
 app.state.config = Config()
 app.state.templates = templates
