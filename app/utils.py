@@ -3,15 +3,14 @@ import requests
 import json
 import time
 import os
-from dotenv import load_dotenv
-
-load_dotenv()
 VWORLD_KEY = os.getenv("VWORLD_KEY")
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
 def init_db():
     """DB 초기화 로직 (lifespan에서 호출)"""
-    conn = sqlite3.connect(os.path.join(BASE_DIR, "data/database.db"))
+    data_dir = os.path.join(BASE_DIR, "data")
+    os.makedirs(data_dir, exist_ok=True)
+    conn = sqlite3.connect(os.path.join(data_dir, "database.db"))
     cursor = conn.cursor()
     cursor.execute('''
         CREATE TABLE IF NOT EXISTS idle_land (
