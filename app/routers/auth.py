@@ -49,6 +49,17 @@ async def login(
     )
 
 
+@router.post("/admin/login", dependencies=[Depends(check_internal_network)])
+async def login_admin_alias(
+    request: Request,
+    username: str = Form(...),
+    password: str = Form(...),
+    csrf_token: str = Form(default=""),
+):
+    """/admin 경로 하위 로그인 POST를 /login과 동일 정책으로 지원."""
+    return await login(request=request, username=username, password=password, csrf_token=csrf_token)
+
+
 @router.get("/logout")
 async def logout(request: Request):
     request.session.clear()
