@@ -8,6 +8,12 @@ def is_authenticated(request: Request):
     return request.session.get("user") == config.ADMIN_ID
 
 
+def require_authenticated(request: Request) -> None:
+    """세션 인증을 강제하는 공통 의존성."""
+    if not is_authenticated(request):
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="인증이 필요합니다.")
+
+
 def check_internal_network(request: Request):
     config = request.app.state.config
     if not request.client:

@@ -3,10 +3,15 @@ import os
 import sqlite3
 
 import pandas as pd
-from fastapi import APIRouter, Request, UploadFile, File, BackgroundTasks, HTTPException, Form
+from fastapi import APIRouter, Request, UploadFile, File, BackgroundTasks, HTTPException, Form, Depends
 from fastapi.responses import JSONResponse, HTMLResponse, RedirectResponse
-
-from app.dependencies import is_authenticated, get_or_create_csrf_token, validate_csrf_token
+from app.dependencies import (
+    check_internal_network,
+    is_authenticated,
+    require_authenticated,
+    get_or_create_csrf_token,
+    validate_csrf_token,
+)
 from app.utils import update_geoms
 
 router = APIRouter()
@@ -21,20 +26,17 @@ REQUIRED_COLUMNS = [
 ]
 
 
-@router.get("/", response_class=HTMLResponse)
+@router.get("/", response_class=HTMLResponse, dependencies=[Depends(check_internal_network)])
 async def admin_root(request: Request):
-    config = request.app.state.config
-    is_login = request.session.get("user") == config.ADMIN_ID
-
-    if not is_login:
-        return RedirectResponse(url="/admin/login")
+    if not is_authenticated(request):
+        return RedirectResponse(url="/admin/login", status_code=303)
 
     templates = request.app.state.templates
     csrf_token = get_or_create_csrf_token(request)
     return templates.TemplateResponse("admin.html", {"request": request, "csrf_token": csrf_token})
 
 
-@router.post("/upload")
+@router.post("/upload", dependencies=[Depends(check_internal_network), Depends(require_authenticated)])
 async def upload_excel(
     request: Request,
     background_tasks: BackgroundTasks,
@@ -42,8 +44,6 @@ async def upload_excel(
     file: UploadFile = File(...),
 ):
     config = request.app.state.config
-    if not is_authenticated(request):
-        raise HTTPException(status_code=401, detail="인증이 필요합니다.")
 
     if not validate_csrf_token(request, csrf_token):
         raise HTTPException(status_code=403, detail="CSRF 토큰 검증에 실패했습니다.")
