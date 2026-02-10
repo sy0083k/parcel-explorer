@@ -148,13 +148,32 @@ function updateMapAndList(data) {
     map.addLayer(vectorLayer);
 
     const listArea = document.getElementById('list-container');
-    listArea.innerHTML = data.features.length ? '' : '<p style="padding:20px; color:red;">결과 없음</p>';
-    
+    listArea.replaceChildren();
+
+    if (!data.features.length) {
+        const empty = document.createElement('p');
+        empty.style.padding = '20px';
+        empty.style.color = 'red';
+        empty.textContent = '결과 없음';
+        listArea.appendChild(empty);
+    }
+
     data.features.forEach((f, idx) => {
         const item = document.createElement('div');
         item.className = 'list-item';
         item.id = `item-${idx}`;
-        item.innerHTML = `<strong>${f.properties.address}</strong><br><small>${f.properties.land_type} | ${f.properties.area}㎡</small>`;
+
+        const title = document.createElement('strong');
+        title.textContent = f.properties.address || '';
+
+        const lineBreak = document.createElement('br');
+
+        const desc = document.createElement('small');
+        desc.textContent = `${f.properties.land_type || ''} | ${f.properties.area || ''}㎡`;
+
+        item.appendChild(title);
+        item.appendChild(lineBreak);
+        item.appendChild(desc);
         item.onclick = () => selectItem(idx);
         listArea.appendChild(item);
     });
@@ -200,7 +219,21 @@ function selectItem(idx, shouldFit = true) {
 
 function showPopup(feature, coordinate) {
     const p = feature.getProperties();
-    content.innerHTML = `📍 <b>주소:</b> ${p.address}<br>📏 <b>면적:</b> ${p.area}㎡<br>📂 <b>지목:</b> ${p.land_type}<br>📞 <b>문의:</b> ${p.contact}`;
+    content.replaceChildren();
+
+    const rows = [
+        ['📍 주소', p.address],
+        ['📏 면적', `${p.area}㎡`],
+        ['📂 지목', p.land_type],
+        ['📞 문의', p.contact],
+    ];
+
+    rows.forEach(([label, value]) => {
+        const line = document.createElement('div');
+        line.textContent = `${label}: ${value || ''}`;
+        content.appendChild(line);
+    });
+
     overlay.setPosition(coordinate);
 }
 

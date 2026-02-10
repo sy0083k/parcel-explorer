@@ -74,5 +74,6 @@ app.include_router(map_router.router, prefix="/api", tags=["Map"])
 async def read_root(request: Request):
     return templates.TemplateResponse("index.html", {"request": request})
 
+# D:\2026\개인\IdlePublicProperty
 # venv\Scripts\activate
 # uvicorn app.main:app --reload
