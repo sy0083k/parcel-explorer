@@ -6,6 +6,8 @@ from fastapi import APIRouter, Request
 # APIRouter 인스턴스 생성
 router = APIRouter()
 
+PUBLIC_LAND_FIELDS = {"id", "address", "land_type", "area", "adm_property", "gen_property"}
+
 @router.get("/config")
 async def get_config(request: Request):
     """지도를 초기화하는 데 필요한 설정값 반환"""
@@ -32,6 +34,6 @@ async def get_lands(request: Request):
         features.append({
             "type": "Feature",
             "geometry": json.loads(row['geom']),
-            "properties": dict(row)
+            "properties": {key: row[key] for key in row.keys() if key in PUBLIC_LAND_FIELDS}
         })
     return {"type": "FeatureCollection", "features": features}
