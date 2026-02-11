@@ -1,5 +1,7 @@
 import os
-from fastapi import FastAPI, Request
+from fastapi import FastAPI, Request, HTTPException
+import logging
+import uuid
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from fastapi.responses import HTMLResponse
@@ -8,7 +10,12 @@ from starlette.middleware.sessions import SessionMiddleware
 from contextlib import asynccontextmanager
 from app.utils import init_db
 from app.core import get_settings
+from app.logging_utils import configure_logging, RequestIdFilter
+from app.exceptions import http_exception_handler, unhandled_exception_handler
 
+configure_logging()
+logger = logging.getLogger(__name__)
+logger.addFilter(RequestIdFilter())
 settings = get_settings()
 
 @asynccontextmanager
@@ -18,6 +25,16 @@ async def lifespan(app: FastAPI):
     yield
 
 app = FastAPI(lifespan=lifespan)
+app.add_exception_handler(HTTPException, http_exception_handler)
+app.add_exception_handler(Exception, unhandled_exception_handler)
+
+@app.middleware("http")
+async def add_request_context(request: Request, call_next):
+    request_id = request.headers.get("x-request-id") or str(uuid.uuid4())
+    request.state.request_id = request_id
+    response = await call_next(request)
+    response.headers["X-Request-ID"] = request_id
+    return response
 
 @app.middleware("http")
 async def add_security_headers(request: Request, call_next):
@@ -45,7 +62,13 @@ async def add_security_headers(request: Request, call_next):
     
     return response
 
-app.add_middleware(SessionMiddleware, secret_key=settings.secret_key, max_age=None, https_only=True)
+app.add_middleware(
+    SessionMiddleware,
+    secret_key=settings.secret_key,
+    max_age=None,
+    https_only=True,
+    same_site="lax",
+)
 
 BASE_DIR = settings.base_dir
 app.mount("/static", StaticFiles(directory=os.path.join(BASE_DIR, "static")), name="static")
@@ -62,6 +85,8 @@ class Config:
     ADMIN_ID = settings.admin_id
     ADMIN_PW_HASH = settings.admin_pw_hash
     ALLOWED_IP_PREFIXES = settings.allowed_ip_prefixes
+    MAX_UPLOAD_SIZE_MB = settings.max_upload_size_mb
+    MAX_UPLOAD_ROWS = settings.max_upload_rows
 
 app.state.config = Config()
 app.state.templates = templates
