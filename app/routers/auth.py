@@ -86,5 +86,11 @@ async def login_admin_alias(
 async def logout(request: Request):
     request.session.clear()
     response = RedirectResponse(url="/admin/login", status_code=303)
-    response.delete_cookie("session", path="/")
+    response.delete_cookie(
+        "session",
+        path="/",
+        secure=True,
+        httponly=True,
+        samesite="lax",
+    )
     return response
