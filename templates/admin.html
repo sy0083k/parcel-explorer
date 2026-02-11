@@ -2,35 +2,421 @@
 <html lang="ko">
 <head>
     <meta charset="UTF-8">
-    <title>관리자 페이지</title>
+    <title>관리자 컨트롤 패널</title>
     <style>
-        /* 기존 스타일 그대로 유지 */
-        body { font-family: 'Malgun Gothic', sans-serif; display: flex; justify-content: center; align-items: center; height: 100vh; background: #f0f2f5; margin: 0; }
-        .admin-card { background: white; padding: 40px; border-radius: 12px; box-shadow: 0 4px 20px rgba(0,0,0,0.1); text-align: center; width: 400px; }
-        h2 { color: #2c3e50; margin-bottom: 20px; }
-        input[type="file"] { margin: 20px 0; border: 1px solid #ddd; padding: 10px; width: 100%; box-sizing: border-box; }
-        button { background: #3498db; color: white; border: none; padding: 12px 25px; border-radius: 5px; cursor: pointer; font-size: 16px; width: 100%; margin-bottom: 10px; }
-        button:hover { background: #2980b9; }
-        
-        #status { margin-top: 20px; font-size: 14px; white-space: pre-line; }
+        :root {
+            --bg: #f4f6f9;
+            --sidebar: #1f2a37;
+            --sidebar-ink: #cbd5e1;
+            --sidebar-active: #111827;
+            --card: #ffffff;
+            --ink: #111827;
+            --muted: #6b7280;
+            --accent: #3b82f6;
+            --accent-weak: #e0ecff;
+            --border: #e5e7eb;
+            --shadow: 0 10px 24px rgba(15,23,42,0.08);
+            --success: #16a34a;
+        }
+        * { box-sizing: border-box; }
+        body {
+            margin: 0;
+            font-family: 'Malgun Gothic', sans-serif;
+            background: var(--bg);
+            color: var(--ink);
+        }
+        .layout {
+            display: grid;
+            grid-template-columns: 260px 1fr;
+            min-height: 100vh;
+        }
+        .sidebar {
+            background: var(--sidebar);
+            color: var(--sidebar-ink);
+            padding: 24px 20px;
+        }
+        .brand {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            font-weight: 700;
+            color: #fff;
+            margin-bottom: 24px;
+        }
+        .brand-badge {
+            width: 36px;
+            height: 36px;
+            border-radius: 10px;
+            background: linear-gradient(135deg, #2563eb, #60a5fa);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 16px;
+        }
+        .nav {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+        .nav button {
+            width: 100%;
+            text-align: left;
+            padding: 10px 12px;
+            border: 0;
+            background: transparent;
+            color: var(--sidebar-ink);
+            border-radius: 10px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+        .nav button.active {
+            background: var(--sidebar-active);
+            color: #fff;
+        }
+        .nav button span {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 22px;
+            margin-right: 8px;
+        }
+        .sidebar-footer {
+            margin-top: 24px;
+            font-size: 12px;
+            color: #94a3b8;
+        }
+        .content {
+            padding: 28px 32px 64px;
+        }
+        .topbar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 18px;
+        }
+        .title {
+            font-size: 22px;
+            font-weight: 700;
+        }
+        .logout {
+            font-size: 14px;
+            color: var(--muted);
+            text-decoration: none;
+        }
+        .alert {
+            padding: 10px 14px;
+            background: #ecfdf3;
+            border: 1px solid #abefc6;
+            color: #067647;
+            border-radius: 8px;
+            font-size: 13px;
+            margin-bottom: 18px;
+        }
+        .grid {
+            display: grid;
+            grid-template-columns: 1.2fr 1fr;
+            gap: 22px;
+        }
+        .card {
+            background: var(--card);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            padding: 22px;
+            box-shadow: var(--shadow);
+        }
+        .card h3 {
+            margin: 0 0 12px;
+            font-size: 18px;
+        }
+        .card p {
+            margin: 0 0 16px;
+            color: var(--muted);
+            font-size: 14px;
+        }
+        .badge {
+            display: inline-block;
+            padding: 4px 10px;
+            border-radius: 999px;
+            background: var(--accent-weak);
+            color: var(--accent);
+            font-size: 12px;
+            margin-left: 8px;
+        }
+        .field {
+            margin-bottom: 12px;
+        }
+        .field label {
+            display: block;
+            font-size: 12px;
+            color: var(--muted);
+            margin-bottom: 6px;
+        }
+        input[type="text"], input[type="number"], input[type="password"], select {
+            width: 100%;
+            padding: 10px 12px;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            font-size: 14px;
+        }
+        .row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+        }
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            padding: 14px 18px;
+            border-radius: 8px;
+            border: 0;
+            font-size: 15px;
+            cursor: pointer;
+            background: var(--accent);
+            color: #fff;
+            width: 100%;
+        }
+        .btn-secondary {
+            background: #111827;
+        }
+        .hint {
+            font-size: 12px;
+            color: var(--muted);
+            margin-top: 8px;
+        }
+        #status {
+            margin-top: 12px;
+            font-size: 14px;
+            white-space: pre-line;
+        }
+        .upload-stack {
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+        .file-input {
+            padding: 12px;
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            background: #f9fafb;
+        }
+        .btn.upload-btn {
+            padding: 16px 18px;
+            font-size: 16px;
+            border-radius: 10px;
+            box-shadow: 0 8px 16px rgba(59,130,246,0.18);
+        }
+        .panel {
+            display: none;
+        }
+        .panel.active {
+            display: block;
+        }
+        .status-pill {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 12px;
+            color: var(--success);
+            background: #ecfdf3;
+            border: 1px solid #abefc6;
+            padding: 4px 8px;
+            border-radius: 999px;
+        }
+        @media (max-width: 1024px) {
+            .layout { grid-template-columns: 1fr; }
+            .sidebar { position: sticky; top: 0; }
+            .grid { grid-template-columns: 1fr; }
+        }
     </style>
 </head>
 <body>
-    <div class="admin-card">
-        <div style="text-align: right;"><a href="/logout" style="font-size: 12px; color: #666;">로그아웃</a></div>
-        <h2>📊 관리자 페이지</h2>
-        <p>최신 유휴재산 엑셀 파일을 업로드하세요.</p>
-        
-        <input type="hidden" id="csrfToken" value="{{ csrf_token }}">
-        <input type="file" id="excelFile" accept=".xlsx">
-        <button onclick="handleUpload()">DB 업데이트 시작</button>
-               
-        <div id="status"></div>
+    <div class="layout">
+        <aside class="sidebar">
+            <div class="brand">
+                <div class="brand-badge">CP</div>
+                <div>Control Panel</div>
+            </div>
+            <div class="nav">
+                <button class="active" data-tab="upload"><span>⬆️</span>데이터 업로드</button>
+                <button data-tab="settings"><span>⚙️</span>환경 변수 설정</button>
+                <button data-tab="password"><span>🔒</span>비밀번호 변경</button>
+            </div>
+            <div class="sidebar-footer">
+                <div>AdminLTE 스타일 참고</div>
+                <div>서산시 유휴공유재산</div>
+            </div>
+        </aside>
+
+        <main class="content">
+            <div class="topbar">
+                <div class="title">관리자 컨트롤 패널</div>
+                <a class="logout" href="/logout">로그아웃</a>
+            </div>
+
+            {% if updated %}
+            <div class="alert">설정이 저장되었습니다. 변경 사항은 서버 재시작 후 적용됩니다.</div>
+            {% endif %}
+
+            <input type="hidden" id="csrfToken" value="{{ csrf_token }}">
+
+            <section class="panel active" id="panel-upload">
+                <div class="grid">
+                    <div class="card">
+                        <h3>데이터 업로드<span class="badge">DB 갱신</span></h3>
+                        <p>최신 유휴재산 엑셀 파일을 업로드하세요.</p>
+
+                        <div class="upload-stack">
+                            <input class="file-input" type="file" id="excelFile" accept=".xlsx">
+                            <button class="btn upload-btn" onclick="handleUpload()">DB 업데이트 시작</button>
+                        </div>
+
+                        <div id="status"></div>
+                        <div class="hint">업로드 후 지오메트리 보강 작업이 백그라운드에서 실행됩니다.</div>
+                    </div>
+                    <div class="card">
+                        <h3>작업 상태</h3>
+                        <p>업로드 결과 및 상태를 확인하세요.</p>
+                        <div class="status-pill">READY</div>
+                        <div class="hint">주소 포맷 오류나 VWorld API 실패 시 일부 지오메트리가 누락될 수 있습니다.</div>
+                    </div>
+                </div>
+            </section>
+
+            <section class="panel" id="panel-settings">
+                <div class="grid">
+                    <div class="card">
+                        <h3>환경 변수 설정<span class="badge">재시작 필요</span></h3>
+                        <p>운영 설정을 수정합니다. 저장 후 서버를 재시작해야 적용됩니다.</p>
+
+                        <form method="post" action="/admin/settings" onsubmit="return validateSettingsForm();">
+                            <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+
+                            <div class="field">
+                                <label>브이월드 WMTS 키</label>
+                                <input type="text" name="vworld_wmts_key" value="{{ settings['VWORLD_WMTS_KEY'] }}">
+                            </div>
+                            <div class="field">
+                                <label>브이월드 Geocoder 키</label>
+                                <input type="text" name="vworld_geocoder_key" value="{{ settings['VWORLD_GEOCODER_KEY'] }}">
+                            </div>
+                            <div class="field">
+                                <label>관리자 접속이 허용된 IP</label>
+                                <input type="text" name="allowed_ips" value="{{ settings['ALLOWED_IPS'] }}">
+                            </div>
+
+                            <div class="row">
+                                <div class="field">
+                                    <label>MAX_UPLOAD_SIZE_MB</label>
+                                    <input type="number" name="max_upload_size_mb" value="{{ settings['MAX_UPLOAD_SIZE_MB'] }}">
+                                </div>
+                                <div class="field">
+                                    <label>MAX_UPLOAD_ROWS</label>
+                                    <input type="number" name="max_upload_rows" value="{{ settings['MAX_UPLOAD_ROWS'] }}">
+                                </div>
+                            </div>
+
+                            <div class="row">
+                                <div class="field">
+                                    <label>LOGIN_MAX_ATTEMPTS</label>
+                                    <input type="number" name="login_max_attempts" value="{{ settings['LOGIN_MAX_ATTEMPTS'] }}">
+                                </div>
+                                <div class="field">
+                                    <label>LOGIN_COOLDOWN_SECONDS</label>
+                                    <input type="number" name="login_cooldown_seconds" value="{{ settings['LOGIN_COOLDOWN_SECONDS'] }}">
+                                </div>
+                            </div>
+
+                            <div class="row">
+                                <div class="field">
+                                    <label>VWORLD_TIMEOUT_S</label>
+                                    <input type="number" step="0.1" name="vworld_timeout_s" value="{{ settings['VWORLD_TIMEOUT_S'] }}">
+                                </div>
+                                <div class="field">
+                                    <label>VWORLD_RETRIES</label>
+                                    <input type="number" name="vworld_retries" value="{{ settings['VWORLD_RETRIES'] }}">
+                                </div>
+                            </div>
+
+                            <div class="row">
+                                <div class="field">
+                                    <label>VWORLD_BACKOFF_S</label>
+                                    <input type="number" step="0.1" name="vworld_backoff_s" value="{{ settings['VWORLD_BACKOFF_S'] }}">
+                                </div>
+                                <div class="field">
+                                    <label>SESSION_HTTPS_ONLY</label>
+                                    <select name="session_https_only">
+                                        <option value="true" {% if settings['SESSION_HTTPS_ONLY'] == 'true' %}selected{% endif %}>true</option>
+                                        <option value="false" {% if settings['SESSION_HTTPS_ONLY'] == 'false' %}selected{% endif %}>false</option>
+                                    </select>
+                                </div>
+                            </div>
+
+                            <div class="field">
+                                <label>관리자 비밀번호 확인</label>
+                                <input type="password" name="settings_password" autocomplete="current-password" placeholder="변경 사항 저장을 위해 비밀번호 입력" required>
+                            </div>
+
+                            <button class="btn btn-secondary" type="submit">설정 저장</button>
+                            <div class="hint">SECRET_KEY, ADMIN_ID는 별도로 관리됩니다.</div>
+                        </form>
+                    </div>
+
+                </div>
+            </section>
+
+            <section class="panel" id="panel-password">
+                <div class="grid">
+                    <div class="card">
+                        <h3>비밀번호 변경<span class="badge">재시작 필요</span></h3>
+                        <p>관리자 비밀번호를 변경합니다. 저장 후 서버를 재시작해야 적용됩니다.</p>
+                        <form method="post" action="/admin/password">
+                            <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+                            <div class="field">
+                                <label>현재 비밀번호</label>
+                                <input type="password" name="current_password" autocomplete="current-password">
+                            </div>
+                            <div class="field">
+                                <label>새 비밀번호</label>
+                                <input type="password" name="new_password" autocomplete="new-password">
+                            </div>
+                            <div class="field">
+                                <label>새 비밀번호 확인</label>
+                                <input type="password" name="new_password_confirm" autocomplete="new-password">
+                            </div>
+                            <button class="btn" type="submit">비밀번호 변경</button>
+                            <div class="hint">최소 8자 이상을 권장합니다.</div>
+                        </form>
+                    </div>
+                    <div class="card">
+                        <h3>보안 안내</h3>
+                        <p>강력한 비밀번호를 사용하고 정기적으로 변경하세요.</p>
+                        <div class="hint">비밀번호 변경 후 재시작이 필요합니다.</div>
+                    </div>
+                </div>
+            </section>
+        </main>
     </div>
 
 	<script>
         const csrfToken = document.getElementById('csrfToken').value;
-        
+        const tabs = document.querySelectorAll('.nav button');
+        const panels = {
+            upload: document.getElementById('panel-upload'),
+            settings: document.getElementById('panel-settings'),
+            password: document.getElementById('panel-password'),
+        };
+
+        tabs.forEach((tab) => {
+            tab.addEventListener('click', () => {
+                tabs.forEach((t) => t.classList.remove('active'));
+                tab.classList.add('active');
+                const name = tab.dataset.tab;
+                Object.values(panels).forEach((panel) => panel.classList.remove('active'));
+                panels[name].classList.add('active');
+            });
+        });
+
         async function handleUpload() {
             const fileInput = document.getElementById('excelFile');
             if (!fileInput.files[0]) return alert("파일을 선택해주세요.");
@@ -40,26 +426,32 @@
             formData.append('csrf_token', csrfToken);
 
             const status = document.getElementById('status');
-            
-            status.style.color = "black";            
+            status.style.color = "black";
 
             try {
-				// --- [STEP 1: 엑셀 업로드] ---
 				status.innerText = "1단계: 엑셀 파일 입력 중...";
 				const res = await fetch('/admin/upload', { method: 'POST', body: formData });
-				const result = await res.json(); // result로 통일
-				
+				const result = await res.json();
+
 				if (!res.ok || !result.success) throw new Error(result.message || "업로드 실패");
 
-				// 최종 결과 표시 (백그라운드에서 돌고 있으므로 완료 문구 표시)
 				status.style.color = "green";
 				status.innerText = "✅ " + result.message;
 				alert("서버에서 데이터 처리를 시작했습니다.\n이제 이 창을 닫으셔도 작업은 중단되지 않습니다.");
-			
+
             } catch (e) {
                 status.style.color = "red";
                 status.innerText = "오류 발생: " + e;
             }
+        }
+
+        function validateSettingsForm() {
+            const input = document.querySelector('input[name="settings_password"]');
+            if (!input || !input.value.trim()) {
+                alert("환경 변수 저장을 위해 관리자 비밀번호를 입력해주세요.");
+                return false;
+            }
+            return true;
         }
     </script>
 </body>
