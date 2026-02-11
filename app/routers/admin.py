@@ -1,6 +1,7 @@
 # app/routers/admin.py
 import os
 import sqlite3
+import logging
 
 import pandas as pd
 from fastapi import APIRouter, Request, UploadFile, File, BackgroundTasks, HTTPException, Form, Depends
@@ -13,8 +14,11 @@ from app.dependencies import (
     validate_csrf_token,
 )
 from app.utils import update_geoms
+from app.logging_utils import RequestIdFilter
 
 router = APIRouter()
+logger = logging.getLogger(__name__)
+logger.addFilter(RequestIdFilter())
 
 REQUIRED_COLUMNS = [
     "소재지(지번)",
@@ -48,10 +52,23 @@ async def upload_excel(
     if not validate_csrf_token(request, csrf_token):
         raise HTTPException(status_code=403, detail="CSRF 토큰 검증에 실패했습니다.")
 
+    request_id = getattr(request.state, "request_id", "-")
     filename = (file.filename or "").lower()
     content_type = (file.content_type or "").lower()
     if not filename.endswith((".xlsx", ".xls")):
+        logger.warning("upload rejected: invalid extension", extra={"request_id": request_id})
         raise HTTPException(status_code=400, detail="엑셀 파일(.xlsx, .xls)만 업로드 가능합니다.")
+
+    file.file.seek(0, os.SEEK_END)
+    file_size = file.file.tell()
+    file.file.seek(0)
+    max_size_bytes = int(config.MAX_UPLOAD_SIZE_MB) * 1024 * 1024
+    if file_size > max_size_bytes:
+        logger.warning("upload rejected: file too large (%s bytes)", file_size, extra={"request_id": request_id})
+        raise HTTPException(
+            status_code=400,
+            detail=f"파일 용량 제한({config.MAX_UPLOAD_SIZE_MB}MB)을 초과했습니다.",
+        )
 
     allowed_content_types = {
         "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
@@ -66,7 +83,15 @@ async def upload_excel(
 
         missing = [col for col in REQUIRED_COLUMNS if col not in df.columns]
         if missing:
+            logger.warning("upload rejected: required columns missing", extra={"request_id": request_id})
             raise HTTPException(status_code=400, detail=f"필수 컬럼 누락: {', '.join(missing)}")
+
+        if len(df) > int(config.MAX_UPLOAD_ROWS):
+            logger.warning("upload rejected: row count exceeded (%s)", len(df), extra={"request_id": request_id})
+            raise HTTPException(
+                status_code=400,
+                detail=f"최대 업로드 행 수({config.MAX_UPLOAD_ROWS})를 초과했습니다.",
+            )
 
         conn = sqlite3.connect(os.path.join(config.BASE_DIR, "data/database.db"))
         cursor = conn.cursor()
@@ -96,11 +121,13 @@ async def upload_excel(
 
         background_tasks.add_task(update_geoms, 5)
 
+        logger.info("upload accepted: %s rows", len(df), extra={"request_id": request_id})
         return {"success": True, "total": len(df), "message": "엑셀 데이터 입력 완료"}
 
     except HTTPException:
         raise
     except Exception:
+        logger.exception("upload processing failed", extra={"request_id": request_id})
         return JSONResponse(
             status_code=500,
             content={"success": False, "message": "업로드 처리 중 오류가 발생했습니다."},
