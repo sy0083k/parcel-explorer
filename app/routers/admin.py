@@ -4,9 +4,10 @@ import sqlite3
 
 import pandas as pd
 from fastapi import APIRouter, Request, UploadFile, File, BackgroundTasks, HTTPException, Form, Depends
-from fastapi.responses import JSONResponse, HTMLResponse
+from fastapi.responses import JSONResponse, HTMLResponse, RedirectResponse
 from app.dependencies import (
     check_internal_network,
+    is_authenticated,
     require_authenticated,
     get_or_create_csrf_token,
     validate_csrf_token,
@@ -25,8 +26,11 @@ REQUIRED_COLUMNS = [
 ]
 
 
-@router.get("/", response_class=HTMLResponse, dependencies=[Depends(check_internal_network), Depends(require_authenticated)])
+@router.get("/", response_class=HTMLResponse, dependencies=[Depends(check_internal_network)])
 async def admin_root(request: Request):
+    if not is_authenticated(request):
+        return RedirectResponse(url="/admin/login", status_code=303)
+
     templates = request.app.state.templates
     csrf_token = get_or_create_csrf_token(request)
     return templates.TemplateResponse("admin.html", {"request": request, "csrf_token": csrf_token})
