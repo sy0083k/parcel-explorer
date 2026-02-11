@@ -1,5 +1,14 @@
 import os
-from fastapi import FastAPI, Request
+import sys
+from pathlib import Path
+
+ROOT_DIR = Path(__file__).resolve().parents[1]
+if str(ROOT_DIR) not in sys.path:
+    sys.path.insert(0, str(ROOT_DIR))
+
+from fastapi import FastAPI, Request, HTTPException
+import logging
+import uuid
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from fastapi.responses import HTMLResponse
@@ -8,7 +17,53 @@ from starlette.middleware.sessions import SessionMiddleware
 from contextlib import asynccontextmanager
 from app.utils import init_db
 from app.core import get_settings
+from app.logging_utils import configure_logging, RequestIdFilter
+from app.exceptions import http_exception_handler, unhandled_exception_handler
+class LoginAttemptLimiter:
+    """In-memory login attempt limiter with cooldown window."""
 
+    def __init__(self, max_attempts: int, cooldown_seconds: int):
+        import threading
+        import time
+
+        self._time = time
+        self.max_attempts = max_attempts
+        self.cooldown_seconds = cooldown_seconds
+        self._attempts: dict[str, list[float]] = {}
+        self._blocked_until: dict[str, float] = {}
+        self._lock = threading.Lock()
+
+    def _cleanup(self, key: str, now: float) -> None:
+        window_start = now - self.cooldown_seconds
+        self._attempts[key] = [ts for ts in self._attempts.get(key, []) if ts >= window_start]
+
+    def is_blocked(self, key: str) -> bool:
+        now = self._time.time()
+        with self._lock:
+            blocked_until = self._blocked_until.get(key)
+            if blocked_until and blocked_until > now:
+                return True
+            if blocked_until and blocked_until <= now:
+                self._blocked_until.pop(key, None)
+            return False
+
+    def register_failure(self, key: str) -> None:
+        now = self._time.time()
+        with self._lock:
+            self._cleanup(key, now)
+            self._attempts.setdefault(key, []).append(now)
+            if len(self._attempts[key]) >= self.max_attempts:
+                self._blocked_until[key] = now + self.cooldown_seconds
+                self._attempts[key] = []
+
+    def reset(self, key: str) -> None:
+        with self._lock:
+            self._attempts.pop(key, None)
+            self._blocked_until.pop(key, None)
+
+configure_logging()
+logger = logging.getLogger(__name__)
+logger.addFilter(RequestIdFilter())
 settings = get_settings()
 
 @asynccontextmanager
@@ -18,6 +73,16 @@ async def lifespan(app: FastAPI):
     yield
 
 app = FastAPI(lifespan=lifespan)
+app.add_exception_handler(HTTPException, http_exception_handler)
+app.add_exception_handler(Exception, unhandled_exception_handler)
+
+@app.middleware("http")
+async def add_request_context(request: Request, call_next):
+    request_id = request.headers.get("x-request-id") or str(uuid.uuid4())
+    request.state.request_id = request_id
+    response = await call_next(request)
+    response.headers["X-Request-ID"] = request_id
+    return response
 
 @app.middleware("http")
 async def add_security_headers(request: Request, call_next):
@@ -45,7 +110,13 @@ async def add_security_headers(request: Request, call_next):
     
     return response
 
-app.add_middleware(SessionMiddleware, secret_key=settings.secret_key, max_age=None, https_only=True)
+app.add_middleware(
+    SessionMiddleware,
+    secret_key=settings.secret_key,
+    max_age=None,
+    https_only=True,
+    same_site="lax",
+)
 
 BASE_DIR = settings.base_dir
 app.mount("/static", StaticFiles(directory=os.path.join(BASE_DIR, "static")), name="static")
@@ -62,9 +133,20 @@ class Config:
     ADMIN_ID = settings.admin_id
     ADMIN_PW_HASH = settings.admin_pw_hash
     ALLOWED_IP_PREFIXES = settings.allowed_ip_prefixes
+    MAX_UPLOAD_SIZE_MB = settings.max_upload_size_mb
+    MAX_UPLOAD_ROWS = settings.max_upload_rows
+    LOGIN_MAX_ATTEMPTS = settings.login_max_attempts
+    LOGIN_COOLDOWN_SECONDS = settings.login_cooldown_seconds
+    VWORLD_TIMEOUT_S = settings.vworld_timeout_s
+    VWORLD_RETRIES = settings.vworld_retries
+    VWORLD_BACKOFF_S = settings.vworld_backoff_s
 
 app.state.config = Config()
 app.state.templates = templates
+app.state.login_limiter = LoginAttemptLimiter(
+    max_attempts=settings.login_max_attempts,
+    cooldown_seconds=settings.login_cooldown_seconds,
+)
 
 app.include_router(auth.router, tags=["Authentication"])
 app.include_router(admin.router, prefix="/admin", tags=["Admin"])

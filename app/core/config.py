@@ -19,6 +19,13 @@ class Settings:
     admin_pw_hash: str
     secret_key: str
     allowed_ip_prefixes: tuple[str, ...]
+    max_upload_size_mb: int
+    max_upload_rows: int
+    login_max_attempts: int
+    login_cooldown_seconds: int
+    vworld_timeout_s: float
+    vworld_retries: int
+    vworld_backoff_s: float
     base_dir: str
 
 
@@ -76,5 +83,12 @@ def get_settings() -> Settings:
         admin_pw_hash=_get_required_env("ADMIN_PW_HASH"),
         secret_key=_get_required_env("SECRET_KEY"),
         allowed_ip_prefixes=_parse_allowed_ips(os.getenv("ALLOWED_IPS", "127.0.0.1")),
+        max_upload_size_mb=int(os.getenv("MAX_UPLOAD_SIZE_MB", "10")),
+        max_upload_rows=int(os.getenv("MAX_UPLOAD_ROWS", "5000")),
+        login_max_attempts=int(os.getenv("LOGIN_MAX_ATTEMPTS", "5")),
+        login_cooldown_seconds=int(os.getenv("LOGIN_COOLDOWN_SECONDS", "300")),
+        vworld_timeout_s=float(os.getenv("VWORLD_TIMEOUT_S", "5.0")),
+        vworld_retries=int(os.getenv("VWORLD_RETRIES", "3")),
+        vworld_backoff_s=float(os.getenv("VWORLD_BACKOFF_S", "0.5")),
         base_dir=str(base_dir),
     )
