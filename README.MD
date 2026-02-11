@@ -40,8 +40,8 @@
 
 ### 1단계: 필수 소프트웨어 설치
 
-1. **Python 설치:** [python.org](https://www.python.org/)에서 최신 버전을 설치합니다. (설치 시 'Add Python to PATH' 체크 필수)
-2. **V-World API 키 발급:** [브이월드 오픈API 마켓](https://www.google.com/search?q=https://www.vworld.kr/dev/vkey99.do)에서 인증키를 발급받습니다.
+1. **Python 설치:** `https://www.python.org/`에서 최신 버전을 설치합니다. (설치 시 'Add Python to PATH' 체크 필수)
+2. **V-World API 키 발급:** `https://www.vworld.kr/`에서 인증키를 발급받습니다.
 
 ### 2단계: 프로젝트 설정
 
@@ -75,6 +75,8 @@ uvicorn app.main:app --reload
 
 서버가 실행되면 웹 브라우저 주소창에 `http://127.0.0.1:8000`을 입력합니다.
 
+API 버전 스캐폴딩은 `/api`와 동일 응답을 제공하는 `/api/v1` 경로를 추가로 제공합니다.
+
 ### 5단계: 관리자 기능 사용
 
 1. `http://127.0.0.1:8000/admin/login`으로 접속합니다.
@@ -92,7 +94,12 @@ project-root/
 │  requirements.txt   # Python 의존성 목록
 │
 ├─app/
-│  └─main.py          # FastAPI 엔트리포인트
+│  ├─main.py          # FastAPI 엔트리포인트
+│  ├─routers/         # 라우터 (얇은 컨트롤러)
+│  ├─services/        # 서비스 계층
+│  ├─repositories/    # DB 접근 계층
+│  ├─clients/         # 외부 API 클라이언트
+│  └─validators/      # 업로드 검증/정규화
 │
 ├─data/
 │  └─database.db      # 데이터 저장소 (자동 생성)
@@ -102,8 +109,16 @@ project-root/
 │      login.html     # 로그인 화면
 │      admin.html     # 관리자 업로드 화면
 │
-└─static/             # CSS, 이미지 등 (필요 시)
+└─static/             # CSS, 이미지 등
 ```
+
+---
+
+## 📚 6. 문서
+
+- 아키텍처/흐름: `docs/architecture.md`
+- 보안(STRIDE-lite): `docs/stride-lite.md`
+- 유지보수: `docs/maintenance.md`
 
 ---
 
