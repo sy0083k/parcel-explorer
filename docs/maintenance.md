@@ -38,6 +38,15 @@
 4. `data/database.db` 파일 권한 확인
 5. `/api/config` 및 `/api/lands` 응답 정상 확인
 
+## CI/테스트 명령
+- `python -m compileall -q app tests`
+- `pytest -q`
+- `coverage run -m pytest`
+- `coverage report -m`
+
+### 선택 실행
+- HTTP E2E 스모크: `RUN_HTTP_E2E=1 pytest -q tests/test_e2e_smoke.py`
+
 ## 장애 대응
 ### 로그인 실패/차단 급증
 - `LOGIN_MAX_ATTEMPTS`, `LOGIN_COOLDOWN_SECONDS` 점검

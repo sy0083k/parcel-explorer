@@ -198,6 +198,78 @@
 ### 목표
 - [ ] 라우터-서비스-리포지토리 계층 분리 완료
 - [ ] 브이월드 연동과 주소/데이터 정규화 모듈 재사용화
+
+
+## 12) Phase 4 설계 (1~2주): 테스트/검증
+
+### 목적
+- 핵심 기능의 회귀 방지와 보안/운영 리스크 감소를 위한 테스트 체계 확립
+- 기능 확장 시 안정적인 배포를 보장하는 품질 게이트 정착
+
+### 범위
+- 단위 테스트: validators, services, repositories
+- 통합 테스트: FastAPI ASGI 앱 + sqlite 테스트 DB
+- 보안 회귀 테스트: CSRF, 내부망 제한, 인증 실패 처리
+- E2E 스모크: 로그인 → 업로드 → 지도 조회
+
+### 산출물
+- 테스트 스위트 확장
+  - `tests/test_validators.py`
+  - `tests/test_services.py`
+  - `tests/test_repositories.py`
+  - `tests/test_security_regression.py`
+  - `tests/test_e2e_smoke.py`
+- 테스트 실행 가이드 및 실패 대응 문서
+- 커버리지 리포트 기준 합의(예: 전체 70%+)
+
+### 테스트 설계(요약)
+- Validators
+  - 필수 컬럼 누락 감지
+  - 면적 파싱 실패/결측 처리
+  - 에러 리포트 상한(MAX_ERROR_REPORT) 확인
+- Services
+  - 로그인 성공/실패/차단 흐름
+  - 업로드 성공/실패/행 제한 검증
+  - 지도 GeoJSON 반환 형식 확인
+- Repositories
+  - 삽입/삭제/조회/업데이트 경로
+  - `geom` 누락 집계 정확성
+- Security regression
+  - CSRF 누락 시 403
+  - 내부망 이외 접근 시 403
+  - 인증 없이 업로드 시 401
+- E2E smoke
+  - 로그인 → 업로드 → `/api/lands`에 데이터 반영 확인
+
+### 품질 게이트
+- `python -m compileall -q app tests`
+- `pytest -q`
+- 커버리지 기준 충족 시 통과
+
+### 리스크/대응
+- 외부 API 의존 테스트 불안정
+  - VWorld 호출은 테스트에서 mock 처리
+- TestClient hang
+  - `httpx.AsyncClient` + `ASGITransport` 사용 유지
+
+### 완료 기준(DoD)
+- 테스트 스위트 확장 항목 80% 이상 구현
+- 보안 회귀 테스트 5개 이상 추가
+- 스모크 테스트 1개 이상 자동화
+
+### 작업 목록(체크리스트)
+- [ ] 테스트 실행 환경 정리
+- [ ] 테스트 전용 환경변수/헬퍼 추가(`tests/helpers.py`)
+- [ ] sqlite 테스트 DB 생성/정리 유틸 추가
+- [ ] httpx ASGI 테스트 클라이언트 공통 픽스처
+- [ ] validators 단위 테스트 작성
+- [ ] services 단위 테스트 작성
+- [ ] repositories 단위 테스트 작성
+- [ ] 보안 회귀 테스트 추가(최소 5개)
+- [ ] E2E 스모크 테스트 추가(로그인→업로드→지도 조회)
+- [ ] VWorld 호출 mock/fixture 추가
+- [ ] 커버리지 기준 문서화 및 목표 수치 확정
+- [ ] CI 명령어 정리(compileall, pytest, coverage)
 - [ ] 기존 API 동작/응답 호환성 유지
 
 ### PR-1: Foundation and Contracts (Week 1)

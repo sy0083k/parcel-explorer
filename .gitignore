@@ -28,4 +28,4 @@ htmlcov/
 *.log
 
 # Windows Zone Identifier (NTFS ADS)
-*:Zone.Identifier
+*Zone.Identifier
