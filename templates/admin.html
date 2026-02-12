@@ -163,7 +163,9 @@
             grid-template-columns: 1fr 1fr;
             gap: 12px;
         }
-        .btn {
+        .btn,
+        .btn-secondary,
+        .btn.upload-btn {
             display: inline-flex;
             align-items: center;
             justify-content: center;
@@ -175,9 +177,7 @@
             background: var(--accent);
             color: #fff;
             width: 100%;
-        }
-        .btn-secondary {
-            background: #111827;
+            box-shadow: none;
         }
         .hint {
             font-size: 12px;
@@ -199,12 +199,6 @@
             border: 1px solid var(--border);
             border-radius: 10px;
             background: #f9fafb;
-        }
-        .btn.upload-btn {
-            padding: 16px 18px;
-            font-size: 16px;
-            border-radius: 10px;
-            box-shadow: 0 8px 16px rgba(59,130,246,0.18);
         }
         .panel {
             display: none;
@@ -293,11 +287,11 @@
                             <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
 
                             <div class="field">
-                                <label>브이월드 WMTS 키</label>
+                                <label>브이월드 API 키(WMTS)</label>
                                 <input type="text" name="vworld_wmts_key" value="{{ settings['VWORLD_WMTS_KEY'] }}">
                             </div>
                             <div class="field">
-                                <label>브이월드 Geocoder 키</label>
+                                <label>브이월드 API 키(Geocoder)</label>
                                 <input type="text" name="vworld_geocoder_key" value="{{ settings['VWORLD_GEOCODER_KEY'] }}">
                             </div>
                             <div class="field">
