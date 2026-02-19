@@ -67,7 +67,8 @@ def handle_excel_upload(
             },
         )
         requested_sheet = config.UPLOAD_SHEET_NAME
-        excel_book = pd.ExcelFile(file.file)
+        excel_engine = "xlrd" if filename.endswith(".xls") else "openpyxl"
+        excel_book = pd.ExcelFile(file.file, engine=excel_engine)
         if requested_sheet in excel_book.sheet_names:
             df = pd.read_excel(excel_book, sheet_name=requested_sheet)
         else:

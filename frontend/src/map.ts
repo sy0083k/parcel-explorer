@@ -72,6 +72,10 @@ const snapHeights = {
   expanded: 0.85
 };
 
+function asVectorFeature(feature: unknown): Feature<Geometry> | null {
+  return feature instanceof Feature ? feature : null;
+}
+
 function setListStatus(message: string, color = "#999"): void {
   const listArea = document.getElementById("list-container");
   if (!listArea) {
@@ -114,12 +118,13 @@ function initMap(key: string, center: [number, number], zoom: number): void {
       return;
     }
     const clickedFeature = map.forEachFeatureAtPixel(evt.pixel, (item) => item);
-    if (clickedFeature) {
-      const idx = clickedFeature.getId();
+    const feature = asVectorFeature(clickedFeature);
+    if (feature) {
+      const idx = feature.getId();
       if (idx !== undefined) {
         selectItem(Number(idx), false);
       }
-      showPopup(clickedFeature, evt.coordinate as number[], true);
+      showPopup(feature, evt.coordinate as number[], true);
     } else {
       overlay?.setPosition(undefined);
     }
@@ -132,7 +137,8 @@ function changeLayer(type: BaseType): void {
   }
 
   const view = map.getView();
-  if (view.getZoom() >= 20) {
+  const zoomLevel = view.getZoom();
+  if (typeof zoomLevel === "number" && zoomLevel >= 20) {
     view.setZoom(19);
   }
 
@@ -294,7 +300,8 @@ function selectItem(idx: number, shouldFit = true): void {
             center: focusCoord,
             duration: 300
           });
-          if (view.getZoom() < 19) {
+          const zoomLevel = view.getZoom();
+          if (typeof zoomLevel === "number" && zoomLevel < 19) {
             view.setZoom(19);
           }
         } else {

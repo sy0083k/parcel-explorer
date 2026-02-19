@@ -69,6 +69,9 @@ async def update_settings(
     vworld_retries: str = Form(default=""),
     vworld_backoff_s: str = Form(default=""),
     session_https_only: str = Form(default=""),
+    trust_proxy_headers: str = Form(default=""),
+    trusted_proxy_ips: str = Form(default=""),
+    upload_sheet_name: str = Form(default=""),
 ):
     if not validate_csrf_token(request, csrf_token):
         raise HTTPException(status_code=403, detail="CSRF 토큰 검증에 실패했습니다.")
@@ -93,6 +96,9 @@ async def update_settings(
         "VWORLD_RETRIES": vworld_retries,
         "VWORLD_BACKOFF_S": vworld_backoff_s,
         "SESSION_HTTPS_ONLY": session_https_only,
+        "TRUST_PROXY_HEADERS": trust_proxy_headers,
+        "TRUSTED_PROXY_IPS": trusted_proxy_ips,
+        "UPLOAD_SHEET_NAME": upload_sheet_name,
     }
 
     try:

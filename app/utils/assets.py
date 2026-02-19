@@ -14,12 +14,6 @@ class ViteAssetBundle(TypedDict):
     js: str
     css: list[str]
 
-LEGACY_ENTRY_MAP: dict[str, str] = {
-    "src/map.ts": "/static/js/map.js",
-    "src/admin.ts": "/static/js/admin.js",
-    "src/login.ts": "/static/js/login.js",
-}
-
 
 def _manifest_candidates(base_dir: str) -> tuple[Path, ...]:
     root = Path(base_dir)
@@ -48,21 +42,15 @@ def _resolve_entry(manifest: dict[str, ViteManifestEntry], entry: str) -> ViteMa
 
 
 def vite_assets(entry: str, base_dir: str) -> ViteAssetBundle:
-    try:
-        manifest = _load_manifest(base_dir)
-        item = _resolve_entry(manifest, entry)
+    manifest = _load_manifest(base_dir)
+    item = _resolve_entry(manifest, entry)
 
-        js_file = item.get("file")
-        if not js_file:
-            raise KeyError(f"Manifest entry '{entry}' does not contain a JS file.")
+    js_file = item.get("file")
+    if not js_file:
+        raise KeyError(f"Manifest entry '{entry}' does not contain a JS file.")
 
-        css_files = item.get("css", [])
-        return {
-            "js": f"/static/dist/{js_file}",
-            "css": [f"/static/dist/{css_file}" for css_file in css_files],
-        }
-    except (FileNotFoundError, KeyError, json.JSONDecodeError):
-        legacy_js = LEGACY_ENTRY_MAP.get(entry)
-        if legacy_js:
-            return {"js": legacy_js, "css": []}
-        raise
+    css_files = item.get("css", [])
+    return {
+        "js": f"/static/dist/{js_file}",
+        "css": [f"/static/dist/{css_file}" for css_file in css_files],
+    }

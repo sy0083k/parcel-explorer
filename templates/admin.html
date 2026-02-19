@@ -261,7 +261,7 @@
                         <p>최신 유휴재산 엑셀 파일을 업로드하세요.</p>
 
                         <div class="upload-stack">
-                            <input class="file-input" type="file" id="excelFile" accept=".xlsx">
+                            <input class="file-input" type="file" id="excelFile" accept=".xlsx,.xls">
                             <button class="btn upload-btn" id="uploadBtn" type="button">DB 업데이트 시작</button>
                         </div>
 
@@ -348,6 +348,25 @@
                                         <option value="false" {% if settings['SESSION_HTTPS_ONLY'] == 'false' %}selected{% endif %}>false</option>
                                     </select>
                                 </div>
+                            </div>
+
+                            <div class="row">
+                                <div class="field">
+                                    <label>TRUST_PROXY_HEADERS</label>
+                                    <select name="trust_proxy_headers">
+                                        <option value="true" {% if settings['TRUST_PROXY_HEADERS'] == 'true' %}selected{% endif %}>true</option>
+                                        <option value="false" {% if settings['TRUST_PROXY_HEADERS'] == 'false' %}selected{% endif %}>false</option>
+                                    </select>
+                                </div>
+                                <div class="field">
+                                    <label>UPLOAD_SHEET_NAME</label>
+                                    <input type="text" name="upload_sheet_name" value="{{ settings['UPLOAD_SHEET_NAME'] }}">
+                                </div>
+                            </div>
+
+                            <div class="field">
+                                <label>TRUSTED_PROXY_IPS</label>
+                                <input type="text" name="trusted_proxy_ips" value="{{ settings['TRUSTED_PROXY_IPS'] }}">
                             </div>
 
                             <div class="field">

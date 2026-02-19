@@ -189,3 +189,57 @@ def test_upload_service_sheet_name_fallback(
     )
     assert result["success"] is True
     assert called["sheet_name"] == "시트1"
+
+
+@pytest.mark.parametrize(
+    ("filename", "expected_engine", "content_type"),
+    [
+        ("upload.xlsx", "openpyxl", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"),
+        ("upload.xls", "xlrd", "application/vnd.ms-excel"),
+    ],
+)
+def test_upload_service_selects_excel_engine_by_extension(
+    build_app: Any,
+    monkeypatch: MonkeyPatch,
+    db_path: Any,
+    filename: str,
+    expected_engine: str,
+    content_type: str,
+) -> None:
+    app = build_app()
+    from app.db.connection import db_connection
+    from app.repositories import idle_land_repository
+
+    with db_connection() as conn:
+        idle_land_repository.init_db(conn)
+
+    request = _make_request(app, csrf_token="csrf")
+    file = _make_upload_file(filename, b"dummy", content_type)
+    df = pd.DataFrame(
+        {
+            "소재지(지번)": ["addr"],
+            "(공부상)지목": ["답"],
+            "(공부상)면적(㎡)": [12.5],
+            "행정재산": ["Y"],
+            "일반재산": ["N"],
+            "담당자연락처": ["010"],
+        }
+    )
+
+    called: dict[str, object] = {}
+
+    def _excel_file(*_args: object, engine: str, **_kwargs: object) -> DummyExcelFile:
+        called["engine"] = engine
+        return DummyExcelFile(sheet_names=["목록"])
+
+    monkeypatch.setattr(pd, "ExcelFile", _excel_file)
+    monkeypatch.setattr(pd, "read_excel", lambda *_args, **_kwargs: df)
+
+    result = upload_service.handle_excel_upload(
+        request=request,
+        background_tasks=BackgroundTasks(),
+        csrf_token="csrf",
+        file=file,
+    )
+    assert result["success"] is True
+    assert called["engine"] == expected_engine
