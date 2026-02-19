@@ -97,18 +97,33 @@ function changeLayer(type) {
 }
 
 function loadLandData() {
-    fetch('/api/lands').then(res => res.json()).then(data => {
-        originalData = data;
-        applyFilters();
-        //updateMapAndList(data);
-    });
+    fetch('/api/lands')
+        .then(res => res.json())
+        .then(data => {
+            originalData = data;
+            applyFilters();
+        })
+        .catch((err) => {
+            console.error('토지 데이터 로딩 실패:', err);
+        });
 }
 
 function applyFilters() {
-    const isRentOnly = document.getElementById('rent-only-filter').checked;
+    if (!originalData || !Array.isArray(originalData.features) || !regionSearchInput) {
+        return;
+    }
+
+    const rentOnlyEl = document.getElementById('rent-only-filter');
+    const minAreaEl = document.getElementById('min-area');
+    const maxAreaEl = document.getElementById('max-area');
+    if (!rentOnlyEl || !minAreaEl || !maxAreaEl) {
+        return;
+    }
+
+    const isRentOnly = rentOnlyEl.checked;
     const searchTerm = regionSearchInput.value.trim(); // 사용자가 입력한 텍스트
-    const minArea = parseFloat(document.getElementById('min-area').value) || 0;
-    const maxArea = parseFloat(document.getElementById('max-area').value) || Infinity;
+    const minArea = parseFloat(minAreaEl.value) || 0;
+    const maxArea = parseFloat(maxAreaEl.value) || Infinity;
 
     const filteredFeatures = originalData.features.filter(f => {
         const p = f.properties;
@@ -284,6 +299,26 @@ document.addEventListener('DOMContentLoaded', () => {
             initMap(vworldKey, config.center, config.zoom);
             loadLandData();
         });
+
+    // 버튼/체크박스 이벤트 연결 (inline handler 제거 대응)
+    const searchBtn = document.getElementById('btn-search');
+    const rentFilter = document.getElementById('rent-only-filter');
+    const btnBase = document.getElementById('btn-Base');
+    const btnSatellite = document.getElementById('btn-Satellite');
+    const btnHybrid = document.getElementById('btn-Hybrid');
+    const prevBtn = document.getElementById('prev-btn');
+    const nextBtn = document.getElementById('next-btn');
+
+    if (searchBtn) searchBtn.addEventListener('click', applyFilters);
+    if (rentFilter) {
+        rentFilter.addEventListener('change', applyFilters);
+        rentFilter.addEventListener('click', applyFilters);
+    }
+    if (btnBase) btnBase.addEventListener('click', () => changeLayer('Base'));
+    if (btnSatellite) btnSatellite.addEventListener('click', () => changeLayer('Satellite'));
+    if (btnHybrid) btnHybrid.addEventListener('click', () => changeLayer('Hybrid'));
+    if (prevBtn) prevBtn.addEventListener('click', () => navigateItem(-1));
+    if (nextBtn) nextBtn.addEventListener('click', () => navigateItem(1));
 
     // 검색창 엔터 이벤트
     if (regionSearchInput) {
