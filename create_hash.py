@@ -1,7 +1,7 @@
 import bcrypt
 
 # [입력] 사용할 실제 비밀번호
-plain_password: str = "12345678"
+plain_password: str = "사용할_강력한_비밀번호"
 
 # 1. 비밀번호를 바이트(bytes) 형태로 변환 (필수)
 password_bytes: bytes = plain_password.encode("utf-8")

@@ -6,13 +6,13 @@
     <style>
         :root {
             --bg: #f4f6f9;
-            --sidebar: #1f2a37;
-            --sidebar-ink: #cbd5e1;
-            --sidebar-active: #111827;
+            --sidebar: #343A40;
+            --sidebar-ink: #C2C7D0;
+            --sidebar-active: #007BFF;
             --card: #ffffff;
             --ink: #111827;
             --muted: #6b7280;
-            --accent: #3b82f6;
+            --accent: #17A2B8;
             --accent-weak: #e0ecff;
             --border: #e5e7eb;
             --shadow: 0 10px 24px rgba(15,23,42,0.08);
@@ -217,6 +217,11 @@
             padding: 4px 8px;
             border-radius: 999px;
         }
+        .chart-wrap {
+            position: relative;
+            height: 240px;
+            width: 100%;
+        }
         @media (max-width: 1024px) {
             .layout { grid-template-columns: 1fr; }
             .sidebar { position: sticky; top: 0; }
@@ -229,16 +234,15 @@
         <aside class="sidebar">
             <div class="brand">
                 <div class="brand-badge">CP</div>
-                <div>Control Panel</div>
+                <div>제어판</div>
             </div>
             <div class="nav">
                 <button class="active" data-tab="upload"><span>⬆️</span>데이터 업로드</button>
                 <button data-tab="settings"><span>⚙️</span>환경 변수 설정</button>
                 <button data-tab="password"><span>🔒</span>비밀번호 변경</button>
+                <button data-tab="stats"><span>📊</span>통계</button>
             </div>
             <div class="sidebar-footer">
-                <div>AdminLTE 스타일 참고</div>
-                <div>서산시 유휴공유재산</div>
             </div>
         </aside>
 
@@ -412,6 +416,96 @@
                     </div>
                 </div>
             </section>
+
+            <section class="panel" id="panel-stats">
+                <div class="grid">
+                    <div class="card">
+                        <h3>웹앱 이용 통계<span class="badge">누적</span></h3>
+                        <p>검색/클릭 이벤트 누적 통계입니다.</p>
+                        <div class="row">
+                            <div class="field">
+                                <label>총 검색 수</label>
+                                <input type="text" id="stats-search-count" value="0" readonly>
+                            </div>
+                            <div class="field">
+                                <label>총 클릭 수</label>
+                                <input type="text" id="stats-click-count" value="0" readonly>
+                            </div>
+                        </div>
+                        <div class="field">
+                            <label>고유 세션 수</label>
+                            <input type="text" id="stats-unique-session-count" value="0" readonly>
+                        </div>
+                        <button class="btn" type="button" id="refreshStatsBtn">통계 새로고침</button>
+                        <div id="statsStatus" class="hint">통계를 불러오려면 탭을 선택하세요.</div>
+                    </div>
+                    <div class="card">
+                        <h3>일별 추세</h3>
+                        <p>일자별 검색/클릭 발생 건수입니다.</p>
+                        <div class="chart-wrap">
+                            <canvas id="statsTrendChart"></canvas>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="grid" style="margin-top: 22px;">
+                    <div class="card">
+                        <h3>많이 검색된 지역</h3>
+                        <div class="chart-wrap">
+                            <canvas id="statsRegionChart"></canvas>
+                        </div>
+                        <div id="statsTopRegions" class="hint"></div>
+                    </div>
+                    <div class="card">
+                        <h3>많이 검색된 최소 면적</h3>
+                        <div class="chart-wrap">
+                            <canvas id="statsMinAreaChart"></canvas>
+                        </div>
+                        <div id="statsTopBuckets" class="hint"></div>
+                    </div>
+                </div>
+
+                <div class="grid" style="margin-top: 22px;">
+                    <div class="card">
+                        <h3>많이 클릭된 유휴토지</h3>
+                        <div id="statsTopClickedLands" class="hint">데이터 없음</div>
+                    </div>
+                </div>
+
+                <div class="grid" style="margin-top: 22px;">
+                    <div class="card">
+                        <h3>웹사이트 일반 통계</h3>
+                        <p>메인 지도 페이지 기준 방문/체류 지표입니다.</p>
+                        <div class="row">
+                            <div class="field">
+                                <label>일일 접속자(오늘)</label>
+                                <input type="text" id="web-daily-visitors" value="0" readonly>
+                            </div>
+                            <div class="field">
+                                <label>누적 접속자</label>
+                                <input type="text" id="web-total-visitors" value="0" readonly>
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="field">
+                                <label>평균 체류시간(분)</label>
+                                <input type="text" id="web-avg-dwell" value="0" readonly>
+                            </div>
+                            <div class="field">
+                                <label>세션 수(최근 30일)</label>
+                                <input type="text" id="web-session-count" value="0" readonly>
+                            </div>
+                        </div>
+                        <div id="webStatsStatus" class="hint">웹 통계를 불러오는 중...</div>
+                    </div>
+                    <div class="card">
+                        <h3>웹 통계 일별 추이 (최근 30일)</h3>
+                        <div class="chart-wrap">
+                            <canvas id="webStatsTrendChart"></canvas>
+                        </div>
+                    </div>
+                </div>
+            </section>
         </main>
     </div>
 
@@ -419,6 +513,7 @@
     {% for css_file in assets.css %}
     <link rel="stylesheet" href="{{ css_file }}">
     {% endfor %}
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
     <script type="module" src="{{ assets.js }}"></script>
 </body>
 </html>

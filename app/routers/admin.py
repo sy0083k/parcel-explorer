@@ -13,7 +13,7 @@ from app.dependencies import (
     validate_csrf_token,
 )
 from app.logging_utils import RequestIdFilter
-from app.services import admin_settings_service, upload_service
+from app.services import admin_settings_service, stats_service, upload_service
 
 router = APIRouter()
 logger = logging.getLogger(__name__)
@@ -160,3 +160,13 @@ async def update_password(
         },
     )
     return RedirectResponse(url="/admin/?updated=1", status_code=303)
+
+
+@router.get("/stats", dependencies=[Depends(check_internal_network), Depends(require_authenticated)])
+async def get_stats(limit: int = 10) -> dict:
+    return stats_service.get_admin_stats(limit=limit)
+
+
+@router.get("/stats/web", dependencies=[Depends(check_internal_network), Depends(require_authenticated)])
+async def get_web_stats(days: int = 30) -> dict:
+    return stats_service.get_web_stats(days=days)

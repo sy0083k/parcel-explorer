@@ -1,7 +1,7 @@
 from fastapi import APIRouter, HTTPException, Request
 from typing import Any
 
-from app.services import land_service
+from app.services import land_service, stats_service
 
 DEFAULT_LANDS_PAGE_LIMIT = 500
 MAX_LANDS_PAGE_LIMIT = 2000
@@ -39,6 +39,16 @@ def create_router() -> APIRouter:
         except ValueError as exc:
             raise HTTPException(status_code=400, detail=str(exc)) from exc
         return land_service.get_public_land_features_page(cursor=parsed_cursor, limit=clamped_limit)
+
+    @router.post("/events")
+    async def post_map_event(payload: dict[str, Any]) -> dict[str, bool]:
+        stats_service.record_map_event(payload)
+        return {"success": True}
+
+    @router.post("/web-events")
+    async def post_web_event(request: Request, payload: dict[str, Any]) -> dict[str, bool]:
+        stats_service.record_web_visit_event(payload, request)
+        return {"success": True}
 
     return router
 

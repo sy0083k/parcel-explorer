@@ -49,6 +49,27 @@ type LandsPageResponse = LandFeatureCollection & {
 };
 
 type BaseType = "Base" | "Satellite" | "Hybrid";
+type MapEventPayload =
+  | {
+      eventType: "search";
+      anonId: string;
+      minArea: number;
+      searchTerm: string;
+    }
+  | {
+      eventType: "land_click";
+      anonId: string;
+      landAddress: string;
+    };
+type WebVisitEventType = "visit_start" | "heartbeat" | "visit_end";
+type WebVisitEventPayload = {
+  eventType: WebVisitEventType;
+  anonId: string;
+  sessionId: string;
+  pagePath: string;
+  clientTs: number;
+  clientTz: string;
+};
 
 let map: Map | null = null;
 let baseLayer: TileLayer<XYZ> | null = null;
@@ -71,6 +92,15 @@ const snapHeights = {
   mid: 0.4,
   expanded: 0.85
 };
+const ANON_COOKIE_NAME = "anon_id";
+const ANON_COOKIE_MAX_AGE_SECONDS = 60 * 60 * 24 * 365;
+const WEB_SESSION_ID_COOKIE_NAME = "web_session_id";
+const WEB_LAST_SEEN_COOKIE_NAME = "web_last_seen_ts";
+const WEB_SESSION_MAX_AGE_SECONDS = 60 * 60 * 24;
+const WEB_SESSION_TIMEOUT_MS = 30 * 60 * 1000;
+const WEB_HEARTBEAT_INTERVAL_MS = 15000;
+const WEB_TRACK_PATH = "/";
+let webHeartbeatTimer: number | null = null;
 
 function asVectorFeature(feature: unknown): Feature<Geometry> | null {
   return feature instanceof Feature ? feature : null;
@@ -87,6 +117,159 @@ function setListStatus(message: string, color = "#999"): void {
   status.style.color = color;
   status.textContent = message;
   listArea.replaceChildren(status);
+}
+
+function getCookie(name: string): string | null {
+  const encodedName = `${encodeURIComponent(name)}=`;
+  const found = document.cookie
+    .split(";")
+    .map((item) => item.trim())
+    .find((item) => item.startsWith(encodedName));
+  if (!found) {
+    return null;
+  }
+  return decodeURIComponent(found.slice(encodedName.length));
+}
+
+function setCookie(name: string, value: string, maxAgeSeconds: number): void {
+  document.cookie = `${encodeURIComponent(name)}=${encodeURIComponent(value)}; Max-Age=${maxAgeSeconds}; Path=/; SameSite=Lax`;
+}
+
+function createAnonId(): string {
+  if (typeof crypto !== "undefined" && typeof crypto.randomUUID === "function") {
+    return crypto.randomUUID();
+  }
+  return `${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
+}
+
+function getOrCreateAnonId(): string {
+  const existing = getCookie(ANON_COOKIE_NAME);
+  if (existing) {
+    return existing;
+  }
+  const generated = createAnonId();
+  setCookie(ANON_COOKIE_NAME, generated, ANON_COOKIE_MAX_AGE_SECONDS);
+  return generated;
+}
+
+async function postMapEvent(payload: MapEventPayload): Promise<void> {
+  await fetchJson<{ success: boolean }>("/api/events", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload),
+    timeoutMs: 3000
+  });
+}
+
+async function postWebEvent(payload: WebVisitEventPayload): Promise<void> {
+  await fetchJson<{ success: boolean }>("/api/web-events", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload),
+    timeoutMs: 3000,
+    keepalive: payload.eventType === "visit_end"
+  });
+}
+
+function getClientTz(): string {
+  const tz = Intl.DateTimeFormat().resolvedOptions().timeZone;
+  return tz || "UTC";
+}
+
+function getOrCreateWebSessionId(nowMs: number): { sessionId: string; isNew: boolean } {
+  const existingSessionId = getCookie(WEB_SESSION_ID_COOKIE_NAME);
+  const existingLastSeenRaw = getCookie(WEB_LAST_SEEN_COOKIE_NAME);
+  const existingLastSeenMs = existingLastSeenRaw ? Number.parseInt(existingLastSeenRaw, 10) : Number.NaN;
+  const isExpired =
+    Number.isNaN(existingLastSeenMs) || nowMs - existingLastSeenMs > WEB_SESSION_TIMEOUT_MS;
+
+  if (!existingSessionId || isExpired) {
+    const sessionId = createAnonId();
+    setCookie(WEB_SESSION_ID_COOKIE_NAME, sessionId, WEB_SESSION_MAX_AGE_SECONDS);
+    setCookie(WEB_LAST_SEEN_COOKIE_NAME, String(nowMs), WEB_SESSION_MAX_AGE_SECONDS);
+    return { sessionId, isNew: true };
+  }
+
+  setCookie(WEB_LAST_SEEN_COOKIE_NAME, String(nowMs), WEB_SESSION_MAX_AGE_SECONDS);
+  return { sessionId: existingSessionId, isNew: false };
+}
+
+function sendWebEvent(eventType: WebVisitEventType): void {
+  const nowMs = Date.now();
+  const anonId = getOrCreateAnonId();
+  const { sessionId, isNew } = getOrCreateWebSessionId(nowMs);
+  const clientTz = getClientTz();
+  const nowSeconds = Math.floor(nowMs / 1000);
+
+  const sendSingle = (type: WebVisitEventType): Promise<void> =>
+    postWebEvent({
+      eventType: type,
+      anonId,
+      sessionId,
+      pagePath: WEB_TRACK_PATH,
+      clientTs: nowSeconds,
+      clientTz
+    });
+
+  // If a new session is created while dispatching non-start events, prepend visit_start.
+  if (isNew && eventType !== "visit_start") {
+    void sendSingle("visit_start")
+      .then(() => sendSingle(eventType))
+      .catch(() => {
+        // Ignore telemetry failures.
+      });
+    return;
+  }
+
+  void sendSingle(eventType).catch(() => {
+    // Ignore telemetry failures.
+  });
+}
+
+function startWebHeartbeat(): void {
+  if (webHeartbeatTimer !== null) {
+    window.clearInterval(webHeartbeatTimer);
+  }
+  webHeartbeatTimer = window.setInterval(() => {
+    if (document.visibilityState === "visible") {
+      sendWebEvent("heartbeat");
+    }
+  }, WEB_HEARTBEAT_INTERVAL_MS);
+}
+
+function stopWebHeartbeat(): void {
+  if (webHeartbeatTimer === null) {
+    return;
+  }
+  window.clearInterval(webHeartbeatTimer);
+  webHeartbeatTimer = null;
+}
+
+function trackSearchEvent(minArea: number, searchTerm: string): void {
+  const anonId = getOrCreateAnonId();
+  void postMapEvent({
+    eventType: "search",
+    anonId,
+    minArea,
+    searchTerm
+  }).catch(() => {
+    // Keep map UX responsive even if telemetry fails.
+  });
+}
+
+function trackLandClickEvent(address: string): void {
+  const trimmed = address.trim();
+  if (!trimmed) {
+    return;
+  }
+  const anonId = getOrCreateAnonId();
+  void postMapEvent({
+    eventType: "land_click",
+    anonId,
+    landAddress: trimmed
+  }).catch(() => {
+    // Keep map UX responsive even if telemetry fails.
+  });
 }
 
 function initMap(key: string, center: [number, number], zoom: number): void {
@@ -175,7 +358,7 @@ async function loadLandData(): Promise<void> {
   applyFilters();
 }
 
-function applyFilters(): void {
+function applyFilters(trackEvent = false): void {
   if (!originalData || !regionSearchInput) {
     return;
   }
@@ -207,6 +390,9 @@ function applyFilters(): void {
     return matchRegion && matchArea && matchRent;
   });
 
+  if (trackEvent) {
+    trackSearchEvent(minArea, searchTerm);
+  }
   updateMapAndList({ type: "FeatureCollection", features: filteredFeatures });
 }
 
@@ -283,6 +469,7 @@ function selectItem(idx: number, shouldFit = true): void {
   }
 
   currentIndex = idx;
+  trackLandClickEvent(currentFeaturesData[idx]?.properties.address || "");
   const feature = vectorLayer.getSource()?.getFeatureById(idx) as Feature<Geometry> | null;
 
   if (feature) {
@@ -439,9 +626,9 @@ async function bootstrap(): Promise<void> {
     });
   }
 
-  document.getElementById("btn-search")?.addEventListener("click", applyFilters);
+  document.getElementById("btn-search")?.addEventListener("click", () => applyFilters(true));
   const rentOnlyFilter = document.getElementById("rent-only-filter");
-  rentOnlyFilter?.addEventListener("change", applyFilters);
+  rentOnlyFilter?.addEventListener("change", () => applyFilters(false));
   document.getElementById("btn-Base")?.addEventListener("click", () => changeLayer("Base"));
   document.getElementById("btn-Satellite")?.addEventListener("click", () => changeLayer("Satellite"));
   document.getElementById("btn-Hybrid")?.addEventListener("click", () => changeLayer("Hybrid"));
@@ -452,12 +639,29 @@ async function bootstrap(): Promise<void> {
     regionSearchInput.addEventListener("keydown", (event: KeyboardEvent) => {
       if (event.key === "Enter") {
         event.preventDefault();
-        applyFilters();
+        applyFilters(true);
       }
     });
   }
 
   initBottomSheet();
+  sendWebEvent("visit_start");
+  startWebHeartbeat();
+
+  document.addEventListener("visibilitychange", () => {
+    if (document.visibilityState === "hidden") {
+      sendWebEvent("visit_end");
+      stopWebHeartbeat();
+      return;
+    }
+    sendWebEvent("visit_start");
+    startWebHeartbeat();
+  });
+
+  window.addEventListener("pagehide", () => {
+    sendWebEvent("visit_end");
+    stopWebHeartbeat();
+  });
 
   try {
     const config = await fetchJson<MapConfig>("/api/config", { timeoutMs: 10000 });
