@@ -147,3 +147,57 @@ def test_web_visit_repository_aggregations(db_path: object) -> None:
             since_utc="2026-02-18 00:00:00",
         )
         assert len(sessions) == 2
+
+
+def test_raw_query_log_repository_insert_and_filter(db_path: object) -> None:
+    with db_connection(row_factory=True) as conn:
+        idle_land_repository.init_db(conn)
+        idle_land_repository.insert_raw_query_log(
+            conn,
+            event_type="search",
+            anon_id="anon-a",
+            raw_region_query="  예천동  ",
+            raw_min_area_input=" 120 ",
+            raw_max_area_input="300",
+            raw_rent_only_input="true",
+            raw_land_id_input=None,
+            raw_land_address_input=None,
+            raw_click_source_input=None,
+            raw_payload_json='{"eventType":"search"}',
+        )
+        idle_land_repository.insert_raw_query_log(
+            conn,
+            event_type="land_click",
+            anon_id="anon-b",
+            raw_region_query=None,
+            raw_min_area_input=None,
+            raw_max_area_input=None,
+            raw_rent_only_input=None,
+            raw_land_id_input="15",
+            raw_land_address_input="충남 서산시 ...",
+            raw_click_source_input="nav_next",
+            raw_payload_json='{"eventType":"land_click"}',
+        )
+        conn.commit()
+
+        only_search = idle_land_repository.fetch_raw_query_logs(
+            conn,
+            event_type="search",
+            created_at_from=None,
+            created_at_to=None,
+            limit=10,
+        )
+        assert len(only_search) == 1
+        assert only_search[0]["event_type"] == "search"
+        assert only_search[0]["raw_region_query"] == "  예천동  "
+
+        only_click = idle_land_repository.fetch_raw_query_logs(
+            conn,
+            event_type="land_click",
+            created_at_from=None,
+            created_at_to=None,
+            limit=10,
+        )
+        assert len(only_click) == 1
+        assert only_click[0]["raw_land_id_input"] == "15"
+        assert only_click[0]["raw_click_source_input"] == "nav_next"

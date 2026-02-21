@@ -1,6 +1,7 @@
 # app/routers/admin.py
 import bcrypt
 import logging
+from datetime import datetime
 from fastapi import APIRouter, BackgroundTasks, Depends, File, Form, HTTPException, Request, UploadFile
 from fastapi.responses import HTMLResponse, RedirectResponse, Response
 from typing import cast
@@ -170,3 +171,21 @@ async def get_stats(limit: int = 10) -> dict:
 @router.get("/stats/web", dependencies=[Depends(check_internal_network), Depends(require_authenticated)])
 async def get_web_stats(days: int = 30) -> dict:
     return stats_service.get_web_stats(days=days)
+
+
+@router.get("/raw-queries/export", dependencies=[Depends(check_internal_network), Depends(require_authenticated)])
+async def export_raw_queries(
+    event_type: str = "all",
+    date_from: str | None = None,
+    date_to: str | None = None,
+    limit: int = 10000,
+) -> Response:
+    csv_text = stats_service.export_raw_query_csv(
+        event_type=event_type,
+        date_from=date_from,
+        date_to=date_to,
+        limit=limit,
+    )
+    filename = f"raw-queries-{datetime.now().strftime('%Y%m%d')}.csv"
+    headers = {"Content-Disposition": f'attachment; filename="{filename}"'}
+    return Response(content=csv_text, media_type="text/csv; charset=utf-8", headers=headers)

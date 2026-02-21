@@ -537,6 +537,35 @@
                         <h3>많이 클릭된 유휴토지</h3>
                         <div id="statsTopClickedLands" class="hint">데이터 없음</div>
                     </div>
+                    <div class="card">
+                        <h3>원본 쿼리 다운로드</h3>
+                        <p>가공되지 않은 검색/클릭 이벤트 원문 데이터를 CSV로 내려받습니다.</p>
+                        <form method="get" action="/admin/raw-queries/export">
+                            <div class="field">
+                                <label>이벤트 유형</label>
+                                <select name="event_type">
+                                    <option value="all">전체</option>
+                                    <option value="search">검색</option>
+                                    <option value="land_click">클릭</option>
+                                </select>
+                            </div>
+                            <div class="row">
+                                <div class="field">
+                                    <label>시작일 (YYYY-MM-DD)</label>
+                                    <input type="text" name="date_from" placeholder="2026-01-01">
+                                </div>
+                                <div class="field">
+                                    <label>종료일 (YYYY-MM-DD)</label>
+                                    <input type="text" name="date_to" placeholder="2026-12-31">
+                                </div>
+                            </div>
+                            <div class="field">
+                                <label>최대 건수 (1~100000)</label>
+                                <input type="number" name="limit" value="10000" min="1" max="100000">
+                            </div>
+                            <button class="btn" type="submit">CSV 다운로드</button>
+                        </form>
+                    </div>
                 </div>
 
                 <div class="grid" style="margin-top: 22px;">

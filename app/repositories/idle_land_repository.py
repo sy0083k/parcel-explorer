@@ -47,7 +47,26 @@ def init_db(conn: sqlite3.Connection) -> None:
         )
         """
     )
+    cursor.execute(
+        """
+        CREATE TABLE IF NOT EXISTS raw_query_log (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            event_type TEXT NOT NULL,
+            anon_id TEXT,
+            raw_region_query TEXT,
+            raw_min_area_input TEXT,
+            raw_max_area_input TEXT,
+            raw_rent_only_input TEXT,
+            raw_land_id_input TEXT,
+            raw_land_address_input TEXT,
+            raw_click_source_input TEXT,
+            raw_payload_json TEXT NOT NULL,
+            created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+        )
+        """
+    )
     _ensure_map_event_log_columns(conn)
+    _ensure_raw_query_log_columns(conn)
     cursor.execute(
         """
         CREATE TABLE IF NOT EXISTS web_visit_event (
@@ -115,6 +134,18 @@ def init_db(conn: sqlite3.Connection) -> None:
         """
         CREATE INDEX IF NOT EXISTS idx_web_visit_event_type_occurred
             ON web_visit_event (event_type, occurred_at)
+        """
+    )
+    cursor.execute(
+        """
+        CREATE INDEX IF NOT EXISTS idx_raw_query_event_created
+            ON raw_query_log (event_type, created_at)
+        """
+    )
+    cursor.execute(
+        """
+        CREATE INDEX IF NOT EXISTS idx_raw_query_created
+            ON raw_query_log (created_at)
         """
     )
     conn.commit()
@@ -277,6 +308,51 @@ def insert_map_event(
     )
 
 
+def insert_raw_query_log(
+    conn: sqlite3.Connection,
+    *,
+    event_type: str,
+    anon_id: str | None,
+    raw_region_query: str | None,
+    raw_min_area_input: str | None,
+    raw_max_area_input: str | None,
+    raw_rent_only_input: str | None,
+    raw_land_id_input: str | None,
+    raw_land_address_input: str | None,
+    raw_click_source_input: str | None,
+    raw_payload_json: str,
+) -> None:
+    cursor = conn.cursor()
+    cursor.execute(
+        """
+        INSERT INTO raw_query_log (
+            event_type,
+            anon_id,
+            raw_region_query,
+            raw_min_area_input,
+            raw_max_area_input,
+            raw_rent_only_input,
+            raw_land_id_input,
+            raw_land_address_input,
+            raw_click_source_input,
+            raw_payload_json
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        """,
+        (
+            event_type,
+            anon_id,
+            raw_region_query,
+            raw_min_area_input,
+            raw_max_area_input,
+            raw_rent_only_input,
+            raw_land_id_input,
+            raw_land_address_input,
+            raw_click_source_input,
+            raw_payload_json,
+        ),
+    )
+
+
 def fetch_event_summary(conn: sqlite3.Connection) -> sqlite3.Row:
     cursor = conn.cursor()
     cursor.execute(
@@ -320,6 +396,14 @@ def _ensure_map_event_log_columns(conn: sqlite3.Connection) -> None:
         )
 
 
+def _ensure_raw_query_log_columns(conn: sqlite3.Connection) -> None:
+    cursor = conn.cursor()
+    columns = cursor.execute("PRAGMA table_info(raw_query_log)").fetchall()
+    column_names = {str(row[1]) for row in columns}
+    if "raw_click_source_input" not in column_names:
+        cursor.execute("ALTER TABLE raw_query_log ADD COLUMN raw_click_source_input TEXT")
+
+
 def fetch_top_min_area_buckets(conn: sqlite3.Connection, *, limit: int) -> Sequence[sqlite3.Row]:
     cursor = conn.cursor()
     cursor.execute(
@@ -355,6 +439,57 @@ def fetch_top_clicked_lands(conn: sqlite3.Connection, *, limit: int) -> Sequence
          LIMIT ?
         """,
         (limit,),
+    )
+    return cursor.fetchall()
+
+
+def fetch_raw_query_logs(
+    conn: sqlite3.Connection,
+    *,
+    event_type: str | None,
+    created_at_from: str | None,
+    created_at_to: str | None,
+    limit: int,
+) -> Sequence[sqlite3.Row]:
+    cursor = conn.cursor()
+    conditions: list[str] = []
+    params: list[object] = []
+
+    if event_type is not None:
+        conditions.append("event_type = ?")
+        params.append(event_type)
+    if created_at_from is not None:
+        conditions.append("created_at >= ?")
+        params.append(created_at_from)
+    if created_at_to is not None:
+        conditions.append("created_at < ?")
+        params.append(created_at_to)
+
+    where_clause = ""
+    if conditions:
+        where_clause = "WHERE " + " AND ".join(conditions)
+
+    cursor.execute(
+        f"""
+        SELECT
+            id,
+            created_at,
+            event_type,
+            anon_id,
+            raw_region_query,
+            raw_min_area_input,
+            raw_max_area_input,
+            raw_rent_only_input,
+            raw_land_id_input,
+            raw_land_address_input,
+            raw_click_source_input,
+            raw_payload_json
+          FROM raw_query_log
+          {where_clause}
+         ORDER BY created_at DESC, id DESC
+         LIMIT ?
+        """,
+        (*params, limit),
     )
     return cursor.fetchall()
 

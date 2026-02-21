@@ -165,3 +165,53 @@ async def test_web_event_rejects_invalid_page_path(async_client: httpx.AsyncClie
         },
     )
     assert response.status_code == 400
+
+
+@pytest.mark.anyio
+async def test_admin_can_export_raw_query_csv(async_client: httpx.AsyncClient, db_path: object) -> None:
+    with db_connection() as conn:
+        idle_land_repository.init_db(conn)
+
+    search_response = await async_client.post(
+        "/api/events",
+        json={
+            "eventType": "search",
+            "anonId": "anon-export-1",
+            "minArea": 120,
+            "searchTerm": "예천동",
+            "rawSearchTerm": "  예천동  ",
+            "rawMinAreaInput": " 120 ",
+            "rawMaxAreaInput": " 500 ",
+            "rawRentOnly": "true",
+        },
+    )
+    assert search_response.status_code == 200
+
+    click_response = await async_client.post(
+        "/api/events",
+        json={
+            "eventType": "land_click",
+            "anonId": "anon-export-2",
+            "landAddress": "충남 서산시 대산읍 독곶리 1-1",
+            "landId": "99",
+            "clickSource": "map_click",
+        },
+    )
+    assert click_response.status_code == 200
+
+    await _login_as_admin(async_client)
+
+    export_search = await async_client.get("/admin/raw-queries/export?event_type=search&limit=100")
+    assert export_search.status_code == 200
+    assert export_search.headers["content-type"].startswith("text/csv")
+    assert "attachment; filename=" in export_search.headers.get("content-disposition", "")
+    assert "raw_region_query" in export_search.text
+    assert "  예천동  " in export_search.text
+    assert " 120 " in export_search.text
+    assert "충남 서산시 대산읍 독곶리 1-1" not in export_search.text
+
+    export_all = await async_client.get("/admin/raw-queries/export?event_type=all&limit=100")
+    assert export_all.status_code == 200
+    assert "충남 서산시 대산읍 독곶리 1-1" in export_all.text
+    assert "99" in export_all.text
+    assert "map_click" in export_all.text

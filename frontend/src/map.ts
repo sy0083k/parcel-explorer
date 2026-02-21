@@ -49,17 +49,24 @@ type LandsPageResponse = LandFeatureCollection & {
 };
 
 type BaseType = "Base" | "Satellite" | "Hybrid";
+type LandClickSource = "map_click" | "list_click" | "nav_prev" | "nav_next";
 type MapEventPayload =
   | {
       eventType: "search";
       anonId: string;
       minArea: number;
       searchTerm: string;
+      rawSearchTerm: string;
+      rawMinAreaInput: string;
+      rawMaxAreaInput: string;
+      rawRentOnly: string;
     }
   | {
       eventType: "land_click";
       anonId: string;
       landAddress: string;
+      landId?: string;
+      clickSource?: LandClickSource;
     };
 type WebVisitEventType = "visit_start" | "heartbeat" | "visit_end";
 type WebVisitEventPayload = {
@@ -245,19 +252,30 @@ function stopWebHeartbeat(): void {
   webHeartbeatTimer = null;
 }
 
-function trackSearchEvent(minArea: number, searchTerm: string): void {
+function trackSearchEvent(
+  minArea: number,
+  searchTerm: string,
+  rawSearchTerm: string,
+  rawMinAreaInput: string,
+  rawMaxAreaInput: string,
+  rawRentOnly: string
+): void {
   const anonId = getOrCreateAnonId();
   void postMapEvent({
     eventType: "search",
     anonId,
     minArea,
-    searchTerm
+    searchTerm,
+    rawSearchTerm,
+    rawMinAreaInput,
+    rawMaxAreaInput,
+    rawRentOnly
   }).catch(() => {
     // Keep map UX responsive even if telemetry fails.
   });
 }
 
-function trackLandClickEvent(address: string): void {
+function trackLandClickEvent(address: string, clickSource: LandClickSource, landId?: number): void {
   const trimmed = address.trim();
   if (!trimmed) {
     return;
@@ -266,7 +284,9 @@ function trackLandClickEvent(address: string): void {
   void postMapEvent({
     eventType: "land_click",
     anonId,
-    landAddress: trimmed
+    landAddress: trimmed,
+    landId: typeof landId === "number" ? String(landId) : undefined,
+    clickSource
   }).catch(() => {
     // Keep map UX responsive even if telemetry fails.
   });
@@ -305,7 +325,7 @@ function initMap(key: string, center: [number, number], zoom: number): void {
     if (feature) {
       const idx = feature.getId();
       if (idx !== undefined) {
-        selectItem(Number(idx), false);
+        selectItem(Number(idx), false, "map_click");
       }
       showPopup(feature, evt.coordinate as number[], true);
     } else {
@@ -368,7 +388,10 @@ function applyFilters(trackEvent = false): void {
   const maxAreaInput = document.getElementById("max-area") as HTMLInputElement | null;
 
   const isRentOnly = Boolean(rentOnlyFilter?.checked);
+  const rawSearchTerm = regionSearchInput.value;
   const searchTerm = regionSearchInput.value.trim();
+  const rawMinAreaInput = minAreaInput?.value ?? "";
+  const rawMaxAreaInput = maxAreaInput?.value ?? "";
   const minArea = Number.parseFloat(minAreaInput?.value || "") || 0;
   const maxArea = Number.parseFloat(maxAreaInput?.value || "") || Number.POSITIVE_INFINITY;
 
@@ -391,7 +414,14 @@ function applyFilters(trackEvent = false): void {
   });
 
   if (trackEvent) {
-    trackSearchEvent(minArea, searchTerm);
+    trackSearchEvent(
+      minArea,
+      searchTerm,
+      rawSearchTerm,
+      rawMinAreaInput,
+      rawMaxAreaInput,
+      String(isRentOnly)
+    );
   }
   updateMapAndList({ type: "FeatureCollection", features: filteredFeatures });
 }
@@ -452,7 +482,7 @@ function updateMapAndList(data: LandFeatureCollection): void {
     item.appendChild(title);
     item.appendChild(lineBreak);
     item.appendChild(desc);
-    item.addEventListener("click", () => selectItem(idx));
+    item.addEventListener("click", () => selectItem(idx, true, "list_click"));
     listArea.appendChild(item);
   });
 
@@ -463,13 +493,19 @@ function updateMapAndList(data: LandFeatureCollection): void {
   updateNavigationUI();
 }
 
-function selectItem(idx: number, shouldFit = true): void {
+function selectItem(idx: number, shouldFit = true, clickSource?: LandClickSource): void {
   if (!vectorLayer || !map || idx < 0 || idx >= currentFeaturesData.length) {
     return;
   }
 
   currentIndex = idx;
-  trackLandClickEvent(currentFeaturesData[idx]?.properties.address || "");
+  if (clickSource) {
+    trackLandClickEvent(
+      currentFeaturesData[idx]?.properties.address || "",
+      clickSource,
+      currentFeaturesData[idx]?.properties.id
+    );
+  }
   const feature = vectorLayer.getSource()?.getFeatureById(idx) as Feature<Geometry> | null;
 
   if (feature) {
@@ -547,7 +583,7 @@ function showPopup(feature: Feature<Geometry>, coordinate: number[], panIntoView
 function navigateItem(direction: number): void {
   const nextIdx = currentIndex + direction;
   if (nextIdx >= 0 && nextIdx < currentFeaturesData.length) {
-    selectItem(nextIdx);
+    selectItem(nextIdx, true, direction < 0 ? "nav_prev" : "nav_next");
   }
 }
 
