@@ -127,6 +127,13 @@ IdlePublicProperty는 공공 지도 데이터를 제공하고, 관리자 전용 
 - `GET /admin/stats/web`
 - `GET /admin/raw-queries/export`
 
+## API 버전 정책
+- 현재 정책: `/api/v1/*`는 **유지되는 호환성(alias) 경로**이며 `/api/*`와 동등 계약을 제공한다.
+- 구현 방식: `app/routers/map_v1_router.py`는 `app/routers/map_router.py`의 `create_router()`를 재사용한다.
+- 동등성 범위: 요청 파라미터 검증, 응답 필드/의미, 상태코드, 이벤트 레이트리밋 동작을 포함한다.
+- 변경 원칙: 신규 기능/계약 변경은 `/api/*` 기준으로 반영하고 `/api/v1/*` 동등성을 함께 검증한다.
+- 폐기 원칙(향후): Deprecation/Sunset 공지 절차와 관측 기간 후 제거한다(운영 절차는 `maintenance.md` 참조).
+
 ## 핵심 데이터 흐름
 ### 공개 지도 조회
 1. 클라이언트가 `/api/config`로 지도 설정을 조회한다.

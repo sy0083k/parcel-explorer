@@ -73,6 +73,18 @@
 ### 선택 실행
 - HTTP E2E 스모크: `RUN_HTTP_E2E=1 pytest -q tests/test_e2e_smoke.py`
 
+## API 버전 운영 정책 (`/api` vs `/api/v1`)
+- 현재 기본 정책: `/api/v1/*`는 유지되는 호환성(alias) 경로로 운영한다.
+- 운영 점검: `/api/*`와 `/api/v1/*`의 응답 계약(필드/상태코드)과 레이트리밋 동작이 동일한지 정기 확인한다.
+- 변경 적용: API 계약 변경 시 `/api/*` 반영과 동시에 `/api/v1/*` 동등성 테스트를 수행한다.
+
+### 향후 `/api/v1` 폐기 런북(정책 사전 정의)
+1. `T0` 공지: 제거 예정일과 대체 경로(`/api/*`)를 문서/공지 채널에 공지한다.
+2. `T0` 헤더 적용: `/api/v1/*` 응답에 `Deprecation: true`를 추가한다.
+3. `T0 + 2주` 고지 강화: `Sunset: <RFC1123 datetime>` 및 `Link: <정책 문서>; rel=\"deprecation\"`를 추가하고 재공지한다.
+4. `T0 + 4주` 관측 종료: 사용량/소비자 영향(로그 기반)을 확인하고 제거 승인 여부를 판단한다.
+5. 승인 후 제거: 라우터 제거, 문서 갱신, 회고 기록을 남긴다.
+
 ## 장애 대응
 ### 로그인 실패/차단 급증
 - `LOGIN_MAX_ATTEMPTS`, `LOGIN_COOLDOWN_SECONDS` 점검
@@ -95,6 +107,11 @@
 - `/admin/stats`, `/admin/stats/web`, `/admin/raw-queries/export` 응답 및 권한 확인
 - `map_event_log`, `raw_query_log`, `web_visit_event` 테이블 상태 확인
 - 로그 누락 시 클라이언트 이벤트(`/api/events`, `/api/web-events`) 수집 상태 확인
+
+### `/api/v1` 관련 혼선/문의 증가
+- `/api/v1/*`는 현재 폐기 대상이 아닌 호환성 경로임을 안내한다.
+- 소비자에게 기본 경로는 `/api/*`임을 안내하고 마이그레이션 권장 공지를 병행한다.
+- 폐기 계획이 확정되기 전에는 Deprecation/Sunset 헤더를 임의 적용하지 않는다.
 
 ### 설정/비밀번호 변경 후 반영 이슈
 - 관리자 화면 변경은 `.env` 파일을 갱신한다.
