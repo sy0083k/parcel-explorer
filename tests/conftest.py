@@ -24,6 +24,7 @@ TEST_MARKER_BY_FILE: dict[str, str] = {
     "test_land_repository_split.py": "unit",
     "test_map_event_service.py": "unit",
     "test_map_pagination.py": "integration",
+    "test_observability_headers.py": "integration",
     "test_phase1.py": "integration",
     "test_public_download_api.py": "integration",
     "test_raw_query_export_service.py": "unit",

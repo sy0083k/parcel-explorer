@@ -90,6 +90,36 @@
 4. `T0 + 4주` 관측 종료: 사용량/소비자 영향(로그 기반)을 확인하고 제거 승인 여부를 판단한다.
 5. 승인 후 제거: 라우터 제거, 문서 갱신, 회고 기록을 남긴다.
 
+## 테스트/검증 시나리오 (Phase 5 기준)
+### 1. 공개 API 회귀
+- `GET /api/lands`: pagination/cursor 동작 유지
+- `POST /api/events`, `POST /api/web-events`: 수집/검증/레이트리밋 동작 유지
+- `GET /api/public-download`: 파일 응답/부재 시 404 유지
+- 권장 실행: `pytest -q tests/test_map_pagination.py tests/test_stats_api.py tests/test_public_download_api.py`
+
+### 2. 관리자 핵심 흐름
+- 로그인/CSRF/내부망 제한 유지
+- 엑셀 업로드 + 지오메트리 보강 잡 생성
+- 통계 조회/CSV export
+- 권장 실행: `pytest -q tests/test_security_regression.py tests/test_upload_service.py tests/test_geo_service.py tests/test_stats_api.py`
+
+### 3. 프런트 핵심 UX
+- 지역/면적 Enter 검색
+- 리스트-지도 선택 동기화
+- 다운로드 버튼 동작
+- 실행 방식: 수동 회귀 + 선택적으로 `RUN_HTTP_E2E=1 pytest -m e2e -q`
+
+### 4. 비기능 검증
+- 동일 트래픽 기준 응답 시간 악화 여부(p95) 확인
+- 오류율 증가 여부 확인
+- 로그 관측성 확인(`X-Request-ID`, 구조화 로그 추적)
+- 실행 명령:
+  - `python scripts/run_nonfunctional_checks.py --samples 30`
+  - 기준선 비교 시: `python scripts/run_nonfunctional_checks.py --samples 30 --baseline <baseline.json>`
+- 기본 허용치(미합의 시):
+  - p95 regression <= 10%
+  - error rate <= 0.5%
+
 ## 장애 대응
 ### 로그인 실패/차단 급증
 - `LOGIN_MAX_ATTEMPTS`, `LOGIN_COOLDOWN_SECONDS` 점검
