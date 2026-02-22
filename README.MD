@@ -1,4 +1,4 @@
-# 🏠 IdlePublicProperty (서산시 유휴공유재산 지도)
+# 🏠 IdlePublicProperty (서산시 유휴 공유재산 지도)
 
 브이월드(VWorld) API와 FastAPI 기반으로 유휴 공유재산을 지도에 시각화하고,  
 관리자가 엑셀 업로드로 데이터를 갱신할 수 있는 웹 애플리케이션입니다.
