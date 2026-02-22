@@ -144,6 +144,34 @@ RUN_HTTP_E2E=1 pytest -q tests/test_e2e_smoke.py
 - Deploy: `.github/workflows/deploy.yml`
   - 현재 배포 명령은 TODO 상태이며 프로젝트 환경에 맞게 채워야 합니다.
 
+## 🐳 Docker 배포 (IP-only, no-domain)
+도메인 없이 서버 IP로 직접 접속하는 운영을 가정합니다.
+
+1. 환경 변수 파일 준비:
+```bash
+cp .env.example .env
+```
+
+2. 컨테이너 빌드/기동:
+```bash
+docker compose build
+docker compose up -d
+```
+
+3. 상태 확인:
+```bash
+docker compose ps
+curl http://127.0.0.1:8000/health
+```
+
+접속 URL:
+- 메인: `http://<SERVER_IP>:8000/`
+- 관리자 로그인: `http://<SERVER_IP>:8000/admin/login`
+
+운영 메모:
+- `docker-compose.yml`은 IP-only 환경을 위해 `SESSION_HTTPS_ONLY=false`, `TRUST_PROXY_HEADERS=false`를 기본값으로 사용합니다.
+- SQLite 및 공개 다운로드 파일은 `./data` 볼륨으로 영속화됩니다.
+
 ## 📂 디렉터리 구조
 ```text
 project-root/
