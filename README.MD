@@ -32,6 +32,8 @@
 * **Database:** SQLite3 (파일 기반 경량 DB)
 * **API:** V-World 요청 API (주소 검색 및 Feature 서비스)
 
+상세 기준(정식 Canonical Stack/코딩 철학/스타일)은 `docs/engineering-guidelines.md`를 따릅니다.
+
 ---
 
 ## 🚀 3. 시작하기 (사용 방법)
@@ -136,7 +138,11 @@ project-root/
 
 ## 📚 6. 문서
 
+- 문서 포털(한 페이지 허브): `docs/index.md`
+- 아카이브/참고 문서: `docs/refactoring-strategy.md`
+- 목표(Goals): `docs/goals.md`
 - 아키텍처/흐름: `docs/architecture.md`
+- 엔지니어링 가이드(Tech Stack/코딩 철학/코딩 스타일): `docs/engineering-guidelines.md`
 - 보안(STRIDE-lite): `docs/stride-lite.md`
 - 유지보수: `docs/maintenance.md`
 

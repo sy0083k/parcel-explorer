@@ -2,19 +2,31 @@
 
 프로젝트: IdlePublicProperty  
 작성일: 2026-02-11  
+최종 수정일: 2026-02-22  
 담당: Engineering
+
+## 문서 진입점
+- 문서 포털(한 페이지 허브): [`index.md`](index.md)
+- 목표/범위: [`goals.md`](goals.md)
+- 구조/흐름: [`architecture.md`](architecture.md)
+- 엔지니어링 기준(Tech Stack/코딩 철학/스타일): [`engineering-guidelines.md`](engineering-guidelines.md)
+- 운영/점검 절차: [`maintenance.md`](maintenance.md)
 
 ## 범위
 - FastAPI 웹 애플리케이션
-  - 공개 지도 엔드포인트 (`/api/config`, `/api/lands`, `/api/v1/*`)
-  - 관리자 로그인 및 업로드 (`/admin/login`, `/login`, `/admin/upload`)
+  - 공개 API: `/api/config`, `/api/lands`, `/api/events`, `/api/web-events`, `/api/public-download`, `/api/v1/*`
+  - 관리자/인증 API: `/admin/login`, `/login`, `/admin/upload`, `/admin/public-download/*`, `/admin/stats*`, `/admin/raw-queries/export`
+  - 헬스체크: `/health`
 - SQLite 저장소 (`data/database.db`)
+- 공개 다운로드 파일 저장소 (`data/public_download/current.*`, `current.json`)
 - 외부 의존성: VWorld API (주소 지오코딩 + WFS)
 
 ## 자산
 - 관리자 자격 증명 및 세션 쿠키
 - 업로드된 엑셀 데이터(유휴 부지 목록)
 - 지오메트리 및 파생 지도 데이터
+- 공개 다운로드 배포 파일(`current.*`) 및 메타데이터
+- 검색/클릭/웹 방문 이벤트 로그(`map_event_log`, `raw_query_log`, `web_visit_event`)
 - VWorld WMTS 키
 - VWorld Geocoder 키
 - 애플리케이션 가용성과 무결성
@@ -23,18 +35,24 @@
 - 공개 클라이언트 -> 애플리케이션 (비인증 요청)
 - 내부/관리자 네트워크 -> 애플리케이션 (관리자 엔드포인트)
 - 애플리케이션 -> SQLite DB
+- 애플리케이션 -> 파일 시스템(public download 저장소)
 - 애플리케이션 -> VWorld API
 
 ## 데이터 흐름(상위 수준)
 1. 공개 사용자 -> `/api/config`, `/api/lands` -> SQLite 조회 -> JSON/GeoJSON 응답
-2. 관리자 사용자 -> `/admin/login` -> 세션 + CSRF 토큰 발급
-3. 관리자 사용자 -> `/login` -> 인증 + 레이트 리미팅 -> 세션 생성
-4. 관리자 사용자 -> `/admin/upload` -> 엑셀 파싱 + 검증 -> SQLite 저장 -> 백그라운드 지오메트리 업데이트 -> VWorld API 호출
+2. 공개 사용자 -> `/api/public-download` -> 파일 시스템 조회 -> 파일 다운로드 응답
+3. 공개 사용자 -> `/api/events`, `/api/web-events` -> 이벤트 로그 테이블 저장
+4. 관리자 사용자 -> `/admin/login` -> 세션 + CSRF 토큰 발급
+5. 관리자 사용자 -> `/login` -> 인증 + 레이트 리미팅 -> 세션 생성
+6. 관리자 사용자 -> `/admin/upload` -> 엑셀 파싱 + 검증 -> SQLite 저장 -> 백그라운드 지오메트리 업데이트
+7. 관리자 사용자 -> `/admin/public-download/upload` -> 파일 검증/원자적 교체 -> 메타 갱신
+8. 관리자 사용자 -> `/admin/stats`, `/admin/stats/web` -> 집계 조회
+9. 관리자 사용자 -> `/admin/raw-queries/export` -> 원시 로그 CSV 내보내기
 
 ## 가정
 - 관리자 엔드포인트는 허용된 내부 IP 범위에서만 접근한다.
 - 세션 미들웨어 시크릿은 충분히 강하며 비공개다.
-- SQLite DB 파일은 OS 권한으로 보호된다.
+- SQLite DB 파일과 공개 다운로드 디렉터리는 OS 권한으로 보호된다.
 - VWorld API는 정상적으로 가용하며 올바른 응답을 반환한다.
 
 ## STRIDE-lite 분석
@@ -42,60 +60,69 @@
 ### S: 스푸핑(Spoofing)
 - 위험: 관리자 세션 쿠키 위조.
   - 현재: `SessionMiddleware`를 통한 서명된 세션 쿠키.
-  - 공백: HTTPS 전용이 아닐 때도 `secure=True`로 쿠키 삭제 시도.
-  - 완화: `SESSION_HTTPS_ONLY` 설정과 쿠키 삭제 플래그 정렬.
+  - 공백: `SESSION_HTTPS_ONLY=false` 환경에서 세션 보호수준 저하 가능.
+  - 완화: 운영 환경에서 HTTPS 강제 및 시크릿 로테이션.
 - 위험: 내부망 체크 우회(IP 위조).
-  - 현재: `ALLOWED_IPS` CIDR 허용 목록, `request.client.host` 기반.
-  - 공백: 프록시 뒤에서는 실제 클라이언트 IP가 다를 수 있음.
-  - 완화: 신뢰 프록시 헤더 정책 정의 및 적용.
+  - 현재: `ALLOWED_IPS` CIDR 허용 목록, 신뢰 프록시 설정 기반 IP 해석.
+  - 공백: 프록시 구성 오류 시 우회 가능성.
+  - 완화: `TRUST_PROXY_HEADERS`, `TRUSTED_PROXY_IPS` 운영 점검 자동화.
 
 ### T: 변조(Tampering)
 - 위험: 악성 엑셀 업로드로 DB 내용 변조.
-  - 현재: CSRF 검증, 내부망 제한, 파일 타입 검사.
-  - 공백: DB 레벨 제약 부족.
-  - 완화: 필드 제약/검증을 DB에도 추가.
-- 위험: DB 주입으로 지도 응답 변조.
-  - 현재: 리포지토리 계층에서 파라미터 바인딩.
+  - 현재: CSRF, 내부망, 파일형식/용량/행수 검증.
+  - 공백: 데이터 의미 검증은 앱 로직 중심, DB 제약은 제한적.
+  - 완화: 핵심 컬럼 제약 강화 및 업로드 검증 케이스 보강.
+- 위험: 공개 다운로드 파일/메타 변조.
+  - 현재: 관리자 인증 + 허용 확장자/용량 검증 + 원자적 교체.
+  - 공백: 파일 무결성 점검 프로세스 부재.
+  - 완화: 해시 기록 또는 배포 파일 무결성 점검 절차 추가.
 
 ### R: 부인(Repudiation)
-- 위험: 관리자 작업 추적 불가.
-  - 현재: 요청 ID 로그, 업로드/로그인 로그 기록.
-  - 공백: 영속적인 감사 로그 부재.
-  - 완화: 관리자 ID, 작업, 타임스탬프 포함 감사 로그 추가.
+- 위험: 관리자 설정 변경/내보내기 행위 추적 부족.
+  - 현재: 구조화 로그 기록.
+  - 공백: 영속 감사 로그 체계(누가 언제 무엇을 내보냈는지) 제한적.
+  - 완화: 관리자 액션 감사 로그 항목 확장.
 
 ### I: 정보 노출(Information Disclosure)
 - 위험: `/api/config`를 통한 VWorld WMTS 키 노출.
-  - 현재: 지도 사용을 위해 공개 제공.
-  - 완화: 공개용 제한 키 사용 여부 검토.
-- 위험: `/api/lands`를 통한 업로드 데이터 노출.
-  - 현재: 제한된 필드만 공개.
-  - 완화: 공개 필드의 적절성 재검토.
+  - 현재: 지도 렌더링 필요로 공개 제공.
+  - 완화: 공개 제한 키 정책 및 사용량 모니터링.
+- 위험: `/admin/raw-queries/export`로 원시 검색 입력 노출.
+  - 현재: 관리자 인증/내부망 보호.
+  - 공백: CSV 재배포 시 2차 노출 위험.
+  - 완화: 내보내기 접근 통제 강화, 보존 기간/마스킹 정책 수립.
 
 ### D: 서비스 거부(Denial of Service)
-- 위험: 대용량 업로드/과도한 행 수.
-  - 현재: `MAX_UPLOAD_SIZE_MB`, `MAX_UPLOAD_ROWS` 제한.
+- 위험: 대용량 업로드/이벤트 과다 입력.
+  - 현재: 업로드 용량/행 제한, 이벤트 입력 검증.
+  - 공백: 이벤트 수집 API 별도 rate limit 없음.
+  - 완화: API 게이트웨이/미들웨어 레벨 요청 제한 검토.
 - 위험: 반복 로그인 시도.
   - 현재: 인메모리 레이트 리미터.
-  - 공백: 재시작/다중 인스턴스 환경에서 무력화.
+  - 공백: 다중 인스턴스에서 무력화 가능.
   - 완화: 공유 스토어 기반 리미터로 확장.
 - 위험: VWorld API 지연으로 백그라운드 작업 지연.
   - 현재: 타임아웃/재시도/백오프.
-  - 완화: 회로 차단기 또는 총 실행 시간 제한 추가.
+  - 완화: 작업 시간 상한/지연 경보 도입.
 
 ### E: 권한 상승(Elevation of Privilege)
-- 위험: `/admin/upload` 인증 우회.
-  - 현재: CSRF + 내부 IP + 세션 인증 필요.
-  - 공백: 세션 탈취 시 관리자 권한 전면 노출.
-  - 완화: 세션 만료 단축 및 업로드 시 재인증 고려.
+- 위험: `/admin/upload`, `/admin/public-download/upload`, `/admin/raw-queries/export` 우회 접근.
+  - 현재: CSRF + 내부 IP + 세션 인증 조합.
+  - 공백: 세션 탈취 시 관리자 기능 전면 노출.
+  - 완화: 세션 만료/재인증 정책 강화, 관리자 액션 모니터링.
 
 ## 잔여 위험
 - 프록시 설정 오류 시 내부 IP 검사 우회 가능.
 - 인메모리 레이트 리미팅은 수평 확장 환경에서 약함.
-- VWorld WMTS 키 및 공개 데이터 필드의 공개 범위가 요구사항에 의존함.
+- 원시 로그 내보내기 데이터의 2차 유출 위험은 운영 통제에 의존.
+- 공개 다운로드 파일 배포 프로세스의 무결성 검증 체계가 약함.
 
 ## 권장 후속 조치
-1. `SESSION_HTTPS_ONLY`에 맞춘 세션 쿠키 삭제 플래그 적용.
-2. 관리자 작업 감사 로그 추가(로그인, 업로드).
-3. 프록시 신뢰 모델 정의 및 클라이언트 IP 처리 강화.
-4. 핵심 필드에 DB 레벨 제약 추가.
-5. 공개 데이터 필드와 VWorld WMTS 키 공개 정책 재확인.
+1. 이벤트 수집 API 및 로그인에 대한 공통 rate limit 정책 수립.
+2. 관리자 액션(업로드, 설정변경, 내보내기) 감사 로그 강화.
+3. 공개 다운로드 파일 무결성 체크(해시/서명 또는 점검 절차) 도입.
+4. raw query export 데이터 보존/마스킹/반출 정책 수립.
+5. 프록시 신뢰 모델 운영 점검 자동화.
+
+## 구현 규칙 참조
+- 보안 관련 코딩 규칙은 [`engineering-guidelines.md`](engineering-guidelines.md)의 Security 섹션을 기준으로 유지한다.
