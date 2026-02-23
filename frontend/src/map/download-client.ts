@@ -1,4 +1,4 @@
-import { HttpError } from "../http";
+import { HttpError, fetchBlob } from "../http";
 
 function parseFilenameFromDisposition(contentDisposition: string | null): string | null {
   if (!contentDisposition) {
@@ -24,22 +24,8 @@ function parseFilenameFromDisposition(contentDisposition: string | null): string
 export function createDownloadClient() {
   const downloadPreparedFile = async (): Promise<void> => {
     try {
-      const response = await fetch("/api/public-download", { method: "GET" });
-      if (!response.ok) {
-        let detail = "다운로드 파일이 아직 준비되지 않았습니다.";
-        try {
-          const payload = (await response.json()) as { detail?: string };
-          if (payload.detail) {
-            detail = payload.detail;
-          }
-        } catch {
-          // Keep default message.
-        }
-        throw new HttpError(detail, response.status);
-      }
-
-      const blob = await response.blob();
-      const disposition = response.headers.get("content-disposition");
+      const { blob, headers } = await fetchBlob("/api/public-download", { method: "GET", timeoutMs: 10000 });
+      const disposition = headers.get("content-disposition");
       const fallbackName = "idle-public-property-download";
       const filename = parseFilenameFromDisposition(disposition) || fallbackName;
       const objectUrl = URL.createObjectURL(blob);

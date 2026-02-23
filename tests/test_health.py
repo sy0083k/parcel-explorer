@@ -17,12 +17,12 @@ async def test_health_includes_db_check(async_client: httpx.AsyncClient) -> None
 async def test_health_deep_includes_vworld_check(
     async_client: httpx.AsyncClient, monkeypatch: MonkeyPatch
 ) -> None:
-    from app import main as app_main
+    from app.services import health_service
 
     monkeypatch.setattr(
-        app_main,
-        "get_json_with_retry",
-        lambda *_args, **_kwargs: {"response": {"status": "OK"}},
+        health_service.vworld_client,
+        "check_geocoder_health",
+        lambda *_args, **_kwargs: True,
     )
     res = await async_client.get("/health?deep=1")
     assert res.status_code == 200

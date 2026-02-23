@@ -1,9 +1,13 @@
 from __future__ import annotations
 
+import bcrypt
 from ipaddress import ip_network
 from pathlib import Path
 
+from fastapi import HTTPException, Request
+
 from app.core import get_settings
+from app.dependencies import validate_csrf_token
 
 WHITELIST_KEYS = {
     "APP_NAME",
@@ -119,3 +123,56 @@ def _format_env_value(value: str) -> str:
     if " " in value or "#" in value:
         return f"\"{value}\""
     return value
+
+
+def apply_settings_update(
+    request: Request,
+    *,
+    csrf_token: str,
+    settings_password: str,
+    updates: dict[str, str],
+) -> None:
+    if not validate_csrf_token(request, csrf_token):
+        raise HTTPException(status_code=403, detail="CSRF 토큰 검증에 실패했습니다.")
+
+    if not settings_password:
+        raise HTTPException(status_code=400, detail="관리자 비밀번호를 입력해주세요.")
+
+    config = request.app.state.config
+    if not bcrypt.checkpw(settings_password.encode("utf-8"), config.ADMIN_PW_HASH.encode("utf-8")):
+        raise HTTPException(status_code=401, detail="관리자 비밀번호가 올바르지 않습니다.")
+
+    try:
+        cleaned = validate_updates(updates)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+    update_env_file(config.BASE_DIR, cleaned)
+
+
+def apply_password_update(
+    request: Request,
+    *,
+    csrf_token: str,
+    current_password: str,
+    new_password: str,
+    new_password_confirm: str,
+) -> None:
+    if not validate_csrf_token(request, csrf_token):
+        raise HTTPException(status_code=403, detail="CSRF 토큰 검증에 실패했습니다.")
+
+    if not current_password or not new_password:
+        raise HTTPException(status_code=400, detail="비밀번호를 입력해주세요.")
+
+    if new_password != new_password_confirm:
+        raise HTTPException(status_code=400, detail="새 비밀번호가 일치하지 않습니다.")
+
+    if len(new_password) < 8:
+        raise HTTPException(status_code=400, detail="새 비밀번호는 8자 이상이어야 합니다.")
+
+    config = request.app.state.config
+    if not bcrypt.checkpw(current_password.encode("utf-8"), config.ADMIN_PW_HASH.encode("utf-8")):
+        raise HTTPException(status_code=401, detail="현재 비밀번호가 올바르지 않습니다.")
+
+    new_hash = bcrypt.hashpw(new_password.encode("utf-8"), bcrypt.gensalt()).decode("utf-8")
+    update_admin_password_hash(config.BASE_DIR, new_hash)

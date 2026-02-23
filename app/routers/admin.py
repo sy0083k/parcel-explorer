@@ -1,8 +1,7 @@
 # app/routers/admin.py
-import bcrypt
 import logging
 from datetime import datetime
-from fastapi import APIRouter, BackgroundTasks, Depends, File, Form, HTTPException, Request, UploadFile
+from fastapi import APIRouter, BackgroundTasks, Depends, File, Form, Request, UploadFile
 from fastapi.responses import HTMLResponse, RedirectResponse, Response
 from typing import cast
 
@@ -11,7 +10,6 @@ from app.dependencies import (
     get_or_create_csrf_token,
     is_authenticated,
     require_authenticated,
-    validate_csrf_token,
 )
 from app.logging_utils import RequestIdFilter
 from app.services import admin_settings_service, public_download_service, stats_service, upload_service
@@ -92,16 +90,6 @@ async def update_settings(
     trusted_proxy_ips: str = Form(default=""),
     upload_sheet_name: str = Form(default=""),
 ):
-    if not validate_csrf_token(request, csrf_token):
-        raise HTTPException(status_code=403, detail="CSRF 토큰 검증에 실패했습니다.")
-
-    if not settings_password:
-        raise HTTPException(status_code=400, detail="관리자 비밀번호를 입력해주세요.")
-
-    config = request.app.state.config
-    if not bcrypt.checkpw(settings_password.encode("utf-8"), config.ADMIN_PW_HASH.encode("utf-8")):
-        raise HTTPException(status_code=401, detail="관리자 비밀번호가 올바르지 않습니다.")
-
     updates = {
         "APP_NAME": app_name,
         "VWORLD_WMTS_KEY": vworld_wmts_key,
@@ -119,12 +107,12 @@ async def update_settings(
         "TRUSTED_PROXY_IPS": trusted_proxy_ips,
         "UPLOAD_SHEET_NAME": upload_sheet_name,
     }
-
-    try:
-        cleaned = admin_settings_service.validate_updates(updates)
-    except ValueError as exc:
-        raise HTTPException(status_code=400, detail=str(exc)) from exc
-    admin_settings_service.update_env_file(request.app.state.config.BASE_DIR, cleaned)
+    admin_settings_service.apply_settings_update(
+        request,
+        csrf_token=csrf_token,
+        settings_password=settings_password,
+        updates=updates,
+    )
     request_id = getattr(request.state, "request_id", "-")
     client_ip = request.client.host if request.client else "unknown"
     logger.info(
@@ -148,24 +136,13 @@ async def update_password(
     new_password: str = Form(default=""),
     new_password_confirm: str = Form(default=""),
 ):
-    if not validate_csrf_token(request, csrf_token):
-        raise HTTPException(status_code=403, detail="CSRF 토큰 검증에 실패했습니다.")
-
-    if not current_password or not new_password:
-        raise HTTPException(status_code=400, detail="비밀번호를 입력해주세요.")
-
-    if new_password != new_password_confirm:
-        raise HTTPException(status_code=400, detail="새 비밀번호가 일치하지 않습니다.")
-
-    if len(new_password) < 8:
-        raise HTTPException(status_code=400, detail="새 비밀번호는 8자 이상이어야 합니다.")
-
-    config = request.app.state.config
-    if not bcrypt.checkpw(current_password.encode("utf-8"), config.ADMIN_PW_HASH.encode("utf-8")):
-        raise HTTPException(status_code=401, detail="현재 비밀번호가 올바르지 않습니다.")
-
-    new_hash = bcrypt.hashpw(new_password.encode("utf-8"), bcrypt.gensalt()).decode("utf-8")
-    admin_settings_service.update_admin_password_hash(config.BASE_DIR, new_hash)
+    admin_settings_service.apply_password_update(
+        request,
+        csrf_token=csrf_token,
+        current_password=current_password,
+        new_password=new_password,
+        new_password_confirm=new_password_confirm,
+    )
     request_id = getattr(request.state, "request_id", "-")
     client_ip = request.client.host if request.client else "unknown"
     logger.info(

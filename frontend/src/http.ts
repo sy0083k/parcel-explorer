@@ -58,3 +58,44 @@ export async function fetchJson<T>(
     window.clearTimeout(timer);
   }
 }
+
+export async function fetchBlob(
+  input: RequestInfo | URL,
+  init?: RequestInit & { timeoutMs?: number }
+): Promise<{ blob: Blob; headers: Headers }> {
+  const timeoutMs = init?.timeoutMs ?? 10000;
+  const controller = new AbortController();
+  const timer = window.setTimeout(() => controller.abort(), timeoutMs);
+
+  try {
+    const response = await fetch(input, {
+      ...init,
+      signal: controller.signal
+    });
+
+    if (!response.ok) {
+      const text = await response.text();
+      let payload: unknown = {};
+      if (text) {
+        try {
+          payload = JSON.parse(text) as unknown;
+        } catch {
+          payload = {};
+        }
+      }
+      throw new HttpError(normalizeErrorMessage(payload, `요청 실패 (${response.status})`), response.status);
+    }
+
+    return { blob: await response.blob(), headers: response.headers };
+  } catch (error) {
+    if (error instanceof HttpError) {
+      throw error;
+    }
+    if (error instanceof DOMException && error.name === "AbortError") {
+      throw new HttpError("요청 시간이 초과되었습니다.");
+    }
+    throw new HttpError("네트워크 오류가 발생했습니다.");
+  } finally {
+    window.clearTimeout(timer);
+  }
+}

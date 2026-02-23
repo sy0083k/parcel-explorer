@@ -16,13 +16,12 @@ from fastapi.templating import Jinja2Templates
 from starlette.middleware.sessions import SessionMiddleware
 
 from app.auth_security import LoginAttemptLimiter
-from app.clients.http_client import get_json_with_retry
 from app.core import get_settings
-from app.db.connection import db_connection
 from app.exceptions import http_exception_handler, unhandled_exception_handler
 from app.logging_utils import RequestIdFilter, configure_logging
 from app.rate_limit import SlidingWindowRateLimiter
 from app.routers import admin, auth, map_router, map_v1_router
+from app.services import health_service
 from app.services.geo_service import init_db
 from app.utils import vite_assets
 
@@ -151,31 +150,5 @@ async def read_root(request: Request) -> HTMLResponse:
 @app.get("/health")
 async def healthcheck(request: Request, deep: int = 0) -> dict[str, object]:
     request_id = getattr(request.state, "request_id", "-")
-    checks: dict[str, str] = {}
-
-    with db_connection() as conn:
-        conn.execute("SELECT 1")
-    checks["db"] = "ok"
-
-    if deep == 1:
-        settings_local = get_settings()
-        sample_geo_url = (
-            "https://api.vworld.kr/req/address"
-            "?service=address&request=getcoord&type=parcel"
-            "&address=%EC%84%9C%EC%9A%B8%ED%8A%B9%EB%B3%84%EC%8B%9C+%EC%A4%91%EA%B5%AC+%EC%84%B8%EC%A2%85%EB%8C%80%EB%A1%9C+110"
-            f"&key={settings_local.vworld_geocoder_key}"
-        )
-        try:
-            payload = get_json_with_retry(
-                sample_geo_url,
-                timeout_s=settings_local.vworld_timeout_s,
-                retries=1,
-                backoff_s=settings_local.vworld_backoff_s,
-                request_id=request_id,
-            )
-            status = payload.get("response", {}).get("status")
-            checks["vworld"] = "ok" if status in {"OK", "NOT_FOUND"} else "degraded"
-        except Exception:
-            checks["vworld"] = "degraded"
-
+    checks = health_service.evaluate_health_checks(deep=deep, request_id=request_id)
     return {"status": "ok", "request_id": request_id, "checks": checks}
