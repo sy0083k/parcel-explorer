@@ -46,8 +46,8 @@
 - `AVOID`: 페이지 스크립트에서 중복된 fetch/에러 처리 로직을 복붙하는 패턴.
 
 ## Security & Config Handling Rules
-- `MUST`: 관리자 경로는 내부망 제한 + 세션 인증 + CSRF 검증을 동시에 유지한다.
-- `MUST`: 비밀값(`SECRET_KEY`, API key, 비밀번호 해시)을 로그/응답에 노출하지 않는다.
+- `MUST`: 관리자 보호 경로는 내부망 제한을 유지한다. 이 중 인증이 필요한 경로는 세션 인증을 적용하고, 상태 변경 요청(POST/PUT/PATCH/DELETE)은 CSRF 검증을 동시에 적용한다.
+- `MUST`: 비밀값(`SECRET_KEY`, `VWORLD_GEOCODER_KEY`, 비밀번호 해시 등)은 로그/응답에 노출하지 않는다. 단, 공개 클라이언트 렌더링에 필수인 공개용 키(`VWORLD_WMTS_KEY`)는 예외적으로 응답 노출을 허용하되, 최소 권한(도메인/용도 제한)과 사용량 모니터링 정책을 유지한다.
 - `MUST`: 프록시 환경에서 `TRUST_PROXY_HEADERS`/`TRUSTED_PROXY_IPS` 정책을 명확히 설정한다.
 - `SHOULD`: 세션/인증/보안 헤더 변경은 `stride-lite.md`와 함께 검토한다.
 - `SHOULD`: 업로드/다운로드 제한값은 환경변수로 조정하고 운영 문서에 반영한다.

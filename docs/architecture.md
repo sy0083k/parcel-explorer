@@ -60,7 +60,7 @@ IdlePublicProperty는 공공 지도 데이터를 제공하고, 관리자 전용 
   - `types.ts`: 지도 화면 공통 타입
 
 ## 주요 구성 요소
-- **세션 + CSRF**: SessionMiddleware가 서명된 세션 쿠키를 관리한다. CSRF 토큰은 세션에 저장되며 관리자 POST 요청에서 검증한다.
+- **세션 + CSRF**: SessionMiddleware가 서명된 세션 쿠키를 관리한다. 관리자 보호 경로는 내부망 제한을 유지하며, 인증이 필요한 경로에는 세션 인증을 적용한다. CSRF 토큰은 세션에 저장되고 관리자 상태 변경 요청(POST/PUT/PATCH/DELETE)에서 검증한다.
 - **레이트 리미팅**: 로그인 실패 제한 + 이벤트 수집 API(`POST /api/events`, `POST /api/web-events`)에 인메모리 슬라이딩 윈도우 제한을 적용한다.
 - **데이터베이스**: `data/database.db`의 SQLite.
 - **외부 API**: 지오코딩 및 WFS 조회를 위한 VWorld.
@@ -193,9 +193,9 @@ IdlePublicProperty는 공공 지도 데이터를 제공하고, 관리자 전용 
 - `PUBLIC_DOWNLOAD_DIR`
 
 ## 운영 참고
-- 관리자 엔드포인트는 내부 IP 허용 목록과 세션 인증으로 보호된다.
+- 관리자 보호 경로는 내부 IP 허용 목록으로 제한되며, 인증이 필요한 경로는 세션 인증으로 보호된다.
 - 프록시 환경에서는 신뢰 프록시(`TRUSTED_PROXY_IPS`) 경유 요청에 한해 `X-Forwarded-For`를 사용한다.
-- VWorld WMTS 키는 지도 사용을 위해 `/api/config`에서 제공된다. Geocoder 키는 서버 전용이다.
+- VWorld WMTS 키(`VWORLD_WMTS_KEY`)는 지도 렌더링을 위해 `/api/config`에서 예외적으로 제공되며, 운영에서 도메인/용도 제한 및 사용량 모니터링 정책을 유지한다. Geocoder 키(`VWORLD_GEOCODER_KEY`)는 서버 전용 비밀값으로 유지한다.
 - 지오메트리 업데이트는 백그라운드 작업이며 VWorld 가용성에 의존한다.
 - 관리자 화면에서 설정/비밀번호를 변경하면 `.env`는 갱신되지만, 실행 중 프로세스의 설정 객체는 자동 재로딩되지 않는다(운영 시 재시작 절차 필요).
 - 이벤트 로그/원시 로그는 운영 중 누적되므로 보존 및 정리 정책을 별도로 관리해야 한다.
