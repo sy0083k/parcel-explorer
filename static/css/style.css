@@ -83,6 +83,56 @@ body { margin: 0; display: flex; height: 100vh; font-family: 'Malgun Gothic', sa
 .map-controls button { border: 1px solid #ddd; background: #fff; padding: 8px 15px; cursor: pointer; font-size: 12px; font-weight: bold; border-radius: 4px; }
 .map-controls button.active { background: #2c3e50; color: white; border-color: #2c3e50; }
 .layer-mobile-toggle { display: none; }
+
+.mobile-icon-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 48px;
+    height: 48px;
+    padding: 0;
+    border: none !important;
+    border-radius: 999px !important;
+    background: #ffffff !important;
+    box-shadow: 0 6px 14px rgba(0, 0, 0, 0.25);
+    cursor: pointer;
+}
+
+.mobile-icon-btn:hover {
+    background: #ffffff !important;
+    box-shadow: 0 8px 18px rgba(0, 0, 0, 0.28);
+}
+
+.mobile-icon-btn:active {
+    transform: translateY(1px);
+}
+
+.mobile-icon-btn:focus-visible {
+    outline: 2px solid #111111;
+    outline-offset: 2px;
+}
+
+.mobile-icon-btn svg {
+    width: 22px;
+    height: 22px;
+    stroke: #111111;
+    stroke-width: 2.2;
+    fill: none;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+}
+
+.sr-only {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
+}
 .layer-popover {
     display: none;
     flex-direction: column;
@@ -100,15 +150,6 @@ body { margin: 0; display: flex; height: 100vh; font-family: 'Malgun Gothic', sa
     right: 14px;
     bottom: 16px;
     z-index: 10010;
-    width: 48px;
-    height: 48px;
-    border: none;
-    border-radius: 999px;
-    background: #2c3e50;
-    color: #fff;
-    font-size: 22px;
-    box-shadow: 0 8px 18px rgba(44, 62, 80, 0.3);
-    cursor: pointer;
 }
 
 #mobile-search-overlay {
@@ -175,7 +216,7 @@ body { margin: 0; display: flex; height: 100vh; font-family: 'Malgun Gothic', sa
         overflow: hidden;
     }
 
-    #mobile-search-fab { display: block; }
+    #mobile-search-fab { display: inline-flex; }
 
     body.mobile-results #mobile-search-fab {
         bottom: calc(50vh + 12px);
@@ -230,17 +271,18 @@ body { margin: 0; display: flex; height: 100vh; font-family: 'Malgun Gothic', sa
     .map-controls {
         right: 10px;
         top: 10px;
-        padding: 4px;
+        padding: 0;
+        background: transparent;
+        box-shadow: none;
     }
     .layer-desktop { display: none; }
     .layer-mobile-toggle {
-        display: inline-block;
-        min-width: 72px;
-        padding: 8px 10px !important;
+        display: inline-flex;
+        min-width: 48px;
     }
     .layer-popover {
         position: absolute;
-        top: 42px;
+        top: 56px;
         right: 0;
         min-width: 124px;
     }
@@ -275,6 +317,7 @@ body { margin: 0; display: flex; height: 100vh; font-family: 'Malgun Gothic', sa
     .nav-btn { padding: 12px; font-size: 0.95em; }
     .list-item { padding: 16px; }
     .map-controls button { font-size: 12px; }
+    .ol-zoom { display: none !important; }
 
     /* 팝업 모바일 대응 */
     .ol-popup {
