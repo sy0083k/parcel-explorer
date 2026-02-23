@@ -171,6 +171,8 @@
 
 ## 보안 운영
 - 세션 시크릿(`SECRET_KEY`) 정기 교체
+- VWorld 키(`VWORLD_WMTS_KEY`, `VWORLD_GEOCODER_KEY`) 사용량 모니터링 및 이상 징후 알림 점검
+- `VWORLD_GEOCODER_KEY` 유출 의심 시 재발급/교체 런북에 따라 즉시 로테이션 수행
 - 공개 데이터 필드 재검토
 - 내부망 접근 정책 주기 점검
 - 내보내기/다운로드 경로의 접근 통제 점검

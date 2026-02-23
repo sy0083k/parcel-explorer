@@ -117,7 +117,9 @@ uvicorn app.main:app --reload
 - `GET /health?deep=1` (DB + 외부 API 확인)
 
 ## 🛡 보안/운영 포인트 (핵심)
-- 관리자 경로는 내부망 허용 IP(`ALLOWED_IPS`) + 세션 인증 + CSRF로 보호됩니다.
+- 관리자 보호 경로는 내부망 허용 IP(`ALLOWED_IPS`)와 세션 인증으로 보호되며, 상태 변경 요청에는 CSRF 검증을 적용합니다.
+- `VWORLD_WMTS_KEY`는 공개 지도 렌더링(`/api/config`)용 예외 공개 키입니다.
+- `VWORLD_GEOCODER_KEY`는 관리자 보호 화면(`/admin`)에서 운영 편의를 위해 예외 공개될 수 있으며, 공개 API/로그 노출은 금지합니다.
 - 프록시 환경에서는 `TRUST_PROXY_HEADERS`, `TRUSTED_PROXY_IPS`를 정확히 설정해야 합니다.
 - 이벤트 수집 API는 레이트리밋이 적용됩니다.
   - `POST /api/events`: 60 req/min

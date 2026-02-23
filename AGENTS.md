@@ -31,11 +31,8 @@
   - 중복 fetch/에러 처리 로직 복붙을 금지한다.
 
   ## Security Invariants (MUST)
-  - 관리자 경로 보호는 항상 다음 3가지를 동시에 유지한다:
-    - 내부망 제한
-    - 세션 인증
-    - CSRF 검증
-  - 비밀값(`SECRET_KEY`, API 키, 비밀번호 해시)을 로그/응답에 노출하지 않는다.
+  - 관리자 보호 경로는 내부망 제한을 유지한다. 이 중 인증이 필요한 경로는 세션 인증을 적용하고, 상태 변경 요청(POST/PUT/PATCH/DELETE)은 CSRF 검증을 동시에 적용한다.
+  - 비밀값(`SECRET_KEY`, 비밀번호 해시 등)은 로그/응답에 노출하지 않는다. 단, VWorld 키는 운영 목적에 따라 예외를 둘 수 있으며 공개 범위와 통제 조건을 문서에 명시해야 한다.
   - 프록시 환경에서는 `TRUST_PROXY_HEADERS` / `TRUSTED_PROXY_IPS` 정책을 명확히 유지한다.
 
   ## API & Contract Rules
