@@ -4,7 +4,7 @@
 관리자가 엑셀 업로드로 데이터를 갱신할 수 있는 웹 애플리케이션입니다.
 
 ## 🛠 핵심 기술 스택
-- Backend: Python 3.10+, FastAPI, SQLite
+- Backend: Python 3.12, FastAPI, SQLite
 - Frontend: TypeScript, Vite, OpenLayers
 - Data: pandas, openpyxl/xlrd
 - External API: VWorld (WMTS/Geocoder/WFS)
@@ -14,7 +14,7 @@
 ## 🚀 빠른 시작
 
 ### 1) 사전 준비
-- Python 3.10+
+- Python 3.12
 - Node.js + npm (frontend 빌드용)
 - VWorld API 키 (WMTS, Geocoder)
 

@@ -2,7 +2,7 @@
 
 프로젝트: IdlePublicProperty  
 작성일: 2026-02-22  
-최종 수정일: 2026-02-22
+최종 수정일: 2026-02-25
 
 ## 문서 목적과 범위
 - 이 문서는 테크 스택, 코딩 철학, 코딩 스타일의 단일 기준(Source of Truth)이다.
@@ -13,7 +13,7 @@
   - `AVOID`: 특별한 이유가 없으면 지양한다.
 
 ## Canonical Tech Stack (MUST)
-- Backend: Python 3.10+, FastAPI
+- Backend: Python 3.12, FastAPI
 - Frontend: TypeScript, Vite, OpenLayers
 - Database: SQLite3 (`data/database.db`)
 - Data 처리: pandas, openpyxl/xlrd
