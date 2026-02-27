@@ -52,7 +52,7 @@ async def test_admin_settings_accepts_proxy_and_sheet_fields(
         data={
             "csrf_token": csrf_token,
             "settings_password": "admin-password",
-            "app_name": "IdlePublicProperty",
+            "app_name": "관심 필지 지도",
             "vworld_wmts_key": "test-key",
             "vworld_geocoder_key": "test-key",
             "allowed_ips": "127.0.0.1/32,::1/128",
@@ -90,7 +90,7 @@ async def test_admin_settings_rejects_invalid_trusted_proxy_ips(
         data={
             "csrf_token": csrf_token,
             "settings_password": "admin-password",
-            "app_name": "IdlePublicProperty",
+            "app_name": "관심 필지 지도",
             "vworld_wmts_key": "test-key",
             "vworld_geocoder_key": "test-key",
             "allowed_ips": "127.0.0.1/32,::1/128",

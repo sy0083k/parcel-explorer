@@ -145,7 +145,7 @@ def get_settings() -> Settings:
     _load_dotenv_if_present(base_dir)
 
     return Settings(
-        app_name=os.getenv("APP_NAME", "IdlePublicProperty"),
+        app_name=os.getenv("APP_NAME", "관심 필지 지도"),
         map_center_lon=float(os.getenv("MAP_CENTER_LON", "126.4500")),
         map_center_lat=float(os.getenv("MAP_CENTER_LAT", "36.7848")),
         map_default_zoom=int(os.getenv("MAP_DEFAULT_ZOOM", "14")),

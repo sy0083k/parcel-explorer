@@ -1,4 +1,4 @@
-# IdlePublicProperty 웹앱 목표(Goals)
+# 관심 필지 지도 (POI Map) 웹앱 목표(Goals)
 
 작성일: 2026-02-22  
 최종 수정일: 2026-02-22  

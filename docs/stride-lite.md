@@ -1,6 +1,6 @@
 # STRIDE-lite 위협 모델
 
-프로젝트: IdlePublicProperty  
+프로젝트: 관심 필지 지도 (POI Map)  
 작성일: 2026-02-11  
 최종 수정일: 2026-02-25  
 담당: Engineering
