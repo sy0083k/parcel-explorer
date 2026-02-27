@@ -4,9 +4,9 @@ from typing import Any
 
 from fastapi import Request
 
-from app.services import map_event_service, raw_query_export_service, web_stats_service
 from app.db.connection import db_connection
 from app.repositories import idle_land_repository
+from app.services import map_event_service, raw_query_export_service, web_stats_service
 
 EVENT_TYPE_SEARCH = map_event_service.EVENT_TYPE_SEARCH
 EVENT_TYPE_LAND_CLICK = map_event_service.EVENT_TYPE_LAND_CLICK

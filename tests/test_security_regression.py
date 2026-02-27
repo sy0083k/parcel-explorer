@@ -21,8 +21,9 @@ async def test_internal_network_rejected(app_env: dict[str, str]) -> None:
     env["ALLOWED_IPS"] = "192.168.0.0/24"
 
     with temp_env(env):
-        from app.core import config
         import importlib
+
+        from app.core import config
 
         config.get_settings.cache_clear()
         app_main = importlib.import_module("app.main")
@@ -49,8 +50,9 @@ async def test_internal_network_accepts_trusted_proxy_forwarded_for(app_env: dic
     env["TRUSTED_PROXY_IPS"] = "10.0.0.0/8"
 
     with temp_env(env):
-        from app.core import config
         import importlib
+
+        from app.core import config
 
         config.get_settings.cache_clear()
         app_main = importlib.import_module("app.main")
@@ -69,8 +71,9 @@ async def test_internal_network_rejects_untrusted_proxy_forwarded_for(app_env: d
     env["TRUSTED_PROXY_IPS"] = "10.0.0.0/8"
 
     with temp_env(env):
-        from app.core import config
         import importlib
+
+        from app.core import config
 
         config.get_settings.cache_clear()
         app_main = importlib.import_module("app.main")
@@ -87,8 +90,9 @@ async def test_logout_cookie_secure_matches_session_https_setting(app_env: dict[
     env["SESSION_HTTPS_ONLY"] = "false"
 
     with temp_env(env):
-        from app.core import config
         import importlib
+
+        from app.core import config
 
         config.get_settings.cache_clear()
         app_main = importlib.import_module("app.main")

@@ -2,10 +2,11 @@ import importlib
 import os
 import re
 import sys
-from contextlib import contextmanager
-from collections.abc import Iterator
-from pathlib import Path
 import unittest
+from collections.abc import Iterator
+from contextlib import contextmanager
+from pathlib import Path
+
 from fastapi import FastAPI
 
 ROOT_DIR = Path(__file__).resolve().parents[1]

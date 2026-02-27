@@ -1,6 +1,6 @@
-from app.services import stats_service
 from app.db.connection import db_connection
 from app.repositories import idle_land_repository
+from app.services import stats_service
 
 
 def test_stats_service_bucket_helpers() -> None:

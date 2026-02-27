@@ -1,5 +1,5 @@
 from app.schemas.request import LoginRequest, UploadRequestMeta
-from app.schemas.response import ApiErrorResponse, LoginResponse, UploadResponse, MapConfigResponse
+from app.schemas.response import ApiErrorResponse, LoginResponse, MapConfigResponse, UploadResponse
 
 
 def test_request_schemas_defaults() -> None:

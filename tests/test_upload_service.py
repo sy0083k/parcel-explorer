@@ -4,8 +4,7 @@ from typing import Any
 import pandas as pd
 import pytest
 from _pytest.monkeypatch import MonkeyPatch
-from fastapi import BackgroundTasks, HTTPException
-from fastapi import FastAPI
+from fastapi import BackgroundTasks, FastAPI, HTTPException
 from starlette.datastructures import UploadFile
 from starlette.requests import Request
 

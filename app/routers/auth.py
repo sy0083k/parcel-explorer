@@ -1,7 +1,8 @@
 # app/routers/auth.py
+from typing import cast
+
 from fastapi import APIRouter, Depends, Form, Request
 from fastapi.responses import HTMLResponse, RedirectResponse
-from typing import cast
 
 from app.dependencies import check_internal_network, get_or_create_csrf_token
 from app.services import auth_service

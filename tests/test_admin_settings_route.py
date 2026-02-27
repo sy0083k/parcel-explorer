@@ -4,7 +4,6 @@ import httpx
 import pytest
 from _pytest.monkeypatch import MonkeyPatch
 
-
 CSRF_PATTERN = r'name="csrf_token" value="([^"]+)"'
 
 

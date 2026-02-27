@@ -1,16 +1,15 @@
+import logging
 import os
 import sys
 import time
+import uuid
+from collections.abc import AsyncIterator, Awaitable, Callable
 from contextlib import asynccontextmanager
 from pathlib import Path
-from collections.abc import AsyncIterator, Awaitable, Callable
 from typing import cast
 
-import logging
-import uuid
 from fastapi import FastAPI, HTTPException, Request
-from fastapi.responses import Response
-from fastapi.responses import HTMLResponse
+from fastapi.responses import HTMLResponse, Response
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from starlette.middleware.sessions import SessionMiddleware

@@ -1,7 +1,8 @@
+from _pytest.monkeypatch import MonkeyPatch
+
 from app.db.connection import db_connection
 from app.repositories import idle_land_repository
 from app.services import geo_service
-from _pytest.monkeypatch import MonkeyPatch
 
 
 def test_geo_service_updates_geom(db_path: object, monkeypatch: MonkeyPatch) -> None:

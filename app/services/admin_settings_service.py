@@ -1,9 +1,9 @@
 from __future__ import annotations
 
-import bcrypt
 from ipaddress import ip_network
 from pathlib import Path
 
+import bcrypt
 from fastapi import HTTPException, Request
 
 from app.core import get_settings

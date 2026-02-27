@@ -1,10 +1,9 @@
-import io
-import re
 
+import os
 import subprocess
 import sys
 import textwrap
-import os
+
 import pytest
 
 

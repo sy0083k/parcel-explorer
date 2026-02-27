@@ -1,10 +1,8 @@
 from __future__ import annotations
 
-from typing import Any
-from typing import cast
+from typing import Any, cast
 
 import pandas as pd
-
 
 REQUIRED_COLUMNS = [
     "소재지(지번)",

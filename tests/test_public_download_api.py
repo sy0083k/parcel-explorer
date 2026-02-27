@@ -4,7 +4,6 @@ import re
 import httpx
 import pytest
 
-
 CSRF_PATTERN = r'name="csrf_token" value="([^"]+)"'
 
 

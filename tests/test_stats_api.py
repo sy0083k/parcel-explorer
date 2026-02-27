@@ -4,9 +4,8 @@ import httpx
 import pytest
 
 from app.db.connection import db_connection
-from app.routers import map_router
 from app.repositories import idle_land_repository
-
+from app.routers import map_router
 
 CSRF_PATTERN = r'name="csrf_token" value="([^"]+)"'
 

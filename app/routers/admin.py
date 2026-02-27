@@ -1,9 +1,10 @@
 # app/routers/admin.py
 import logging
 from datetime import datetime
+from typing import cast
+
 from fastapi import APIRouter, BackgroundTasks, Depends, File, Form, Request, UploadFile
 from fastapi.responses import HTMLResponse, RedirectResponse, Response
-from typing import cast
 
 from app.dependencies import (
     check_internal_network,
@@ -12,8 +13,13 @@ from app.dependencies import (
     require_authenticated,
 )
 from app.logging_utils import RequestIdFilter
-from app.services import admin_settings_service, public_download_service, stats_service, upload_service
-from app.services import geo_service
+from app.services import (
+    admin_settings_service,
+    geo_service,
+    public_download_service,
+    stats_service,
+    upload_service,
+)
 
 router = APIRouter()
 logger = logging.getLogger(__name__)

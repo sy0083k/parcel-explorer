@@ -1,6 +1,7 @@
 import secrets
 from ipaddress import IPv4Address, IPv6Address, ip_address
-from fastapi import Request, HTTPException, status
+
+from fastapi import HTTPException, Request, status
 
 
 def is_authenticated(request: Request) -> bool:
