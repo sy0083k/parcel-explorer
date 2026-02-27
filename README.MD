@@ -1,6 +1,6 @@
 # 🏠 관심 필지 지도 (POI Map)
 
-브이월드(VWorld) API와 FastAPI 기반으로 관심 필지(Parcel of Interest)를 지도에 시각화하고,  
+브이월드(VWorld) API와 FastAPI 기반으로 관심 필지(POI, Parcel of Interest)를 지도에 시각화하고,  
 관리자가 엑셀 업로드로 데이터를 갱신할 수 있는 웹 애플리케이션입니다.
 
 ## 📌 활용 사례
@@ -141,7 +141,13 @@ uvicorn app.main:app --reload
 ```bash
 python -m compileall -q app tests
 mypy app tests create_hash.py
-cd frontend && npm run typecheck && npm run build && cd ..
+ruff check app tests
+scripts/check_quality_warnings.sh
+cd frontend && npm run typecheck && npm run build
+cd ..
+pytest -m unit -q
+pytest -m integration -q
+pytest -m e2e -q
 pytest -q
 ```
 
