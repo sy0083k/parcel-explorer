@@ -1,12 +1,12 @@
 from app.db.connection import db_connection
-from app.repositories import idle_land_repository
+from app.repositories import poi_repository
 
 
-def test_idle_land_repository_crud(db_path: object) -> None:
+def test_poi_repository_crud(db_path: object) -> None:
     with db_connection() as conn:
-        idle_land_repository.init_db(conn)
-        idle_land_repository.delete_all(conn)
-        idle_land_repository.insert_land(
+        poi_repository.init_db(conn)
+        poi_repository.delete_all(conn)
+        poi_repository.insert_land(
             conn,
             address="addr",
             land_type="type",
@@ -17,20 +17,20 @@ def test_idle_land_repository_crud(db_path: object) -> None:
         )
         conn.commit()
 
-        missing = idle_land_repository.fetch_missing_geom(conn)
+        missing = poi_repository.fetch_missing_geom(conn)
         assert len(missing) == 1
 
         item_id, _ = missing[0]
-        idle_land_repository.update_geom(conn, item_id, '{"type":"Point","coordinates":[0,0]}')
+        poi_repository.update_geom(conn, item_id, '{"type":"Point","coordinates":[0,0]}')
         conn.commit()
 
-        assert idle_land_repository.count_missing_geom(conn) == 0
+        assert poi_repository.count_missing_geom(conn) == 0
 
 
 def test_map_event_repository_aggregations(db_path: object) -> None:
     with db_connection(row_factory=True) as conn:
-        idle_land_repository.init_db(conn)
-        idle_land_repository.insert_map_event(
+        poi_repository.init_db(conn)
+        poi_repository.insert_map_event(
             conn,
             event_type="search",
             anon_id="anon-a",
@@ -39,7 +39,7 @@ def test_map_event_repository_aggregations(db_path: object) -> None:
             min_area_bucket="100-199",
             region_source="user_input",
         )
-        idle_land_repository.insert_map_event(
+        poi_repository.insert_map_event(
             conn,
             event_type="search",
             anon_id="anon-b",
@@ -48,7 +48,7 @@ def test_map_event_repository_aggregations(db_path: object) -> None:
             min_area_bucket="100-199",
             region_source="user_input",
         )
-        idle_land_repository.insert_map_event(
+        poi_repository.insert_map_event(
             conn,
             event_type="search",
             anon_id="anon-c",
@@ -57,13 +57,13 @@ def test_map_event_repository_aggregations(db_path: object) -> None:
             min_area_bucket="0-99",
             region_source="derived_address",
         )
-        idle_land_repository.insert_map_event(
+        poi_repository.insert_map_event(
             conn,
             event_type="land_click",
             anon_id="anon-a",
             land_address="서산시 대산읍 대로 1",
         )
-        idle_land_repository.insert_map_event(
+        poi_repository.insert_map_event(
             conn,
             event_type="land_click",
             anon_id="anon-a",
@@ -71,21 +71,21 @@ def test_map_event_repository_aggregations(db_path: object) -> None:
         )
         conn.commit()
 
-        summary = idle_land_repository.fetch_event_summary(conn)
+        summary = poi_repository.fetch_event_summary(conn)
         assert int(summary["search_count"]) == 3
         assert int(summary["click_count"]) == 2
         assert int(summary["unique_session_count"]) == 3
 
-        top_regions = idle_land_repository.fetch_top_regions(conn, limit=10)
+        top_regions = poi_repository.fetch_top_regions(conn, limit=10)
         assert len(top_regions) == 1
         assert top_regions[0]["region_name"] == "대산읍"
         assert int(top_regions[0]["count"]) == 2
 
-        top_buckets = idle_land_repository.fetch_top_min_area_buckets(conn, limit=10)
+        top_buckets = poi_repository.fetch_top_min_area_buckets(conn, limit=10)
         assert len(top_buckets) == 2
         assert top_buckets[0]["min_area_bucket"] == "100-199"
 
-        top_lands = idle_land_repository.fetch_top_clicked_lands(conn, limit=10)
+        top_lands = poi_repository.fetch_top_clicked_lands(conn, limit=10)
         assert len(top_lands) == 1
         assert top_lands[0]["land_address"] == "서산시 대산읍 대로 1"
         assert int(top_lands[0]["click_count"]) == 2
@@ -94,8 +94,8 @@ def test_map_event_repository_aggregations(db_path: object) -> None:
 
 def test_web_visit_repository_aggregations(db_path: object) -> None:
     with db_connection(row_factory=True) as conn:
-        idle_land_repository.init_db(conn)
-        idle_land_repository.insert_web_visit_event(
+        poi_repository.init_db(conn)
+        poi_repository.insert_web_visit_event(
             conn,
             anon_id="anon-a",
             session_id="session-a",
@@ -106,7 +106,7 @@ def test_web_visit_repository_aggregations(db_path: object) -> None:
             user_agent="Mozilla/5.0",
             is_bot=False,
         )
-        idle_land_repository.insert_web_visit_event(
+        poi_repository.insert_web_visit_event(
             conn,
             anon_id="anon-a",
             session_id="session-a",
@@ -117,7 +117,7 @@ def test_web_visit_repository_aggregations(db_path: object) -> None:
             user_agent="Mozilla/5.0",
             is_bot=False,
         )
-        idle_land_repository.insert_web_visit_event(
+        poi_repository.insert_web_visit_event(
             conn,
             anon_id="anon-b",
             session_id="session-b",
@@ -130,10 +130,10 @@ def test_web_visit_repository_aggregations(db_path: object) -> None:
         )
         conn.commit()
 
-        total_visitors = idle_land_repository.fetch_web_total_visitors(conn, page_path="/")
+        total_visitors = poi_repository.fetch_web_total_visitors(conn, page_path="/")
         assert total_visitors == 2
 
-        daily_visitors = idle_land_repository.fetch_web_daily_visitors(
+        daily_visitors = poi_repository.fetch_web_daily_visitors(
             conn,
             page_path="/",
             since_utc="2026-02-19 15:00:00",
@@ -141,7 +141,7 @@ def test_web_visit_repository_aggregations(db_path: object) -> None:
         )
         assert daily_visitors == 2
 
-        sessions = idle_land_repository.fetch_web_session_durations_seconds(
+        sessions = poi_repository.fetch_web_session_durations_seconds(
             conn,
             page_path="/",
             since_utc="2026-02-18 00:00:00",
@@ -151,8 +151,8 @@ def test_web_visit_repository_aggregations(db_path: object) -> None:
 
 def test_raw_query_log_repository_insert_and_filter(db_path: object) -> None:
     with db_connection(row_factory=True) as conn:
-        idle_land_repository.init_db(conn)
-        idle_land_repository.insert_raw_query_log(
+        poi_repository.init_db(conn)
+        poi_repository.insert_raw_query_log(
             conn,
             event_type="search",
             anon_id="anon-a",
@@ -165,7 +165,7 @@ def test_raw_query_log_repository_insert_and_filter(db_path: object) -> None:
             raw_click_source_input=None,
             raw_payload_json='{"eventType":"search"}',
         )
-        idle_land_repository.insert_raw_query_log(
+        poi_repository.insert_raw_query_log(
             conn,
             event_type="land_click",
             anon_id="anon-b",
@@ -180,7 +180,7 @@ def test_raw_query_log_repository_insert_and_filter(db_path: object) -> None:
         )
         conn.commit()
 
-        only_search = idle_land_repository.fetch_raw_query_logs(
+        only_search = poi_repository.fetch_raw_query_logs(
             conn,
             event_type="search",
             created_at_from=None,
@@ -191,7 +191,7 @@ def test_raw_query_log_repository_insert_and_filter(db_path: object) -> None:
         assert only_search[0]["event_type"] == "search"
         assert only_search[0]["raw_region_query"] == "  예천동  "
 
-        only_click = idle_land_repository.fetch_raw_query_logs(
+        only_click = poi_repository.fetch_raw_query_logs(
             conn,
             event_type="land_click",
             created_at_from=None,

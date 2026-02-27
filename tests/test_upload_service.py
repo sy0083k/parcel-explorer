@@ -50,10 +50,10 @@ def test_upload_service_success(
 ) -> None:
     app = build_app()
     from app.db.connection import db_connection
-    from app.repositories import idle_land_repository
+    from app.repositories import poi_repository
 
     with db_connection() as conn:
-        idle_land_repository.init_db(conn)
+        poi_repository.init_db(conn)
     request = _make_request(app, csrf_token="csrf")
     file = _make_upload_file(
         "upload.xlsx", b"dummy", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
@@ -152,10 +152,10 @@ def test_upload_service_sheet_name_fallback(
 ) -> None:
     app = build_app()
     from app.db.connection import db_connection
-    from app.repositories import idle_land_repository
+    from app.repositories import poi_repository
 
     with db_connection() as conn:
-        idle_land_repository.init_db(conn)
+        poi_repository.init_db(conn)
     request = _make_request(app, csrf_token="csrf")
     file = _make_upload_file(
         "upload.xlsx", b"dummy", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
@@ -207,10 +207,10 @@ def test_upload_service_selects_excel_engine_by_extension(
 ) -> None:
     app = build_app()
     from app.db.connection import db_connection
-    from app.repositories import idle_land_repository
+    from app.repositories import poi_repository
 
     with db_connection() as conn:
-        idle_land_repository.init_db(conn)
+        poi_repository.init_db(conn)
 
     request = _make_request(app, csrf_token="csrf")
     file = _make_upload_file(filename, b"dummy", content_type)

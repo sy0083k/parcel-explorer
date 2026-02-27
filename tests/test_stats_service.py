@@ -1,5 +1,5 @@
 from app.db.connection import db_connection
-from app.repositories import idle_land_repository
+from app.repositories import poi_repository
 from app.services import stats_service
 
 
@@ -23,8 +23,8 @@ def test_stats_service_web_bot_detection() -> None:
 
 def test_stats_service_get_web_stats(db_path: object) -> None:
     with db_connection() as conn:
-        idle_land_repository.init_db(conn)
-        idle_land_repository.insert_web_visit_event(
+        poi_repository.init_db(conn)
+        poi_repository.insert_web_visit_event(
             conn,
             anon_id="anon-a",
             session_id="session-a",
@@ -35,7 +35,7 @@ def test_stats_service_get_web_stats(db_path: object) -> None:
             user_agent="Mozilla/5.0",
             is_bot=False,
         )
-        idle_land_repository.insert_web_visit_event(
+        poi_repository.insert_web_visit_event(
             conn,
             anon_id="anon-a",
             session_id="session-a",
@@ -46,7 +46,7 @@ def test_stats_service_get_web_stats(db_path: object) -> None:
             user_agent="Mozilla/5.0",
             is_bot=False,
         )
-        idle_land_repository.insert_web_visit_event(
+        poi_repository.insert_web_visit_event(
             conn,
             anon_id="anon-b",
             session_id="session-b",
@@ -67,9 +67,9 @@ def test_stats_service_get_web_stats(db_path: object) -> None:
 
 def test_stats_service_get_land_stats(db_path: object) -> None:
     with db_connection() as conn:
-        idle_land_repository.init_db(conn)
-        idle_land_repository.delete_all(conn)
-        idle_land_repository.insert_land(
+        poi_repository.init_db(conn)
+        poi_repository.delete_all(conn)
+        poi_repository.insert_land(
             conn,
             address="addr-1",
             land_type="답",
@@ -78,7 +78,7 @@ def test_stats_service_get_land_stats(db_path: object) -> None:
             gen_property="N",
             contact="010",
         )
-        idle_land_repository.insert_land(
+        poi_repository.insert_land(
             conn,
             address="addr-2",
             land_type="전",
@@ -87,10 +87,10 @@ def test_stats_service_get_land_stats(db_path: object) -> None:
             gen_property="N",
             contact="010",
         )
-        missing = list(idle_land_repository.fetch_missing_geom(conn))
+        missing = list(poi_repository.fetch_missing_geom(conn))
         assert len(missing) == 2
         first_id, _ = missing[0]
-        idle_land_repository.update_geom(conn, first_id, '{"type":"Point","coordinates":[127,36]}')
+        poi_repository.update_geom(conn, first_id, '{"type":"Point","coordinates":[127,36]}')
         conn.commit()
 
     payload = stats_service.get_land_stats()

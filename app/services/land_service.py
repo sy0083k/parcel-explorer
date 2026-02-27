@@ -2,7 +2,7 @@ import json
 from typing import Any, cast
 
 from app.db.connection import db_connection
-from app.repositories import idle_land_repository
+from app.repositories import poi_repository
 from app.types import GeoJSONFeature, GeoJSONFeatureCollection
 
 PUBLIC_LAND_FIELDS = {"id", "address", "land_type", "area", "adm_property", "gen_property", "contact"}
@@ -10,7 +10,7 @@ PUBLIC_LAND_FIELDS = {"id", "address", "land_type", "area", "adm_property", "gen
 
 def get_public_land_features() -> GeoJSONFeatureCollection:
     with db_connection(row_factory=True) as conn:
-        rows = idle_land_repository.fetch_lands_with_geom(conn)
+        rows = poi_repository.fetch_lands_with_geom(conn)
 
     features: list[GeoJSONFeature] = []
     for row in rows:
@@ -27,7 +27,7 @@ def get_public_land_features() -> GeoJSONFeatureCollection:
 
 def get_public_land_features_page(*, cursor: int | None, limit: int) -> dict[str, Any]:
     with db_connection(row_factory=True) as conn:
-        rows = idle_land_repository.fetch_lands_with_geom_page(conn, after_id=cursor, limit=limit)
+        rows = poi_repository.fetch_lands_with_geom_page(conn, after_id=cursor, limit=limit)
 
     features: list[GeoJSONFeature] = []
     next_cursor: int | None = None

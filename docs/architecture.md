@@ -32,7 +32,7 @@
   - `app/services/admin_settings_service.py`
   - `app/services/public_download_service.py`
 - **리포지토리**: SQL 및 영속성 처리
-  - `app/repositories/idle_land_repository.py` (Facade)
+  - `app/repositories/poi_repository.py` (Facade)
   - `app/repositories/land_repository.py`
   - `app/repositories/job_repository.py`
   - `app/repositories/event_repository.py`

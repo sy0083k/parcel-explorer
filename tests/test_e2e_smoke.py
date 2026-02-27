@@ -90,12 +90,12 @@ def test_login_upload_and_lands_flow() -> None:
                     assert upload.status_code == 200
 
                     from app.db.connection import db_connection
-                    from app.repositories import idle_land_repository
+                    from app.repositories import poi_repository
                     with db_connection() as conn:
-                        missing = idle_land_repository.fetch_missing_geom(conn)
+                        missing = poi_repository.fetch_missing_geom(conn)
                         if missing:
                             item_id, _ = missing[0]
-                            idle_land_repository.update_geom(
+                            poi_repository.update_geom(
                                 conn, item_id, '{"type":"Point","coordinates":[1,2]}'
                             )
                             conn.commit()

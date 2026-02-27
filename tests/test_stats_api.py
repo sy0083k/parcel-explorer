@@ -4,7 +4,7 @@ import httpx
 import pytest
 
 from app.db.connection import db_connection
-from app.repositories import idle_land_repository
+from app.repositories import poi_repository
 from app.routers import map_router
 
 CSRF_PATTERN = r'name="csrf_token" value="([^"]+)"'
@@ -38,7 +38,7 @@ async def _get_admin_csrf(client: httpx.AsyncClient) -> str:
 @pytest.mark.anyio
 async def test_map_event_and_admin_stats_flow(async_client: httpx.AsyncClient, db_path: object) -> None:
     with db_connection() as conn:
-        idle_land_repository.init_db(conn)
+        poi_repository.init_db(conn)
 
     event_search = await async_client.post(
         "/api/events",
@@ -136,7 +136,7 @@ async def test_search_empty_region_is_excluded_from_top_regions_but_min_area_cou
     async_client: httpx.AsyncClient, db_path: object
 ) -> None:
     with db_connection() as conn:
-        idle_land_repository.init_db(conn)
+        poi_repository.init_db(conn)
 
     response = await async_client.post(
         "/api/events",
@@ -172,7 +172,7 @@ async def test_map_event_rejects_invalid_payload(async_client: httpx.AsyncClient
 @pytest.mark.anyio
 async def test_web_event_and_web_stats_flow(async_client: httpx.AsyncClient, db_path: object) -> None:
     with db_connection() as conn:
-        idle_land_repository.init_db(conn)
+        poi_repository.init_db(conn)
 
     event_start = await async_client.post(
         "/api/web-events",
@@ -229,7 +229,7 @@ async def test_web_event_rejects_invalid_page_path(async_client: httpx.AsyncClie
 @pytest.mark.anyio
 async def test_admin_can_export_raw_query_csv(async_client: httpx.AsyncClient, db_path: object) -> None:
     with db_connection() as conn:
-        idle_land_repository.init_db(conn)
+        poi_repository.init_db(conn)
 
     search_response = await async_client.post(
         "/api/events",
@@ -281,7 +281,7 @@ async def test_map_events_rate_limit_blocks_and_separates_by_anon_id(
     async_client: httpx.AsyncClient, db_path: object, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     with db_connection() as conn:
-        idle_land_repository.init_db(conn)
+        poi_repository.init_db(conn)
 
     monkeypatch.setattr(map_router, "EVENT_LIMIT_PER_MINUTE", 2)
 
@@ -318,7 +318,7 @@ async def test_map_events_rate_limit_falls_back_to_ip_when_anon_id_missing(
     async_client: httpx.AsyncClient, db_path: object, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     with db_connection() as conn:
-        idle_land_repository.init_db(conn)
+        poi_repository.init_db(conn)
 
     monkeypatch.setattr(map_router, "EVENT_LIMIT_PER_MINUTE", 1)
 
@@ -349,7 +349,7 @@ async def test_web_events_rate_limit_applies_on_v1_route(
     async_client: httpx.AsyncClient, db_path: object, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     with db_connection() as conn:
-        idle_land_repository.init_db(conn)
+        poi_repository.init_db(conn)
 
     monkeypatch.setattr(map_router, "WEB_EVENT_LIMIT_PER_MINUTE", 2)
 

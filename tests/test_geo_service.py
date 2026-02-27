@@ -1,15 +1,15 @@
 from _pytest.monkeypatch import MonkeyPatch
 
 from app.db.connection import db_connection
-from app.repositories import idle_land_repository
+from app.repositories import poi_repository
 from app.services import geo_service
 
 
 def test_geo_service_updates_geom(db_path: object, monkeypatch: MonkeyPatch) -> None:
     with db_connection() as conn:
-        idle_land_repository.init_db(conn)
-        idle_land_repository.delete_all(conn)
-        idle_land_repository.insert_land(
+        poi_repository.init_db(conn)
+        poi_repository.delete_all(conn)
+        poi_repository.insert_land(
             conn,
             address="addr",
             land_type="type",
@@ -35,9 +35,9 @@ def test_geo_service_updates_geom(db_path: object, monkeypatch: MonkeyPatch) -> 
 
 def test_geo_service_handles_missing_geom(db_path: object, monkeypatch: MonkeyPatch) -> None:
     with db_connection() as conn:
-        idle_land_repository.init_db(conn)
-        idle_land_repository.delete_all(conn)
-        idle_land_repository.insert_land(
+        poi_repository.init_db(conn)
+        poi_repository.delete_all(conn)
+        poi_repository.insert_land(
             conn,
             address="addr",
             land_type="type",
@@ -63,9 +63,9 @@ def test_geo_service_handles_missing_geom(db_path: object, monkeypatch: MonkeyPa
 
 def test_geo_service_job_lifecycle(db_path: object, monkeypatch: MonkeyPatch) -> None:
     with db_connection() as conn:
-        idle_land_repository.init_db(conn)
-        idle_land_repository.delete_all(conn)
-        idle_land_repository.insert_land(
+        poi_repository.init_db(conn)
+        poi_repository.delete_all(conn)
+        poi_repository.insert_land(
             conn,
             address="addr",
             land_type="type",

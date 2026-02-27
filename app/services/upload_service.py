@@ -9,7 +9,7 @@ from fastapi.responses import JSONResponse
 from app.db.connection import db_connection
 from app.dependencies import validate_csrf_token
 from app.logging_utils import RequestIdFilter
-from app.repositories import idle_land_repository
+from app.repositories import poi_repository
 from app.services.geo_service import enqueue_geom_update_job, run_geom_update_job
 from app.validators import land_validators
 
@@ -101,10 +101,10 @@ def handle_excel_upload(
             )
 
         with db_connection() as conn:
-            idle_land_repository.delete_all(conn)
+            poi_repository.delete_all(conn)
 
             for row in normalized_rows:
-                idle_land_repository.insert_land(
+                poi_repository.insert_land(
                     conn,
                     address=row["address"],
                     land_type=row["land_type"],

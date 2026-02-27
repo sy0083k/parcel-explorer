@@ -8,7 +8,7 @@ from app.core import get_settings
 from app.db.connection import db_connection
 from app.dependencies import validate_csrf_token
 from app.logging_utils import RequestIdFilter
-from app.repositories import idle_land_repository
+from app.repositories import poi_repository
 
 logger = logging.getLogger(__name__)
 logger.addFilter(RequestIdFilter())
@@ -16,19 +16,19 @@ logger.addFilter(RequestIdFilter())
 
 def init_db() -> None:
     with db_connection() as conn:
-        idle_land_repository.init_db(conn)
+        poi_repository.init_db(conn)
 
 
 def enqueue_geom_update_job() -> int:
     with db_connection() as conn:
-        job_id = idle_land_repository.create_geom_update_job(conn)
+        job_id = poi_repository.create_geom_update_job(conn)
         conn.commit()
     return job_id
 
 
 def run_geom_update_job(job_id: int, max_retries: int = 5) -> tuple[int, int]:
     with db_connection() as conn:
-        idle_land_repository.mark_geom_job_running(conn, job_id)
+        poi_repository.mark_geom_job_running(conn, job_id)
         conn.commit()
 
     updated_count = 0
@@ -36,13 +36,13 @@ def run_geom_update_job(job_id: int, max_retries: int = 5) -> tuple[int, int]:
     try:
         updated_count, failed_count = update_geoms(max_retries=max_retries)
         with db_connection() as conn:
-            idle_land_repository.mark_geom_job_done(
+            poi_repository.mark_geom_job_done(
                 conn, job_id, updated_count=updated_count, failed_count=failed_count
             )
             conn.commit()
     except Exception as exc:
         with db_connection() as conn:
-            idle_land_repository.mark_geom_job_failed(
+            poi_repository.mark_geom_job_failed(
                 conn,
                 job_id,
                 updated_count=updated_count,
@@ -64,7 +64,7 @@ def start_geom_refresh_job(
         raise HTTPException(status_code=403, detail="CSRF 토큰 검증에 실패했습니다.")
 
     with db_connection(row_factory=True) as conn:
-        active_job = idle_land_repository.fetch_latest_active_geom_job(conn)
+        active_job = poi_repository.fetch_latest_active_geom_job(conn)
 
     if active_job is not None:
         job_id = int(active_job["id"])
@@ -87,7 +87,7 @@ def start_geom_refresh_job(
 
 def get_geom_refresh_job_status(job_id: int) -> dict[str, object]:
     with db_connection(row_factory=True) as conn:
-        row = idle_land_repository.fetch_geom_job(conn, job_id)
+        row = poi_repository.fetch_geom_job(conn, job_id)
 
     if row is None:
         raise HTTPException(status_code=404, detail="작업을 찾을 수 없습니다.")
@@ -116,7 +116,7 @@ def update_geoms(max_retries: int = 5) -> tuple[int, int]:
         updated_count = 0
         batch_size = 50
         for attempt in range(1, max_retries + 1):
-            failed_items = idle_land_repository.fetch_missing_geom(conn, limit=batch_size)
+            failed_items = poi_repository.fetch_missing_geom(conn, limit=batch_size)
 
             if not failed_items:
                 break
@@ -125,7 +125,7 @@ def update_geoms(max_retries: int = 5) -> tuple[int, int]:
             for item_id, address in failed_items:
                 geom_data = client.get_parcel_geometry(address)
                 if geom_data:
-                    idle_land_repository.update_geom(conn, item_id, geom_data)
+                    poi_repository.update_geom(conn, item_id, geom_data)
                     updated_count += 1
                     updated_in_batch += 1
                 else:
@@ -135,5 +135,5 @@ def update_geoms(max_retries: int = 5) -> tuple[int, int]:
             if updated_in_batch:
                 conn.commit()
 
-        failed = idle_land_repository.count_missing_geom(conn)
+        failed = poi_repository.count_missing_geom(conn)
     return updated_count, failed

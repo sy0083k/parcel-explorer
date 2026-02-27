@@ -2,15 +2,15 @@ import httpx
 import pytest
 
 from app.db.connection import db_connection
-from app.repositories import idle_land_repository
+from app.repositories import poi_repository
 
 
 def _seed_lands(count: int) -> None:
     with db_connection() as conn:
-        idle_land_repository.init_db(conn)
-        idle_land_repository.delete_all(conn)
+        poi_repository.init_db(conn)
+        poi_repository.delete_all(conn)
         for idx in range(count):
-            idle_land_repository.insert_land(
+            poi_repository.insert_land(
                 conn,
                 address=f"addr-{idx}",
                 land_type="type",
@@ -21,9 +21,9 @@ def _seed_lands(count: int) -> None:
             )
         conn.commit()
 
-        missing = idle_land_repository.fetch_missing_geom(conn)
+        missing = poi_repository.fetch_missing_geom(conn)
         for item_id, _ in missing:
-            idle_land_repository.update_geom(conn, item_id, '{"type":"Point","coordinates":[0,0]}')
+            poi_repository.update_geom(conn, item_id, '{"type":"Point","coordinates":[0,0]}')
         conn.commit()
 
 
