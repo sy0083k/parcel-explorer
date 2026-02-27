@@ -39,8 +39,8 @@ def _resolve_client_ip(request: Request) -> IPv4Address | IPv6Address:
 
     try:
         peer_ip = ip_address(request.client.host)
-    except ValueError:
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Invalid Client IP")
+    except ValueError as exc:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Invalid Client IP") from exc
 
     if not config.TRUST_PROXY_HEADERS:
         return peer_ip
@@ -59,11 +59,11 @@ def _resolve_client_ip(request: Request) -> IPv4Address | IPv6Address:
 
     try:
         return ip_address(first_hop)
-    except ValueError:
+    except ValueError as exc:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Invalid X-Forwarded-For IP",
-        )
+        ) from exc
 
 
 def get_or_create_csrf_token(request: Request) -> str:

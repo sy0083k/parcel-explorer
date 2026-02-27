@@ -48,7 +48,7 @@ async def upload_excel(
     request: Request,
     background_tasks: BackgroundTasks,
     csrf_token: str = Form(default=""),
-    file: UploadFile = File(...),
+    file: UploadFile = File(...),  # noqa: B008
 ):
     return upload_service.handle_excel_upload(
         request=request,
@@ -62,7 +62,7 @@ async def upload_excel(
 async def upload_public_download_file(
     request: Request,
     csrf_token: str = Form(default=""),
-    file: UploadFile = File(...),
+    file: UploadFile = File(...),  # noqa: B008
 ):
     return public_download_service.handle_public_download_upload(
         request=request,
