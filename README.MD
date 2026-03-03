@@ -28,6 +28,9 @@
 cp .env.example .env
 ```
 
+`.env`는 `KEY=value` 형식(등호 주변 공백 없음)으로 작성하세요. 값에 공백이 포함되면 따옴표를 사용하세요.
+예: `APP_NAME="관심 필지 지도 (POI Map Geo)"`, `SESSION_HTTPS_ONLY=false`
+
 필수 환경 변수:
 - `VWORLD_WMTS_KEY`
 - `VWORLD_GEOCODER_KEY`
@@ -43,6 +46,7 @@ python create_hash.py
 
 선택 환경 변수(요약):
 - `ALLOWED_IPS`, `SESSION_HTTPS_ONLY`
+- `SESSION_COOKIE_NAME`, `SESSION_NAMESPACE`
 - `MAX_UPLOAD_SIZE_MB`, `MAX_UPLOAD_ROWS`
 - `LOGIN_MAX_ATTEMPTS`, `LOGIN_COOLDOWN_SECONDS`
 - `VWORLD_TIMEOUT_S`, `VWORLD_RETRIES`, `VWORLD_BACKOFF_S`
@@ -124,6 +128,7 @@ uvicorn app.main:app --reload
 
 ## 🛡 보안/운영 포인트 (핵심)
 - 관리자 보호 경로는 내부망 허용 IP(`ALLOWED_IPS`)와 세션 인증으로 보호되며, 상태 변경 요청에는 CSRF 검증을 적용합니다.
+- 동일 브라우저/도메인에서 여러 앱을 운영할 경우 `SECRET_KEY`, `SESSION_COOKIE_NAME`, `SESSION_NAMESPACE`를 앱별로 분리해야 세션 교차 인식을 방지할 수 있습니다.
 - `VWORLD_WMTS_KEY`는 공개 지도 렌더링(`/api/config`)용 예외 공개 키입니다.
 - `VWORLD_GEOCODER_KEY`는 관리자 보호 화면(`/admin`)에서 운영 편의를 위해 예외 공개될 수 있으며, 공개 API/로그 노출은 금지합니다.
 - 프록시 환경에서는 `TRUST_PROXY_HEADERS`, `TRUSTED_PROXY_IPS`를 정확히 설정해야 합니다.
@@ -134,6 +139,7 @@ uvicorn app.main:app --reload
 
 ## ⚠️ 운영 주의사항
 - 관리자 화면에서 `.env`를 갱신해도 실행 중 프로세스의 설정 객체는 즉시 교체되지 않습니다. 운영 환경에서는 설정/비밀번호 변경 후 앱 재시작 절차를 함께 운영하세요.
+- `SESSION_COOKIE_NAME` 또는 `SESSION_NAMESPACE`를 변경하면 기존 세션이 무효화되므로 관리자 재로그인이 필요합니다.
 - 로그인 실패 제한과 이벤트 레이트리밋은 현재 인메모리 구현입니다. 다중 인스턴스 운영 시 인스턴스 간 상태가 공유되지 않으므로 별도 공유 스토어 기반 정책을 고려하세요.
 - API 버전 정책(`/api` vs `/api/v1`)의 운영 절차는 `docs/architecture.md`와 `docs/maintenance.md`를 기준으로 관리하세요.
 

@@ -55,6 +55,8 @@ def app_env() -> dict[str, str]:
         "SECRET_KEY": "test-secret-key",
         "ALLOWED_IPS": "127.0.0.1/32,::1/128",
         "SESSION_HTTPS_ONLY": "false",
+        "SESSION_COOKIE_NAME": "session",
+        "SESSION_NAMESPACE": "idle-public-property",
         "MAX_UPLOAD_ROWS": "10",
     }
 

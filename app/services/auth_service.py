@@ -5,7 +5,7 @@ import bcrypt
 from fastapi import Request
 from fastapi.responses import JSONResponse, RedirectResponse
 
-from app.dependencies import get_or_create_csrf_token, validate_csrf_token
+from app.dependencies import SESSION_NAMESPACE_KEY, get_or_create_csrf_token, validate_csrf_token
 from app.logging_utils import RequestIdFilter
 
 logger = logging.getLogger(__name__)
@@ -79,6 +79,7 @@ def login(request: Request, username: str, password: str, csrf_token: str) -> JS
     if is_id_match and is_pw_match:
         request.session.clear()
         request.session["user"] = username
+        request.session[SESSION_NAMESPACE_KEY] = config.SESSION_NAMESPACE
         request.session["csrf_token"] = get_or_create_csrf_token(request)
         limiter.reset(limiter_key)
         logger.info(
@@ -115,7 +116,7 @@ def logout(request: Request) -> RedirectResponse:
     request.session.clear()
     response = RedirectResponse(url="/admin/login", status_code=303)
     response.delete_cookie(
-        "session",
+        config.SESSION_COOKIE_NAME,
         path="/",
         secure=config.SESSION_HTTPS_ONLY,
         httponly=True,

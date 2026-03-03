@@ -24,6 +24,8 @@ def test_env_example_matches_runtime_contract() -> None:
         "SECRET_KEY",
         "ALLOWED_IPS",
         "SESSION_HTTPS_ONLY",
+        "SESSION_COOKIE_NAME",
+        "SESSION_NAMESPACE",
         "MAX_UPLOAD_SIZE_MB",
         "MAX_UPLOAD_ROWS",
         "LOGIN_MAX_ATTEMPTS",

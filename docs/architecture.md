@@ -60,7 +60,7 @@
   - `types.ts`: 지도 화면 공통 타입
 
 ## 주요 구성 요소
-- **세션 + CSRF**: SessionMiddleware가 서명된 세션 쿠키를 관리한다. 관리자 보호 경로는 내부망 제한을 유지하며, 인증이 필요한 경로에는 세션 인증을 적용한다. CSRF 토큰은 세션에 저장되고 관리자 상태 변경 요청(POST/PUT/PATCH/DELETE)에서 검증한다.
+- **세션 + CSRF**: SessionMiddleware가 서명된 세션 쿠키를 관리한다. 관리자 보호 경로는 내부망 제한을 유지하며, 인증이 필요한 경로에는 세션 인증을 적용한다. 세션 인증은 `user == ADMIN_ID`와 `session_namespace == SESSION_NAMESPACE`를 동시에 검증한다. CSRF 토큰은 세션에 저장되고 관리자 상태 변경 요청(POST/PUT/PATCH/DELETE)에서 검증한다.
 - **레이트 리미팅**: 로그인 실패 제한 + 이벤트 수집 API(`POST /api/events`, `POST /api/web-events`)에 인메모리 슬라이딩 윈도우 제한을 적용한다.
 - **데이터베이스**: `data/database.db`의 SQLite.
 - **외부 API**: 지오코딩 및 WFS 조회를 위한 VWorld.
@@ -194,6 +194,8 @@
 - `VWORLD_RETRIES`
 - `VWORLD_BACKOFF_S`
 - `SESSION_HTTPS_ONLY`
+- `SESSION_COOKIE_NAME`
+- `SESSION_NAMESPACE`
 - `TRUST_PROXY_HEADERS`
 - `TRUSTED_PROXY_IPS`
 - `UPLOAD_SHEET_NAME`
@@ -203,6 +205,7 @@
 
 ## 운영 참고
 - 관리자 보호 경로는 내부 IP 허용 목록으로 제한되며, 인증이 필요한 경로는 세션 인증으로 보호된다.
+- 동일 브라우저/도메인에서 다중 앱을 운영할 경우 `SECRET_KEY`, `SESSION_COOKIE_NAME`, `SESSION_NAMESPACE`를 앱별로 분리해야 세션 교차 인식을 방지할 수 있다.
 - 프록시 환경에서는 신뢰 프록시(`TRUSTED_PROXY_IPS`) 경유 요청에 한해 `X-Forwarded-For`를 사용한다.
 - VWorld WMTS 키(`VWORLD_WMTS_KEY`)는 지도 렌더링을 위해 `/api/config`에서 예외적으로 제공되며, 운영에서 도메인/용도 제한 및 사용량 모니터링 정책을 유지한다. Geocoder 키(`VWORLD_GEOCODER_KEY`)는 관리자 보호 화면(`/admin`)에서 운영 목적으로 예외 공개를 허용하며, 공개 API 응답/로그 노출은 금지한다.
 - 지오메트리 업데이트는 백그라운드 작업이며 VWorld 가용성에 의존한다.

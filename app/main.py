@@ -91,6 +91,7 @@ app.add_middleware(
     secret_key=settings.secret_key,
     max_age=None,
     https_only=settings.session_https_only,
+    session_cookie=settings.session_cookie_name,
     same_site="lax",
 )
 
@@ -119,6 +120,8 @@ class Config:
     VWORLD_RETRIES = settings.vworld_retries
     VWORLD_BACKOFF_S = settings.vworld_backoff_s
     SESSION_HTTPS_ONLY = settings.session_https_only
+    SESSION_COOKIE_NAME = settings.session_cookie_name
+    SESSION_NAMESPACE = settings.session_namespace
     TRUST_PROXY_HEADERS = settings.trust_proxy_headers
     TRUSTED_PROXY_NETWORKS = settings.trusted_proxy_networks
     UPLOAD_SHEET_NAME = settings.upload_sheet_name

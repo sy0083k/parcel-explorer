@@ -51,4 +51,5 @@
 - 모바일 지도 UX를 단계형 플로우(초기/검색/결과)로 개편한 경우, 사용자 흐름 설명은 `README.MD`에 우선 반영한다.
 - VWorld 키 공개 정책은 문서 기준으로 분리 관리한다(`VWORLD_WMTS_KEY`: 공개 지도 렌더링 예외, `VWORLD_GEOCODER_KEY`: 관리자 보호 화면 예외 공개).
 - 관리자 통계 탭에 `poi` 경계선 현황(전체/미수집) 및 수동 재수집(잡 시작/상태 폴링) 기능을 반영한 경우, `architecture.md`와 `maintenance.md`를 함께 갱신한다.
+- 동일 브라우저/도메인 다중 앱 운영 시 세션 교차 인식을 방지하려면 앱별 `SECRET_KEY`, `SESSION_COOKIE_NAME`, `SESSION_NAMESPACE` 분리를 유지한다.
 - 레거시 `idle_land` 용어/테이블 전환 로직은 제거 완료 상태를 기준으로 문서를 유지한다.

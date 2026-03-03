@@ -70,8 +70,9 @@
 ### S: 스푸핑(Spoofing)
 - 위험: 관리자 세션 쿠키 위조.
   - 현재: `SessionMiddleware`를 통한 서명된 세션 쿠키.
+  - 현재: 세션 인증 시 `session_namespace == SESSION_NAMESPACE`를 함께 검증하여 앱 간 세션 교차 인식을 차단.
   - 공백: `SESSION_HTTPS_ONLY=false` 환경에서 세션 보호수준 저하 가능.
-  - 완화: 운영 환경에서 HTTPS 강제 및 시크릿 로테이션.
+  - 완화: 운영 환경에서 HTTPS 강제, 앱별 `SECRET_KEY`/`SESSION_COOKIE_NAME`/`SESSION_NAMESPACE` 분리, 시크릿 로테이션.
 - 위험: 내부망 체크 우회(IP 위조).
   - 현재: `ALLOWED_IPS` CIDR 허용 목록, 신뢰 프록시 설정 기반 IP 해석.
   - 공백: 프록시 구성 오류 시 우회 가능성.

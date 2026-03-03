@@ -15,6 +15,8 @@
 - 보안 위협 모델: [`stride-lite.md`](stride-lite.md)
 
 ## 환경 변수
+`.env`는 `KEY=value` 형식으로 작성하고 `KEY = value` 형태(등호 주변 공백)는 사용하지 않는다.
+
 ### 필수
 - `VWORLD_WMTS_KEY`
 - `VWORLD_GEOCODER_KEY`
@@ -24,6 +26,8 @@
 
 ### 선택
 - `ALLOWED_IPS`
+- `SESSION_COOKIE_NAME`
+- `SESSION_NAMESPACE`
 - `MAX_UPLOAD_SIZE_MB`
 - `MAX_UPLOAD_ROWS`
 - `LOGIN_MAX_ATTEMPTS`
@@ -154,6 +158,7 @@
 - 관리자 화면 변경은 `.env` 파일을 갱신한다.
 - 실행 중 프로세스의 설정 객체는 자동 재로딩되지 않으므로 운영 절차에 재시작 단계를 포함한다.
 - 변경 직후 로그인/관리자 기능 점검(재로그인 포함)을 수행한다.
+- 동일 도메인 다중 앱 운영 시 `SECRET_KEY`, `SESSION_COOKIE_NAME`, `SESSION_NAMESPACE`가 앱별 고유값인지 점검한다.
 
 ### 지도 데이터 미표시
 - `/api/lands` 응답 확인

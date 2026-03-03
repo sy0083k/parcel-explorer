@@ -3,11 +3,16 @@ from ipaddress import IPv4Address, IPv6Address, ip_address
 
 from fastapi import HTTPException, Request, status
 
+SESSION_NAMESPACE_KEY = "session_namespace"
+
 
 def is_authenticated(request: Request) -> bool:
     """세션 인증 확인"""
     config = request.app.state.config
-    return bool(request.session.get("user") == config.ADMIN_ID)
+    return bool(
+        request.session.get("user") == config.ADMIN_ID
+        and request.session.get(SESSION_NAMESPACE_KEY) == config.SESSION_NAMESPACE
+    )
 
 
 async def require_authenticated(request: Request) -> None:

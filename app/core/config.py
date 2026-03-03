@@ -11,6 +11,7 @@ class SettingsError(RuntimeError):
 
 IPAddressNetwork = IPv4Network | IPv6Network
 BCRYPT_HASH_RE = re.compile(r"^\$2[aby]\$\d{2}\$[./A-Za-z0-9]{53}$")
+SESSION_COOKIE_NAME_RE = re.compile(r"^[A-Za-z0-9_.-]+$")
 
 @dataclass(frozen=True)
 class Settings:
@@ -32,6 +33,8 @@ class Settings:
     vworld_retries: int
     vworld_backoff_s: float
     session_https_only: bool
+    session_cookie_name: str
+    session_namespace: str
     trust_proxy_headers: bool
     trusted_proxy_networks: tuple[IPAddressNetwork, ...]
     upload_sheet_name: str
@@ -122,6 +125,22 @@ def _parse_bool_env(name: str, default: bool) -> bool:
     raise SettingsError(f"Invalid boolean value for {name}: {raw_value}")
 
 
+def _parse_session_cookie_name(raw_value: str | None) -> str:
+    value = (raw_value or "session").strip()
+    if not value:
+        raise SettingsError("SESSION_COOKIE_NAME must not be empty.")
+    if not SESSION_COOKIE_NAME_RE.match(value):
+        raise SettingsError("SESSION_COOKIE_NAME contains invalid characters.")
+    return value
+
+
+def _parse_session_namespace(raw_value: str | None) -> str:
+    value = (raw_value or "idle-public-property").strip()
+    if not value:
+        raise SettingsError("SESSION_NAMESPACE must not be empty.")
+    return value
+
+
 def _parse_allowed_exts(raw_value: str) -> tuple[str, ...]:
     values: list[str] = []
     for raw_entry in raw_value.split(","):
@@ -163,6 +182,8 @@ def get_settings() -> Settings:
         vworld_retries=int(os.getenv("VWORLD_RETRIES", "3")),
         vworld_backoff_s=float(os.getenv("VWORLD_BACKOFF_S", "0.5")),
         session_https_only=_parse_bool_env("SESSION_HTTPS_ONLY", True),
+        session_cookie_name=_parse_session_cookie_name(os.getenv("SESSION_COOKIE_NAME")),
+        session_namespace=_parse_session_namespace(os.getenv("SESSION_NAMESPACE")),
         trust_proxy_headers=_parse_bool_env("TRUST_PROXY_HEADERS", False),
         trusted_proxy_networks=_parse_network_list(os.getenv("TRUSTED_PROXY_IPS", "")),
         upload_sheet_name=os.getenv("UPLOAD_SHEET_NAME", "목록").strip() or "목록",
