@@ -43,8 +43,9 @@
                 </div>
             </div>
             <div class="action-cluster mobile-search-actions" role="group" aria-label="모바일 검색 작업">
-                <button id="mobile-btn-search" type="button">검색 실행</button>
-                <button id="mobile-btn-reset-filters" class="btn-secondary" type="button">조건 초기화</button>
+                <button id="mobile-btn-search" class="btn-action-search" type="button">조건에 맞는 토지 찾기</button>
+                <button id="mobile-btn-reset-filters" class="btn-secondary btn-action-reset" type="button">검색 조건 초기화</button>
+                <button id="mobile-btn-download-all" class="btn-secondary btn-action-download" type="button">전체 목록 다운로드</button>
             </div>
         </div>
     </div>
@@ -74,10 +75,10 @@
                     <input type="number" id="max-area" placeholder="최대" min="0">
                 </div>
             </div>
-            <button id="btn-search">조건에 맞는 토지 찾기</button>
+            <button id="btn-search" class="btn-action-search">조건에 맞는 토지 찾기</button>
             <div class="action-cluster" role="group" aria-label="검색 옵션 작업">
-                <button id="btn-reset-filters" class="btn-secondary" type="button">검색 조건 초기화</button>
-                <button id="btn-download-all" class="btn-secondary" type="button">전체 목록 다운로드</button>
+                <button id="btn-reset-filters" class="btn-secondary btn-action-reset" type="button">검색 조건 초기화</button>
+                <button id="btn-download-all" class="btn-secondary btn-action-download" type="button">전체 목록 다운로드</button>
             </div>
         </div>
         <div id="list-container">

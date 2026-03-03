@@ -14,10 +14,18 @@ const snapHeights = {
   mid: 0.4,
   expanded: 0.85
 };
+const MOBILE_SHEET_HEIGHT_VAR = "--mobile-sheet-height";
 
 export function createListPanel(elements: ListPanelElements) {
   let startY = 0;
   let startHeight = 0;
+
+  const isMobileResultsState = (): boolean => document.body.classList.contains("mobile-results");
+
+  const setMobileSheetHeight = (ratio: number): void => {
+    const clamped = Math.min(0.9, Math.max(0.12, ratio));
+    document.body.style.setProperty(MOBILE_SHEET_HEIGHT_VAR, `${Math.round(clamped * 100)}vh`);
+  };
 
   const setStatus = (message: string, color = "#999"): void => {
     if (!elements.listContainer) {
@@ -105,32 +113,41 @@ export function createListPanel(elements: ListPanelElements) {
     const sidebarEl = elements.sidebar;
 
     elements.handle.addEventListener("touchstart", (event: Event) => {
+      if (!isMobileResultsState()) {
+        return;
+      }
       const touchEvent = event as TouchEvent;
       startY = touchEvent.touches[0].clientY;
-      startHeight = sidebarEl.offsetHeight;
+      startHeight = sidebarEl.getBoundingClientRect().height;
       sidebarEl.style.transition = "none";
     });
 
     elements.handle?.addEventListener("touchmove", (event: Event) => {
+      if (!isMobileResultsState()) {
+        return;
+      }
       const touchEvent = event as TouchEvent;
       const touchY = touchEvent.touches[0].clientY;
       const deltaY = startY - touchY;
       const newHeight = startHeight + deltaY;
 
       if (newHeight > window.innerHeight * 0.12 && newHeight < window.innerHeight * 0.9) {
-        sidebarEl.style.height = `${newHeight}px`;
+        setMobileSheetHeight(newHeight / window.innerHeight);
       }
     });
 
     elements.handle.addEventListener("touchend", () => {
+      if (!isMobileResultsState()) {
+        return;
+      }
       sidebarEl.style.transition = "height 0.3s ease-out";
-      const currentRatio = sidebarEl.clientHeight / window.innerHeight;
+      const currentRatio = sidebarEl.getBoundingClientRect().height / window.innerHeight;
       if (currentRatio >= 0.6) {
-        sidebarEl.style.height = `${snapHeights.expanded * 100}vh`;
+        setMobileSheetHeight(snapHeights.expanded);
       } else if (currentRatio <= 0.25) {
-        sidebarEl.style.height = `${snapHeights.collapsed * 100}vh`;
+        setMobileSheetHeight(snapHeights.collapsed);
       } else {
-        sidebarEl.style.height = `${snapHeights.mid * 100}vh`;
+        setMobileSheetHeight(snapHeights.mid);
       }
     });
   };

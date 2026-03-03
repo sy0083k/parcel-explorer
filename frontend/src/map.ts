@@ -22,6 +22,8 @@ type SelectOptions = {
 type MobileViewState = "home" | "search" | "results";
 const MOBILE_MEDIA_QUERY = "(max-width: 768px)";
 const MOBILE_HISTORY_KEY = "mobileMapViewState";
+const MOBILE_SHEET_HEIGHT_VAR = "--mobile-sheet-height";
+const MOBILE_RESULTS_DEFAULT_SHEET_HEIGHT = "25vh";
 
 function isMobileViewport(): boolean {
   return window.matchMedia(MOBILE_MEDIA_QUERY).matches;
@@ -48,6 +50,7 @@ async function bootstrap(): Promise<void> {
   const mobileSearchCloseBtn = document.getElementById("mobile-search-close");
   const mobileSearchBtn = document.getElementById("mobile-btn-search");
   const mobileResetBtn = document.getElementById("mobile-btn-reset-filters");
+  const mobileDownloadBtn = document.getElementById("mobile-btn-download-all");
 
   const layerToggleBtn = document.getElementById("btn-layer-toggle");
   const layerPopover = document.getElementById("layer-popover");
@@ -140,6 +143,13 @@ async function bootstrap(): Promise<void> {
   const setMobileState = (nextState: MobileViewState, pushHistory = true): void => {
     mobileState = nextState;
     applyMobileClass();
+    if (!isMobileViewport()) {
+      document.body.style.removeProperty(MOBILE_SHEET_HEIGHT_VAR);
+    } else if (nextState === "results") {
+      document.body.style.setProperty(MOBILE_SHEET_HEIGHT_VAR, MOBILE_RESULTS_DEFAULT_SHEET_HEIGHT);
+    } else {
+      document.body.style.removeProperty(MOBILE_SHEET_HEIGHT_VAR);
+    }
     if (!isMobileViewport() || !pushHistory) {
       return;
     }
@@ -342,6 +352,9 @@ async function bootstrap(): Promise<void> {
     syncMobileToDesktopInputs();
     resetFilters();
     syncDesktopToMobileInputs();
+  });
+  mobileDownloadBtn?.addEventListener("click", () => {
+    void downloadClient.downloadPreparedFile();
   });
 
   window.addEventListener("popstate", (event) => {

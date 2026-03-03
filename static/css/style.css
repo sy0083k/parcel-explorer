@@ -19,7 +19,7 @@ body { margin: 0; display: flex; height: 100vh; font-family: 'Malgun Gothic', sa
 .checkbox-group label { display: inline; font-size: 0.9em; color: #2980b9; cursor: pointer; font-weight: bold; margin-bottom: 0; }
 .area-input-container { display: flex; align-items: center; gap: 5px; }
 .area-input-container input { width: 45%; padding: 8px; border: 1px solid #ccc; border-radius: 4px; font-size: 0.9em; }
-#btn-search {
+.btn-action-search {
     width: 100%;
     padding: 10px;
     background: linear-gradient(180deg, #3fa2e6 0%, #2f90d0 100%);
@@ -28,15 +28,15 @@ body { margin: 0; display: flex; height: 100vh; font-family: 'Malgun Gothic', sa
     border-radius: 6px;
     cursor: pointer;
     font-weight: bold;
-    margin-top: 5px;
     box-shadow: 0 2px 6px rgba(52, 152, 219, 0.35);
     transition: transform 0.12s ease, box-shadow 0.12s ease, filter 0.12s ease;
 }
-#btn-search:hover {
+.btn-action-search:hover {
     filter: brightness(1.03);
     box-shadow: 0 4px 10px rgba(52, 152, 219, 0.4);
 }
-#btn-search:active { transform: translateY(1px); }
+.btn-action-search:active { transform: translateY(1px); }
+#btn-search { margin-top: 5px; }
 .action-cluster { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 8px; }
 .btn-secondary {
     width: 100%;
@@ -54,8 +54,8 @@ body { margin: 0; display: flex; height: 100vh; font-family: 'Malgun Gothic', sa
     box-shadow: 0 4px 10px rgba(44, 62, 80, 0.28);
 }
 .btn-secondary:active { transform: translateY(1px); }
-#btn-reset-filters { background: linear-gradient(180deg, #6f879c 0%, #596f82 100%); }
-#btn-download-all { background: linear-gradient(180deg, #4da6d9 0%, #3b8fc0 100%); }
+.btn-action-reset { background: linear-gradient(180deg, #6f879c 0%, #596f82 100%); }
+.btn-action-download { background: linear-gradient(180deg, #4da6d9 0%, #3b8fc0 100%); }
 
 /* 리스트 영역 */
 #list-container { flex: 1; overflow-y: auto; -webkit-overflow-scrolling: touch; overscroll-behavior: contain; }
@@ -187,16 +187,14 @@ body { margin: 0; display: flex; height: 100vh; font-family: 'Malgun Gothic', sa
     cursor: pointer;
 }
 
-.mobile-search-actions { margin-top: 10px; }
+.mobile-search-actions {
+    margin-top: 10px;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+}
 .mobile-search-actions #mobile-btn-search {
-    width: 100%;
-    padding: 10px;
-    background: linear-gradient(180deg, #3fa2e6 0%, #2f90d0 100%);
-    color: #fff;
-    border: none;
-    border-radius: 6px;
-    cursor: pointer;
-    font-weight: bold;
+    grid-column: 1 / -1;
 }
 
 .ol-popup { position: absolute; background-color: white; box-shadow: 0 1px 4px rgba(0,0,0,0.2); padding: 15px; border-radius: 10px; border: 1px solid #cccccc; bottom: 12px; left: -50px; min-width: 350px; line-height: 1.45; word-break: keep-all; overflow-wrap: anywhere; }
@@ -219,7 +217,7 @@ body { margin: 0; display: flex; height: 100vh; font-family: 'Malgun Gothic', sa
     #mobile-search-fab { display: inline-flex; }
 
     body.mobile-results #mobile-search-fab {
-        bottom: calc(50vh + 12px);
+        bottom: calc(var(--mobile-sheet-height, 25vh) + 12px);
     }
 
     #mobile-search-overlay { display: none; }
@@ -240,13 +238,13 @@ body { margin: 0; display: flex; height: 100vh; font-family: 'Malgun Gothic', sa
     body.mobile-results #map {
         width: 100% !important;
         height: 100vh !important;
-        padding-bottom: 50vh;
+        padding-bottom: var(--mobile-sheet-height, 25vh);
     }
 
     body.mobile-results #sidebar {
         display: flex !important;
         width: 100% !important;
-        height: 50vh !important;
+        height: var(--mobile-sheet-height, 25vh) !important;
         position: fixed;
         bottom: 0;
         left: 0;
@@ -264,8 +262,17 @@ body { margin: 0; display: flex; height: 100vh; font-family: 'Malgun Gothic', sa
 
     body.mobile-results #list-container { flex: 1; }
 
-    /* 모바일에서는 핸들 미사용 */
     .mobile-handle { display: none !important; }
+    body.mobile-results .mobile-handle {
+        display: block !important;
+        width: 44px;
+        height: 5px;
+        border-radius: 999px;
+        background: #cbd5e1;
+        margin: 10px auto 8px;
+        flex-shrink: 0;
+        touch-action: none;
+    }
 
     /* 레이어 선택: 단일 버튼 + 팝오버 */
     .map-controls {
@@ -295,7 +302,7 @@ body { margin: 0; display: flex; height: 100vh; font-family: 'Malgun Gothic', sa
     /* 바텀 시트 스타일(기본 정의 유지; 상태 클래스에서 override) */
     #sidebar {
         width: 100% !important;
-        height: 50vh !important;
+        height: var(--mobile-sheet-height, 25vh) !important;
         position: fixed;
         bottom: 0;
         left: 0;
@@ -304,7 +311,7 @@ body { margin: 0; display: flex; height: 100vh; font-family: 'Malgun Gothic', sa
         border-radius: 20px 20px 0 0; /* 상단 모서리 둥글게 */
         box-shadow: 0 -5px 15px rgba(0,0,0,0.15); /* 위쪽으로 그림자 */
         z-index: 9999;
-        transition: transform 0.3s ease-out; /* 나중에 열고 닫는 효과용 */
+        transition: height 0.25s ease-out;
         overscroll-behavior: contain;
     }
 
@@ -313,6 +320,7 @@ body { margin: 0; display: flex; height: 100vh; font-family: 'Malgun Gothic', sa
 
     /* 터치 타겟/가독성 */
     #btn-search { padding: 12px; font-size: 1rem; }
+    .mobile-search-actions .btn-action-search { padding: 12px; font-size: 0.95rem; }
     .btn-secondary { padding: 12px; font-size: 0.95rem; }
     .nav-btn { padding: 12px; font-size: 0.95em; }
     .list-item { padding: 16px; }
