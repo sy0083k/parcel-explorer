@@ -55,4 +55,5 @@
 - 로그아웃 경로는 `POST /logout` + CSRF를 기본으로 유지하고 `GET /logout`는 호환 경로 정책으로만 관리한다.
 - `/admin/raw-queries/export` CSV는 문자열 셀 formula injection 완화(`=`, `+`, `-`, `@` 선두 차단)를 유지한다.
 - GitHub Deploy 워크플로는 SSH + Docker Compose 재배포(`deploy.yml`)로 운영 기준을 확정했다.
+- 웹 방문 이벤트는 referrer/utm/context 확장 수집을 지원하며 `ALLOWED_WEB_TRACK_PATHS` 허용 경로 정책을 유지한다.
 - 레거시 `idle_land` 용어/테이블 전환 로직은 제거 완료 상태를 기준으로 문서를 유지한다.

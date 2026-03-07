@@ -51,7 +51,7 @@ python create_hash.py
 - `LOGIN_MAX_ATTEMPTS`, `LOGIN_COOLDOWN_SECONDS`
 - `VWORLD_TIMEOUT_S`, `VWORLD_RETRIES`, `VWORLD_BACKOFF_S`
 - `TRUST_PROXY_HEADERS`, `TRUSTED_PROXY_IPS`
-- `UPLOAD_SHEET_NAME`
+- `UPLOAD_SHEET_NAME`, `ALLOWED_WEB_TRACK_PATHS`
 - `PUBLIC_DOWNLOAD_MAX_SIZE_MB`, `PUBLIC_DOWNLOAD_ALLOWED_EXTS`, `PUBLIC_DOWNLOAD_DIR`
 
 ### 3) 의존성 설치
@@ -138,6 +138,8 @@ uvicorn app.main:app --reload
   - `POST /api/events`: 60 req/min
   - `POST /api/web-events`: 120 req/min
   - 초과 시 `429 Too Many Requests`, `Retry-After` 헤더 반환
+- 웹 방문 이벤트는 referrer/utm/page query/클라이언트 컨텍스트(언어/플랫폼/화면크기) 수집을 지원하며,
+  관리자 `/admin/stats/web`에서 채널/디바이스/브라우저/상위 페이지 분석 축을 제공합니다.
 
 ## ⚠️ 운영 주의사항
 - 관리자 화면에서 `.env`를 갱신해도 실행 중 프로세스의 설정 객체는 즉시 교체되지 않습니다. 운영 환경에서는 설정/비밀번호 변경 후 앱 재시작 절차를 함께 운영하세요.

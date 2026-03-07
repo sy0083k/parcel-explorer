@@ -39,6 +39,7 @@
 - `TRUST_PROXY_HEADERS`
 - `TRUSTED_PROXY_IPS`
 - `UPLOAD_SHEET_NAME`
+- `ALLOWED_WEB_TRACK_PATHS`
 - `PUBLIC_DOWNLOAD_MAX_SIZE_MB`
 - `PUBLIC_DOWNLOAD_ALLOWED_EXTS`
 - `PUBLIC_DOWNLOAD_DIR`
@@ -116,6 +117,7 @@
 ### 1. 공개 API 회귀
 - `GET /api/lands`: pagination/cursor 동작 유지
 - `POST /api/events`, `POST /api/web-events`: 수집/검증/레이트리밋 동작 유지
+- `POST /api/web-events`: legacy payload + 확장 payload(referrer/utm/context) 모두 호환 유지
 - `GET /api/public-download`: 파일 응답/부재 시 404 유지
 - 권장 실행: `pytest -q tests/test_map_pagination.py tests/test_stats_api.py tests/test_public_download_api.py`
 
@@ -164,6 +166,7 @@
 
 ### 통계/원시 로그 내보내기 실패
 - `/admin/stats`, `/admin/stats/web`, `/admin/raw-queries/export` 응답 및 권한 확인
+- `/admin/stats/web`의 breakdown(`channel/device/browser/page/referrer/utm`) 필드 누락 여부 확인
 - CSV를 스프레드시트로 열 때 선두 `=`, `+`, `-`, `@` 값이 `'` 접두 처리되어 formula injection이 차단되는지 확인
 - 경계선 재수집 상태 확인 시 `/admin/lands/geom-refresh/{job_id}` 응답 및 권한 확인
 - `map_event_log`, `raw_query_log`, `web_visit_event` 테이블 상태 확인

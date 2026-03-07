@@ -125,6 +125,7 @@ class Config:
     TRUST_PROXY_HEADERS = settings.trust_proxy_headers
     TRUSTED_PROXY_NETWORKS = settings.trusted_proxy_networks
     UPLOAD_SHEET_NAME = settings.upload_sheet_name
+    ALLOWED_WEB_TRACK_PATHS = settings.allowed_web_track_paths
     PUBLIC_DOWNLOAD_MAX_SIZE_MB = settings.public_download_max_size_mb
     PUBLIC_DOWNLOAD_ALLOWED_EXTS = settings.public_download_allowed_exts
     PUBLIC_DOWNLOAD_DIR = settings.public_download_dir

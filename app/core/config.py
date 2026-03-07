@@ -9,6 +9,7 @@ from pathlib import Path
 class SettingsError(RuntimeError):
     """Raised when required settings are missing or invalid."""
 
+
 IPAddressNetwork = IPv4Network | IPv6Network
 BCRYPT_HASH_RE = re.compile(r"^\$2[aby]\$\d{2}\$[./A-Za-z0-9]{53}$")
 SESSION_COOKIE_NAME_RE = re.compile(r"^[A-Za-z0-9_.-]+$")
@@ -38,6 +39,7 @@ class Settings:
     trust_proxy_headers: bool
     trusted_proxy_networks: tuple[IPAddressNetwork, ...]
     upload_sheet_name: str
+    allowed_web_track_paths: tuple[str, ...]
     public_download_max_size_mb: int
     public_download_allowed_exts: tuple[str, ...]
     public_download_dir: str
@@ -152,6 +154,20 @@ def _parse_allowed_exts(raw_value: str) -> tuple[str, ...]:
     return tuple(dict.fromkeys(values))
 
 
+def _parse_allowed_web_track_paths(raw_value: str) -> tuple[str, ...]:
+    values: list[str] = []
+    for raw_entry in raw_value.split(","):
+        entry = raw_entry.strip()
+        if not entry:
+            continue
+        if not entry.startswith("/"):
+            raise SettingsError(f"Invalid ALLOWED_WEB_TRACK_PATHS entry: {entry}. Path must start with '/'.")
+        values.append(entry)
+    if not values:
+        return ("/",)
+    return tuple(dict.fromkeys(values))
+
+
 def _validate_admin_hash(hash_value: str) -> str:
     if not BCRYPT_HASH_RE.match(hash_value):
         raise SettingsError("ADMIN_PW_HASH must be a valid bcrypt hash.")
@@ -187,6 +203,7 @@ def get_settings() -> Settings:
         trust_proxy_headers=_parse_bool_env("TRUST_PROXY_HEADERS", False),
         trusted_proxy_networks=_parse_network_list(os.getenv("TRUSTED_PROXY_IPS", "")),
         upload_sheet_name=os.getenv("UPLOAD_SHEET_NAME", "목록").strip() or "목록",
+        allowed_web_track_paths=_parse_allowed_web_track_paths(os.getenv("ALLOWED_WEB_TRACK_PATHS", "/")),
         public_download_max_size_mb=int(os.getenv("PUBLIC_DOWNLOAD_MAX_SIZE_MB", "25")),
         public_download_allowed_exts=_parse_allowed_exts(
             os.getenv("PUBLIC_DOWNLOAD_ALLOWED_EXTS", "pdf,csv,xlsx")

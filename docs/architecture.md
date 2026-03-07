@@ -116,7 +116,9 @@
 
 ### `web_visit_event`
 - 웹 방문 이벤트(`visit_start`, `heartbeat`, `visit_end`)
-- `anon_id`, `session_id`, `event_type`, `page_path`, `occurred_at`, `client_tz`, `user_agent`, `is_bot`
+- 기본: `anon_id`, `session_id`, `event_type`, `page_path`, `occurred_at`, `client_tz`, `user_agent`, `is_bot`
+- 확장: `page_query`, `referrer_url`, `referrer_domain`, `utm_*`,
+  `client_lang`, `platform`, `screen_*`, `viewport_*`, `browser_family`, `device_type`, `os_family`
 
 ## API 표
 ### 공개 엔드포인트
@@ -191,8 +193,10 @@
 ### 이벤트 수집/통계
 1. 클라이언트가 `/api/events`, `/api/web-events`로 검색/클릭/방문 이벤트를 전송한다.
 2. 서버는 레이트리밋 적용 후 `map_event_log`, `raw_query_log`, `web_visit_event`에 저장한다.
-3. 관리자는 `/admin/stats`, `/admin/stats/web`에서 집계 지표를 조회하고, `/admin/raw-queries/export`로 원시 로그를 CSV 내보내기 한다.
-4. CSV 내보내기 시 문자열 셀은 formula injection 방지를 위해 선두 `=`, `+`, `-`, `@` 값을 `'` 접두 처리한다.
+3. `/api/web-events`는 referrer/utm/page query/클라이언트 컨텍스트를 optional로 수용하고, UA 기반 브라우저/디바이스/OS 분류 필드를 서버에서 파생 저장한다.
+4. 관리자는 `/admin/stats`, `/admin/stats/web`에서 집계 지표를 조회한다(`/admin/stats/web`: 채널/디바이스/브라우저/상위 페이지/UTM/referrer breakdown 포함).
+5. `/api/v1/web-events`는 `/api/web-events`와 동등 계약을 유지한다(확장 필드 optional 호환).
+6. CSV 내보내기 시 문자열 셀은 formula injection 방지를 위해 선두 `=`, `+`, `-`, `@` 값을 `'` 접두 처리한다.
 
 ### 헬스체크
 1. `GET /health`는 DB ping 결과를 반환한다.
@@ -223,6 +227,7 @@
 - `TRUST_PROXY_HEADERS`
 - `TRUSTED_PROXY_IPS`
 - `UPLOAD_SHEET_NAME`
+- `ALLOWED_WEB_TRACK_PATHS`
 - `PUBLIC_DOWNLOAD_MAX_SIZE_MB`
 - `PUBLIC_DOWNLOAD_ALLOWED_EXTS`
 - `PUBLIC_DOWNLOAD_DIR`

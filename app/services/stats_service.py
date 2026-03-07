@@ -4,6 +4,7 @@ from typing import Any
 
 from fastapi import Request
 
+from app.core import get_settings
 from app.db.connection import db_connection
 from app.repositories import poi_repository
 from app.services import map_event_service, raw_query_export_service, web_stats_service
@@ -47,7 +48,8 @@ def record_web_visit_event(payload: dict[str, Any], request: Request) -> None:
 
 
 def get_web_stats(days: int = WEB_STATS_DAYS_DEFAULT) -> dict[str, Any]:
-    return web_stats_service.get_web_stats(days=days)
+    settings = get_settings()
+    return web_stats_service.get_web_stats(days=days, allowed_paths=settings.allowed_web_track_paths)
 
 
 def export_raw_query_csv(

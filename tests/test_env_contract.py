@@ -30,5 +30,6 @@ def test_env_example_matches_runtime_contract() -> None:
         "MAX_UPLOAD_ROWS",
         "LOGIN_MAX_ATTEMPTS",
         "LOGIN_COOLDOWN_SECONDS",
+        "ALLOWED_WEB_TRACK_PATHS",
     }
     assert required.issubset(keys)

@@ -181,8 +181,22 @@ async def test_web_event_and_web_stats_flow(async_client: httpx.AsyncClient, db_
             "anonId": "anon-web-1",
             "sessionId": "session-web-1",
             "pagePath": "/",
+            "pageQuery": "utm_source=google&utm_medium=social",
             "clientTs": 1763596800,
             "clientTz": "Asia/Seoul",
+            "clientLang": "ko-KR",
+            "platform": "Linux x86_64",
+            "referrerUrl": "https://google.com/search?q=test",
+            "referrerDomain": "google.com",
+            "utmSource": "google",
+            "utmMedium": "social",
+            "utmCampaign": "spring",
+            "utmTerm": "poi",
+            "utmContent": "banner",
+            "screenWidth": 1920,
+            "screenHeight": 1080,
+            "viewportWidth": 1280,
+            "viewportHeight": 800,
         },
     )
     assert event_start.status_code == 200
@@ -208,6 +222,36 @@ async def test_web_event_and_web_stats_flow(async_client: httpx.AsyncClient, db_
     payload = web_stats_response.json()
     assert payload["summary"]["totalVisitors"] >= 1
     assert "dailyTrend" in payload
+    assert "topReferrers" in payload
+    assert "topUtmSources" in payload
+    assert "topUtmCampaigns" in payload
+    assert "deviceBreakdown" in payload
+    assert "browserBreakdown" in payload
+    assert "topPagePaths" in payload
+    assert "channelBreakdown" in payload
+
+
+@pytest.mark.anyio
+async def test_web_event_v1_alias_supports_extended_payload(async_client: httpx.AsyncClient, db_path: object) -> None:
+    with db_connection() as conn:
+        poi_repository.init_db(conn)
+
+    response = await async_client.post(
+        "/api/v1/web-events",
+        json={
+            "eventType": "visit_start",
+            "anonId": "anon-web-v1",
+            "sessionId": "session-web-v1",
+            "pagePath": "/",
+            "pageQuery": "utm_source=newsletter&utm_medium=email",
+            "clientTs": 1763596800,
+            "clientTz": "Asia/Seoul",
+            "utmSource": "newsletter",
+            "utmMedium": "email",
+        },
+    )
+    assert response.status_code == 200
+    assert response.json()["success"] is True
 
 
 @pytest.mark.anyio
@@ -224,6 +268,26 @@ async def test_web_event_rejects_invalid_page_path(async_client: httpx.AsyncClie
         },
     )
     assert response.status_code == 400
+
+
+@pytest.mark.anyio
+async def test_web_event_accepts_legacy_payload(async_client: httpx.AsyncClient, db_path: object) -> None:
+    with db_connection() as conn:
+        poi_repository.init_db(conn)
+
+    response = await async_client.post(
+        "/api/web-events",
+        json={
+            "eventType": "heartbeat",
+            "anonId": "anon-legacy-1",
+            "sessionId": "session-legacy-1",
+            "pagePath": "/",
+            "clientTs": 1763596800,
+            "clientTz": "Asia/Seoul",
+        },
+    )
+    assert response.status_code == 200
+    assert response.json()["success"] is True
 
 
 @pytest.mark.anyio

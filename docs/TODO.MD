@@ -35,6 +35,7 @@
 | RISK-006 | P0 | 다중 앱 세션 교차 인식 위험 | done | team | 2026-03-03 | 동일 브라우저/도메인 운영 시 앱별 `SECRET_KEY`/`SESSION_COOKIE_NAME`/`SESSION_NAMESPACE` 분리와 인증 시 namespace 검증이 적용된다. | 관련: `app/main.py`, `app/dependencies.py`, `app/services/auth_service.py` |
 | RISK-007 | P1 | 관리자 로그아웃 경로/CSV 내보내기 보안 정합성 | done | team | 2026-03-07 | 로그아웃 표준 경로를 `POST /logout`+CSRF로 정렬하고, raw query CSV 문자열 셀 formula injection 방어를 적용한다. | 관련: `app/routers/auth.py`, `app/services/auth_service.py`, `app/services/raw_query_export_service.py` |
 | RISK-008 | P0 | 배포 파이프라인 미완성(deploy TODO) | done | team | 2026-03-07 | `deploy.yml`의 TODO를 제거하고 배포 전 품질 게이트 + SSH 원격 Docker Compose 재배포 + `/health` 검증이 자동화된다. | 관련: `.github/workflows/deploy.yml`, `README.MD`, `docs/maintenance.md` |
+| RISK-009 | P1 | 웹 방문 유입 로그 분석 축 부족 | done | team | 2026-03-07 | `/api/web-events` 확장 필드(referrer/utm/context) 수집, UA 파생 분류 저장, `/admin/stats/web` breakdown(채널/디바이스/브라우저/페이지) 제공 및 `/api/v1/web-events` 호환 유지 | 관련: `app/services/web_stats_service.py`, `app/repositories/web_visit_repository.py`, `frontend/src/map/session-tracker.ts` |
 
 ## 주간 리뷰 로그
 - 2026-02-23 | reviewer: team | 초기 백로그 문서 생성 및 5개 리스크 등록 | 다음 액션: RISK-001, RISK-002 우선 설계안 작성
@@ -43,3 +44,4 @@
 - 2026-03-03 | reviewer: team | 세션 교차 인식 방지를 위해 `SESSION_COOKIE_NAME`/`SESSION_NAMESPACE` 도입 및 인증 시 namespace 검증 반영 | 다음 액션: 다중 앱 운영 체크리스트 운영 프로세스에 정착
 - 2026-03-07 | reviewer: team | `POST /logout`+CSRF 표준화(`GET /logout` 호환 유지) 및 `/admin/raw-queries/export` CSV formula injection 방어 적용 | 다음 액션: RISK-001, RISK-002 우선순위 유지
 - 2026-03-07 | reviewer: team | `deploy.yml` TODO 제거, 배포 전 품질 게이트 + SSH 원격 Docker Compose 배포 + `/health` 검증 자동화 | 다음 액션: 운영 서버 secrets/environment 보호 규칙 검토
+- 2026-03-07 | reviewer: team | 웹 방문 이벤트 확장(referrer/utm/context), UA 파생 분류, `/admin/stats/web` breakdown 지표 확장 반영 | 다음 액션: 로그 보존 주기/집계 고도화 운영 점검

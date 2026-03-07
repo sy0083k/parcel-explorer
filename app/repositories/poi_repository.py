@@ -203,6 +203,23 @@ def insert_web_visit_event(
     client_tz: str | None,
     user_agent: str | None,
     is_bot: bool,
+    page_query: str | None = None,
+    client_lang: str | None = None,
+    platform: str | None = None,
+    referrer_url: str | None = None,
+    referrer_domain: str | None = None,
+    utm_source: str | None = None,
+    utm_medium: str | None = None,
+    utm_campaign: str | None = None,
+    utm_term: str | None = None,
+    utm_content: str | None = None,
+    screen_width: int | None = None,
+    screen_height: int | None = None,
+    viewport_width: int | None = None,
+    viewport_height: int | None = None,
+    browser_family: str = "other",
+    device_type: str = "unknown",
+    os_family: str = "other",
 ) -> None:
     web_visit_repository.insert_web_visit_event(
         conn,
@@ -210,21 +227,38 @@ def insert_web_visit_event(
         session_id=session_id,
         event_type=event_type,
         page_path=page_path,
+        page_query=page_query,
         occurred_at=occurred_at,
         client_tz=client_tz,
+        client_lang=client_lang,
+        platform=platform,
         user_agent=user_agent,
         is_bot=is_bot,
+        referrer_url=referrer_url,
+        referrer_domain=referrer_domain,
+        utm_source=utm_source,
+        utm_medium=utm_medium,
+        utm_campaign=utm_campaign,
+        utm_term=utm_term,
+        utm_content=utm_content,
+        screen_width=screen_width,
+        screen_height=screen_height,
+        viewport_width=viewport_width,
+        viewport_height=viewport_height,
+        browser_family=browser_family,
+        device_type=device_type,
+        os_family=os_family,
     )
 
 
 def fetch_web_total_visitors(conn: sqlite3.Connection, *, page_path: str) -> int:
-    return web_visit_repository.fetch_web_total_visitors(conn, page_path=page_path)
+    return web_visit_repository.fetch_web_total_visitors(conn, page_paths=(page_path,))
 
 
 def fetch_web_daily_visitors(conn: sqlite3.Connection, *, page_path: str, since_utc: str, until_utc: str) -> int:
     return web_visit_repository.fetch_web_daily_visitors(
         conn,
-        page_path=page_path,
+        page_paths=(page_path,),
         since_utc=since_utc,
         until_utc=until_utc,
     )
@@ -238,7 +272,7 @@ def fetch_web_session_durations_seconds(
 ) -> Sequence[sqlite3.Row]:
     return web_visit_repository.fetch_web_session_durations_seconds(
         conn,
-        page_path=page_path,
+        page_paths=(page_path,),
         since_utc=since_utc,
     )
 
@@ -251,6 +285,6 @@ def fetch_web_daily_unique_visitors_trend(
 ) -> Sequence[sqlite3.Row]:
     return web_visit_repository.fetch_web_daily_unique_visitors_trend(
         conn,
-        page_path=page_path,
+        page_paths=(page_path,),
         since_utc=since_utc,
     )
