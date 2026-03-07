@@ -109,6 +109,7 @@ uvicorn app.main:app --reload
 ### 관리자/인증
 - `GET /admin/login`
 - `POST /login` (`POST /admin/login` alias 지원)
+- `POST /logout` (권장)
 - `GET /logout`
 - `GET /admin`
 - `POST /admin/upload`
@@ -128,6 +129,7 @@ uvicorn app.main:app --reload
 
 ## 🛡 보안/운영 포인트 (핵심)
 - 관리자 보호 경로는 내부망 허용 IP(`ALLOWED_IPS`)와 세션 인증으로 보호되며, 상태 변경 요청에는 CSRF 검증을 적용합니다.
+- 로그아웃은 `POST /logout`를 기본 경로로 사용하며 CSRF 검증을 적용합니다. `GET /logout`는 호환성 경로로만 유지됩니다.
 - 동일 브라우저/도메인에서 여러 앱을 운영할 경우 `SECRET_KEY`, `SESSION_COOKIE_NAME`, `SESSION_NAMESPACE`를 앱별로 분리해야 세션 교차 인식을 방지할 수 있습니다.
 - `VWORLD_WMTS_KEY`는 공개 지도 렌더링(`/api/config`)용 예외 공개 키입니다.
 - `VWORLD_GEOCODER_KEY`는 관리자 보호 화면(`/admin`)에서 운영 편의를 위해 예외 공개될 수 있으며, 공개 API/로그 노출은 금지합니다.
@@ -142,6 +144,7 @@ uvicorn app.main:app --reload
 - `SESSION_COOKIE_NAME` 또는 `SESSION_NAMESPACE`를 변경하면 기존 세션이 무효화되므로 관리자 재로그인이 필요합니다.
 - 로그인 실패 제한과 이벤트 레이트리밋은 현재 인메모리 구현입니다. 다중 인스턴스 운영 시 인스턴스 간 상태가 공유되지 않으므로 별도 공유 스토어 기반 정책을 고려하세요.
 - API 버전 정책(`/api` vs `/api/v1`)의 운영 절차는 `docs/architecture.md`와 `docs/maintenance.md`를 기준으로 관리하세요.
+- `/admin/raw-queries/export` CSV는 문자열 셀 선두 `=`, `+`, `-`, `@` 값에 `'` 접두를 추가해 formula injection을 완화합니다.
 
 ## ✅ 테스트 및 품질 체크
 ```bash
@@ -168,7 +171,17 @@ RUN_HTTP_E2E=1 pytest -q tests/test_e2e_smoke.py
   - Vite manifest 검증
   - `compileall`, `mypy`, `pytest`
 - Deploy: `.github/workflows/deploy.yml`
-  - 현재 배포 명령은 TODO 상태이며 프로젝트 환경에 맞게 채워야 합니다.
+  - `main` push 또는 수동 실행(`workflow_dispatch`) 시 실행
+  - 배포 전 품질 게이트: frontend typecheck/build, `compileall`, `mypy`, `ruff`, `pytest`
+  - SSH 원격 배포: 대상 서버에서 `git pull --ff-only` + `docker compose build --pull` + `docker compose up -d`
+  - 배포 후 `curl http://127.0.0.1:8000/health` 헬스체크 확인
+
+필수 GitHub Secrets:
+- `PROD_HOST`
+- `PROD_PORT` (미설정 시 `22`)
+- `PROD_USER`
+- `PROD_SSH_KEY`
+- `PROD_DEPLOY_PATH` (미설정 시 `/opt/IdlePublicProperty`)
 
 ## 🐳 Docker 배포 (IP-only, no-domain)
 도메인 없이 서버 IP로 직접 접속하는 운영을 가정합니다.

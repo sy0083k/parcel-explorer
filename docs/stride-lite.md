@@ -2,7 +2,7 @@
 
 프로젝트: 관심 필지 지도 (POI Map Geo)  
 작성일: 2026-02-11  
-최종 수정일: 2026-02-27  
+최종 수정일: 2026-03-07  
 담당: Engineering
 
 ## 문서 진입점
@@ -15,7 +15,7 @@
 ## 범위
 - FastAPI 웹 애플리케이션
   - 공개 API: `/api/config`, `/api/lands`, `/api/events`, `/api/web-events`, `/api/public-download`, `/api/v1/*`
-  - 관리자/인증 API: `/admin/login`, `/login`, `/admin/upload`, `/admin/public-download/*`, `/admin/stats*`, `/admin/raw-queries/export`, `/admin/lands/geom-refresh*`
+  - 관리자/인증 API: `/admin/login`, `/login`, `/logout`(GET/POST), `/admin/upload`, `/admin/public-download/*`, `/admin/stats*`, `/admin/raw-queries/export`, `/admin/lands/geom-refresh*`
   - 헬스체크: `/health`
 - SQLite 저장소 (`data/database.db`)
 - 공개 다운로드 파일 저장소 (`data/public_download/current.*`, `current.json`)
@@ -44,11 +44,12 @@
 3. 공개 사용자 -> `/api/events`, `/api/web-events` -> 이벤트 로그 테이블 저장
 4. 관리자 사용자 -> `/admin/login` -> 세션 + CSRF 토큰 발급
 5. 관리자 사용자 -> `/login` -> 인증 + 레이트 리미팅 -> 세션 생성
-6. 관리자 사용자 -> `/admin/upload` -> 엑셀 파싱 + 검증 -> SQLite 저장 -> 백그라운드 지오메트리 업데이트
-7. 관리자 사용자 -> `/admin/public-download/upload` -> 파일 검증/원자적 교체 -> 메타 갱신
-8. 관리자 사용자 -> `/admin/stats`, `/admin/stats/web` -> 집계 조회
-9. 관리자 사용자 -> `/admin/lands/geom-refresh*` -> 경계선 재수집 잡 시작/상태 조회
-10. 관리자 사용자 -> `/admin/raw-queries/export` -> 원시 로그 CSV 내보내기
+6. 관리자 사용자 -> `POST /logout` -> 내부망 + 세션 + CSRF 검증 후 세션 종료 (`GET /logout` 호환 경로 유지)
+7. 관리자 사용자 -> `/admin/upload` -> 엑셀 파싱 + 검증 -> SQLite 저장 -> 백그라운드 지오메트리 업데이트
+8. 관리자 사용자 -> `/admin/public-download/upload` -> 파일 검증/원자적 교체 -> 메타 갱신
+9. 관리자 사용자 -> `/admin/stats`, `/admin/stats/web` -> 집계 조회
+10. 관리자 사용자 -> `/admin/lands/geom-refresh*` -> 경계선 재수집 잡 시작/상태 조회
+11. 관리자 사용자 -> `/admin/raw-queries/export` -> 원시 로그 CSV 내보내기(문자열 셀 formula injection 방지 직렬화)
 
 ## 가정
 - 관리자 엔드포인트는 허용된 내부 IP 범위에서만 접근한다.
@@ -104,7 +105,7 @@
 - 위험: `/admin/raw-queries/export`로 원시 검색 입력 노출.
   - 현재: 관리자 인증/내부망 보호.
   - 공백: CSV 재배포 시 2차 노출 위험.
-  - 완화: 내보내기 접근 통제 강화, 보존 기간/마스킹 정책 수립.
+  - 완화: 내보내기 접근 통제 강화, 문자열 셀 formula injection 방지(`=`, `+`, `-`, `@` 접두 차단), 보존 기간/마스킹 정책 수립.
 
 ### D: 서비스 거부(Denial of Service)
 - 위험: 대용량 업로드/이벤트 과다 입력.

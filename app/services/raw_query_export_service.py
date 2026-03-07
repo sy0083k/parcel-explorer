@@ -11,6 +11,7 @@ from app.repositories import event_repository
 
 EVENT_TYPE_SEARCH = "search"
 EVENT_TYPE_LAND_CLICK = "land_click"
+CSV_FORMULA_PREFIXES = ("=", "+", "-", "@")
 
 
 def export_raw_query_csv(
@@ -60,20 +61,27 @@ def export_raw_query_csv(
         writer.writerow(
             [
                 int(row["id"]),
-                str(row["created_at"] or ""),
-                str(row["event_type"] or ""),
-                str(row["anon_id"] or ""),
-                str(row["raw_region_query"] or ""),
-                str(row["raw_min_area_input"] or ""),
-                str(row["raw_max_area_input"] or ""),
-                str(row["raw_rent_only_input"] or ""),
-                str(row["raw_land_id_input"] or ""),
-                str(row["raw_land_address_input"] or ""),
-                str(row["raw_click_source_input"] or ""),
-                str(row["raw_payload_json"] or ""),
+                _safe_csv_string(row["created_at"]),
+                _safe_csv_string(row["event_type"]),
+                _safe_csv_string(row["anon_id"]),
+                _safe_csv_string(row["raw_region_query"]),
+                _safe_csv_string(row["raw_min_area_input"]),
+                _safe_csv_string(row["raw_max_area_input"]),
+                _safe_csv_string(row["raw_rent_only_input"]),
+                _safe_csv_string(row["raw_land_id_input"]),
+                _safe_csv_string(row["raw_land_address_input"]),
+                _safe_csv_string(row["raw_click_source_input"]),
+                _safe_csv_string(row["raw_payload_json"]),
             ]
         )
     return output.getvalue()
+
+
+def _safe_csv_string(value: object) -> str:
+    text = str(value or "")
+    if text.startswith(CSV_FORMULA_PREFIXES):
+        return f"'{text}"
+    return text
 
 
 def parse_date_start(raw: str | None) -> str | None:

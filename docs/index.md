@@ -2,7 +2,7 @@
 
 프로젝트: 관심 필지 지도 (POI Map Geo)  
 작성일: 2026-02-22  
-최종 수정일: 2026-02-27
+최종 수정일: 2026-03-07
 
 ## 빠른 시작 경로
 1. 왜 만드는가: [`goals.md`](goals.md)
@@ -52,4 +52,7 @@
 - VWorld 키 공개 정책은 문서 기준으로 분리 관리한다(`VWORLD_WMTS_KEY`: 공개 지도 렌더링 예외, `VWORLD_GEOCODER_KEY`: 관리자 보호 화면 예외 공개).
 - 관리자 통계 탭에 `poi` 경계선 현황(전체/미수집) 및 수동 재수집(잡 시작/상태 폴링) 기능을 반영한 경우, `architecture.md`와 `maintenance.md`를 함께 갱신한다.
 - 동일 브라우저/도메인 다중 앱 운영 시 세션 교차 인식을 방지하려면 앱별 `SECRET_KEY`, `SESSION_COOKIE_NAME`, `SESSION_NAMESPACE` 분리를 유지한다.
+- 로그아웃 경로는 `POST /logout` + CSRF를 기본으로 유지하고 `GET /logout`는 호환 경로 정책으로만 관리한다.
+- `/admin/raw-queries/export` CSV는 문자열 셀 formula injection 완화(`=`, `+`, `-`, `@` 선두 차단)를 유지한다.
+- GitHub Deploy 워크플로는 SSH + Docker Compose 재배포(`deploy.yml`)로 운영 기준을 확정했다.
 - 레거시 `idle_land` 용어/테이블 전환 로직은 제거 완료 상태를 기준으로 문서를 유지한다.

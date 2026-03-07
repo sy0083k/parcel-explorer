@@ -3,7 +3,7 @@ import secrets
 
 import bcrypt
 from fastapi import Request
-from fastapi.responses import JSONResponse, RedirectResponse
+from fastapi.responses import JSONResponse, RedirectResponse, Response
 
 from app.dependencies import SESSION_NAMESPACE_KEY, get_or_create_csrf_token, validate_csrf_token
 from app.logging_utils import RequestIdFilter
@@ -123,3 +123,12 @@ def logout(request: Request) -> RedirectResponse:
         samesite="lax",
     )
     return response
+
+
+def logout_with_csrf(request: Request, csrf_token: str) -> Response:
+    if not validate_csrf_token(request, csrf_token):
+        return JSONResponse(
+            status_code=403,
+            content={"success": False, "message": "잘못된 요청입니다. 페이지를 새로고침 해주세요."},
+        )
+    return logout(request)

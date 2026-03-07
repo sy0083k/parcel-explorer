@@ -34,3 +34,36 @@ def test_raw_query_export_service_export_csv(db_path: object) -> None:
     )
     assert "event_type" in csv_text
     assert "search" in csv_text
+
+
+def test_raw_query_export_service_escapes_formula_like_cells(db_path: object) -> None:
+    with db_connection() as conn:
+        event_repository.init_event_schema(conn)
+        event_repository.insert_raw_query_log(
+            conn,
+            event_type="search",
+            anon_id="=anon",
+            raw_region_query="+region",
+            raw_min_area_input="-10",
+            raw_max_area_input="@max",
+            raw_rent_only_input="=true",
+            raw_land_id_input=None,
+            raw_land_address_input="=addr",
+            raw_click_source_input="+map",
+            raw_payload_json='{"raw":"=payload"}',
+        )
+        conn.commit()
+
+    csv_text = raw_query_export_service.export_raw_query_csv(
+        event_type="search",
+        date_from=None,
+        date_to=None,
+        limit=100,
+    )
+    assert "'=anon" in csv_text
+    assert "'+region" in csv_text
+    assert "'-10" in csv_text
+    assert "'@max" in csv_text
+    assert "'=true" in csv_text
+    assert "'=addr" in csv_text
+    assert "'+map" in csv_text

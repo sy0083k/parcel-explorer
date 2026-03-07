@@ -2,7 +2,7 @@
 
 프로젝트: 관심 필지 지도 (POI Map Geo)  
 작성일: 2026-02-11  
-최종 수정일: 2026-02-27
+최종 수정일: 2026-03-07
 
 ## 목적
 운영 중인 서비스의 안정성과 보안을 유지하기 위해 필요한 점검, 변경, 장애 대응 절차를 정의한다.
@@ -63,7 +63,8 @@
 8. `/health` 응답 정상 확인
 9. `/api/config`, `/api/lands`, `/api/public-download` 응답 정상 확인
 10. `/admin/stats`, `/admin/stats/web`, `/admin/raw-queries/export`, `/admin/lands/geom-refresh*` 권한/응답 정상 확인
-11. 지도 화면 핵심 사용자 흐름 수동 회귀(검색/엔터/지도 클릭/다운로드/이전·다음/레이어 전환) 확인
+11. `POST /logout`(내부망/인증/CSRF) 정상 동작, `GET /logout`(호환 경로) 내부망 제한 동작 확인
+12. 지도 화면 핵심 사용자 흐름 수동 회귀(검색/엔터/지도 클릭/다운로드/이전·다음/레이어 전환) 확인
 
 ## CI/테스트 명령
 - `python -m compileall -q app tests`
@@ -81,6 +82,23 @@
 
 ### 선택 실행
 - HTTP E2E 스모크: `RUN_HTTP_E2E=1 pytest -q tests/test_e2e_smoke.py`
+
+## 배포 워크플로 (GitHub Actions)
+- 파일: `.github/workflows/deploy.yml`
+- 트리거: `main` push, `workflow_dispatch`
+- 동작: 배포 전 품질 게이트 실행 후 SSH로 운영 서버 접속, `docker compose` 재배포, `/health` 검증
+
+### 필수 GitHub Secrets
+- `PROD_HOST`: 운영 서버 호스트/IP
+- `PROD_PORT`: SSH 포트(미설정 시 22)
+- `PROD_USER`: SSH 계정
+- `PROD_SSH_KEY`: 배포용 개인키
+- `PROD_DEPLOY_PATH`: 서버 저장소 경로(미설정 시 `/opt/IdlePublicProperty`)
+
+### 서버 사전 조건
+- 지정 경로에 저장소가 이미 clone 되어 있어야 한다.
+- 서버에 Docker Engine + Docker Compose plugin이 설치되어 있어야 한다.
+- 배포 계정이 해당 경로와 Docker 실행 권한을 가져야 한다.
 
 ## API 버전 운영 정책 (`/api` vs `/api/v1`)
 - 현재 기본 정책: `/api/v1/*`는 유지되는 호환성(alias) 경로로 운영한다.
@@ -103,6 +121,7 @@
 
 ### 2. 관리자 핵심 흐름
 - 로그인/CSRF/내부망 제한 유지
+- 로그아웃 경로 정책 유지 (`POST /logout` + CSRF, `GET /logout` 호환)
 - 엑셀 업로드 + 지오메트리 보강 잡 생성
 - 통계 조회/CSV export
 - 통계 탭 경계선 재수집 버튼 실행 + 완료 후 수치 갱신 확인
@@ -145,6 +164,7 @@
 
 ### 통계/원시 로그 내보내기 실패
 - `/admin/stats`, `/admin/stats/web`, `/admin/raw-queries/export` 응답 및 권한 확인
+- CSV를 스프레드시트로 열 때 선두 `=`, `+`, `-`, `@` 값이 `'` 접두 처리되어 formula injection이 차단되는지 확인
 - 경계선 재수집 상태 확인 시 `/admin/lands/geom-refresh/{job_id}` 응답 및 권한 확인
 - `map_event_log`, `raw_query_log`, `web_visit_event` 테이블 상태 확인
 - 로그 누락 시 클라이언트 이벤트(`/api/events`, `/api/web-events`) 수집 상태 확인

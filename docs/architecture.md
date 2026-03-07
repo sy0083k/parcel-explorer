@@ -2,7 +2,7 @@
 
 프로젝트: 관심 필지 지도 (POI Map Geo)  
 작성일: 2026-02-11  
-최종 수정일: 2026-03-03
+최종 수정일: 2026-03-07
 
 ## 문서 진입점
 - 문서 포털(한 페이지 허브): [`index.md`](index.md)
@@ -137,6 +137,7 @@
 - `GET /admin/login`
 - `POST /login`
 - `POST /admin/login`
+- `POST /logout`
 - `GET /logout`
 - `GET /admin`
 - `POST /admin/upload`
@@ -167,6 +168,10 @@
 1. `GET /admin/login`이 세션에 CSRF 토큰을 발급하고 로그인 페이지를 렌더링한다.
 2. `POST /login`이 CSRF 검증, 자격 증명 검증, 세션 갱신, 로그인 실패 제한을 수행한다.
 
+### 관리자 로그아웃
+1. `POST /logout`가 내부망/세션 인증/CSRF 검증 후 세션을 종료한다.
+2. `GET /logout`는 호환성 경로로 유지되며 내부망 제한을 적용한다.
+
 ### 관리자 업로드 및 지오메트리 보강
 1. `POST /admin/upload`에서 CSRF, 파일 확장자/용량/행 수/필수 컬럼을 검증한다.
 2. 정규화/검증된 행으로 `poi`를 교체 저장한다.
@@ -187,6 +192,7 @@
 1. 클라이언트가 `/api/events`, `/api/web-events`로 검색/클릭/방문 이벤트를 전송한다.
 2. 서버는 레이트리밋 적용 후 `map_event_log`, `raw_query_log`, `web_visit_event`에 저장한다.
 3. 관리자는 `/admin/stats`, `/admin/stats/web`에서 집계 지표를 조회하고, `/admin/raw-queries/export`로 원시 로그를 CSV 내보내기 한다.
+4. CSV 내보내기 시 문자열 셀은 formula injection 방지를 위해 선두 `=`, `+`, `-`, `@` 값을 `'` 접두 처리한다.
 
 ### 헬스체크
 1. `GET /health`는 DB ping 결과를 반환한다.

@@ -137,6 +137,10 @@
             font-size: 14px;
             color: var(--muted);
             text-decoration: none;
+            background: none;
+            border: 0;
+            padding: 0;
+            cursor: pointer;
         }
         .alert {
             padding: 10px 14px;
@@ -304,7 +308,10 @@
 
         <header class="content-header">
             <div class="title">관리자 컨트롤 패널</div>
-            <a class="logout" href="/logout">로그아웃</a>
+            <form method="post" action="/logout" style="margin: 0;">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+                <button class="logout" type="submit">로그아웃</button>
+            </form>
         </header>
 
         <aside class="sidebar-body">

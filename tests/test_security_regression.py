@@ -10,6 +10,12 @@ from itsdangerous import TimestampSigner
 from tests.helpers import temp_env
 
 
+def _extract_csrf_token(html: str) -> str:
+    match = re.search(r'name="csrf_token" value="([^"]+)"', html)
+    assert match is not None
+    return match.group(1)
+
+
 @pytest.mark.anyio
 async def test_login_rejects_missing_csrf(async_client: httpx.AsyncClient) -> None:
     res = await async_client.post(
@@ -126,6 +132,55 @@ async def test_logout_uses_configured_session_cookie_name(app_env: dict[str, str
             res = await client.get("/logout")
             cookie_header = res.headers.get("set-cookie", "")
             assert cookie_header.startswith("custom_session_cookie=")
+
+
+@pytest.mark.anyio
+async def test_post_logout_requires_authentication(async_client: httpx.AsyncClient) -> None:
+    response = await async_client.post("/logout", data={"csrf_token": "x"})
+    assert response.status_code == 401
+
+
+@pytest.mark.anyio
+async def test_post_logout_requires_csrf_and_succeeds_with_valid_csrf(async_client: httpx.AsyncClient) -> None:
+    login_page = await async_client.get("/admin/login")
+    assert login_page.status_code == 200
+    login_csrf = _extract_csrf_token(login_page.text)
+
+    login_response = await async_client.post(
+        "/login",
+        data={"username": "admin", "password": "admin-password", "csrf_token": login_csrf},
+    )
+    assert login_response.status_code == 200
+
+    bad_logout = await async_client.post("/logout", data={"csrf_token": ""})
+    assert bad_logout.status_code == 403
+
+    admin_page = await async_client.get("/admin/")
+    assert admin_page.status_code == 200
+    logout_csrf = _extract_csrf_token(admin_page.text)
+
+    ok_logout = await async_client.post("/logout", data={"csrf_token": logout_csrf}, follow_redirects=False)
+    assert ok_logout.status_code == 303
+    assert ok_logout.headers.get("location") == "/admin/login"
+
+
+@pytest.mark.anyio
+async def test_post_logout_rejected_outside_internal_network(app_env: dict[str, str]) -> None:
+    env = dict(app_env)
+    env["ALLOWED_IPS"] = "192.168.0.0/24"
+
+    with temp_env(env):
+        import importlib
+
+        from app.core import config
+
+        config.get_settings.cache_clear()
+        app_main = importlib.import_module("app.main")
+        app_main = importlib.reload(app_main)
+        transport = httpx.ASGITransport(app=app_main.app, client=("10.0.0.1", 50000))
+        async with httpx.AsyncClient(transport=transport, base_url="http://testserver") as client:
+            response = await client.post("/logout", data={"csrf_token": "x"})
+            assert response.status_code == 403
 
 
 async def _login_and_get_session_cookie(env: dict[str, str]) -> tuple[str, str]:
