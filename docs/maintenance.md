@@ -2,7 +2,7 @@
 
 프로젝트: 관심 필지 지도 (Parcel Explorer)  
 작성일: 2026-02-11  
-최종 수정일: 2026-03-07
+최종 수정일: 2026-03-13
 
 ## 목적
 운영 중인 서비스의 안정성과 보안을 유지하기 위해 필요한 점검, 변경, 장애 대응 절차를 정의한다.
@@ -60,12 +60,13 @@
 4. `pytest -q`
 5. `docs/engineering-guidelines.md` 기준 준수 여부 확인
 6. 환경 변수 설정 확인
-7. `data/database.db` 파일 권한 확인
-8. `/health` 응답 정상 확인
-9. `/api/config`, `/api/lands`, `/api/public-download` 응답 정상 확인
-10. `/admin/stats`, `/admin/stats/web`, `/admin/raw-queries/export`, `/admin/lands/geom-refresh*` 권한/응답 정상 확인
-11. `POST /logout`(내부망/인증/CSRF) 정상 동작 확인
-12. 지도 화면 핵심 사용자 흐름 수동 회귀(검색/엔터/지도 클릭/다운로드/이전·다음/레이어 전환) 확인
+7. 배포 토폴로지가 단일 앱 인스턴스 1개인지 확인(멀티 인스턴스/replica 금지)
+8. `data/database.db` 파일 권한 확인
+9. `/health` 응답 정상 확인
+10. `/api/config`, `/api/lands`, `/api/public-download` 응답 정상 확인
+11. `/admin/stats`, `/admin/stats/web`, `/admin/raw-queries/export`, `/admin/lands/geom-refresh*` 권한/응답 정상 확인
+12. `POST /logout`(내부망/인증/CSRF) 정상 동작 확인
+13. 지도 화면 핵심 사용자 흐름 수동 회귀(검색/엔터/지도 클릭/다운로드/이전·다음/레이어 전환) 확인
 
 ## CI/테스트 명령
 - `python -m compileall -q app tests`
@@ -104,6 +105,7 @@
 ## API 버전 운영 정책 (`/api` vs `/api/v1`)
 - 현재 기본 정책: `/api/v1/*`는 유지되는 호환성(alias) 경로로 운영한다.
 - 운영 점검: `/api/*`와 `/api/v1/*`의 응답 계약(필드/상태코드)과 레이트리밋 동작이 동일한지 정기 확인한다.
+- 단일 인스턴스 정책: `/api/*`, `/api/v1/*`의 레이트리밋은 단일 프로세스 기준으로만 보장되며, replica 2개 이상 운영은 `RISK-002` 해소 전 금지한다.
 - 변경 적용: API 계약 변경 시 `/api/*` 반영과 동시에 `/api/v1/*` 동등성 테스트를 수행한다.
 
 ### 향후 `/api/v1` 폐기 런북(정책 사전 정의)
@@ -151,7 +153,8 @@
 - `LOGIN_MAX_ATTEMPTS`, `LOGIN_COOLDOWN_SECONDS` 점검
 - 내부 IP 허용 목록(`ALLOWED_IPS`) 확인
 - 프록시 환경일 경우 `TRUST_PROXY_HEADERS`, `TRUSTED_PROXY_IPS` 설정 확인
-- 현재 로그인 제한은 인메모리 상태이므로 멀티 인스턴스 환경에서는 공유 스토어 기반 대안 검토
+- 현재 로그인 제한은 인메모리 상태이며 운영 지원 범위는 단일 인스턴스다.
+- 운영 중 replica/LB 확장 요구가 생기면 배포를 진행하지 말고 `RISK-002` 공유 스토어 기반 limiter 작업을 선행한다.
 
 ### 업로드 실패
 - 파일 타입/용량 제한 확인 (`MAX_UPLOAD_SIZE_MB`, `MAX_UPLOAD_ROWS`)

@@ -1,5 +1,6 @@
 services:
   app:
+    # RISK-002: login/event limiters are process-local; keep a single app instance
     build:
       context: .
       dockerfile: Dockerfile

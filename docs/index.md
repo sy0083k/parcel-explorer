@@ -2,7 +2,7 @@
 
 프로젝트: 관심 필지 지도 (Parcel Explorer)  
 작성일: 2026-02-22  
-최종 수정일: 2026-03-12
+최종 수정일: 2026-03-13
 
 ## 빠른 시작 경로
 1. 왜 만드는가: [`goals.md`](goals.md)
@@ -61,3 +61,4 @@
 - GitHub Deploy 워크플로는 SSH + Docker Compose 재배포(`deploy.yml`)로 운영 기준을 확정했다.
 - 웹 방문 이벤트는 referrer/utm/context 확장 수집을 지원하며 `ALLOWED_WEB_TRACK_PATHS` 허용 경로 정책을 유지한다.
 - 레거시 `idle_land` 용어/테이블 전환 로직은 제거 완료 상태를 기준으로 문서를 유지한다.
+- `RISK-002` 기준으로 현재 배포 정책은 단일 앱 인스턴스만 지원하며, 멀티 인스턴스 전환은 공유 스토어 기반 limiter 도입 전까지 보류한다.

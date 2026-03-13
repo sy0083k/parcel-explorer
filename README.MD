@@ -138,13 +138,16 @@ uvicorn app.main:app --reload
   - `POST /api/events`: 60 req/min
   - `POST /api/web-events`: 120 req/min
   - 초과 시 `429 Too Many Requests`, `Retry-After` 헤더 반환
+  - 현재 보장 범위는 단일 앱 인스턴스 1개 기준입니다.
 - 웹 방문 이벤트는 referrer/utm/page query/클라이언트 컨텍스트(언어/플랫폼/화면크기) 수집을 지원하며,
   관리자 `/admin/stats/web`에서 채널/디바이스/브라우저/상위 페이지 분석 축을 제공합니다.
 
 ## ⚠️ 운영 주의사항
 - 관리자 화면에서 `.env`를 갱신해도 실행 중 프로세스의 설정 객체는 즉시 교체되지 않습니다. 운영 환경에서는 설정/비밀번호 변경 후 앱 재시작 절차를 함께 운영하세요.
 - `SESSION_COOKIE_NAME` 또는 `SESSION_NAMESPACE`를 변경하면 기존 세션이 무효화되므로 관리자 재로그인이 필요합니다.
-- 로그인 실패 제한과 이벤트 레이트리밋은 현재 인메모리 구현입니다. 다중 인스턴스 운영 시 인스턴스 간 상태가 공유되지 않으므로 별도 공유 스토어 기반 정책을 고려하세요.
+- 로그인 실패 제한과 이벤트 레이트리밋은 현재 인메모리 구현이며, 지원 배포 형태는 단일 앱 인스턴스 1개입니다.
+- 로드밸런서 뒤 다중 인스턴스, 다중 replica, 다중 호스트 배포는 `RISK-002` 해소 전까지 지원하지 않습니다.
+- 수평 확장이 필요해지면 공유 스토어 기반 limiter를 선행 도입한 뒤 배포 절차를 다시 정의해야 합니다.
 - API 버전 정책(`/api` vs `/api/v1`)의 운영 절차는 `docs/architecture.md`와 `docs/maintenance.md`를 기준으로 관리하세요.
 - `/admin/raw-queries/export` CSV는 문자열 셀 선두 `=`, `+`, `-`, `@` 값에 `'` 접두를 추가해 formula injection을 완화합니다.
 
@@ -212,6 +215,7 @@ curl http://127.0.0.1:8000/health
 운영 메모:
 - `docker-compose.yml`은 IP-only 환경을 위해 `SESSION_HTTPS_ONLY=false`, `TRUST_PROXY_HEADERS=false`를 기본값으로 사용합니다.
 - SQLite 및 공개 다운로드 파일은 `./data` 볼륨으로 영속화됩니다.
+- 현재 Compose 운영 기준은 단일 `app` 인스턴스 1개이며, scale-out은 지원하지 않습니다.
 
 ## 📂 디렉터리 구조
 ```text

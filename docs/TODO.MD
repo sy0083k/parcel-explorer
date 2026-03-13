@@ -28,7 +28,7 @@
 | id | priority | title | status | owner | target_date | success_criteria | notes |
 |---|---|---|---|---|---|---|---|
 | RISK-001 | P0 | 설정 변경 즉시 반영 불가 | done | team | 2026-03-13 | 관리자 설정/비밀번호 변경 후 재시작 없이도 반영 전략이 문서화되고 구현/운영 절차가 확정된다. | `app/core/runtime_config.py` 신규 도입, `RuntimeConfig` + `rebuild_runtime_state()` 구현. `SESSION_HTTPS_ONLY`의 `Set-Cookie` 반영은 재시작 필요(나머지 즉시 반영). |
-| RISK-002 | P0 | 인메모리 제한기 다중 인스턴스 한계 | todo | unassigned | 2026-03-09 | 로그인/이벤트 레이트리밋이 멀티 인스턴스 환경에서 일관 동작하도록 공유 스토어 전략이 확정된다. | 관련: `app/auth_security.py`, `app/rate_limit.py` |
+| RISK-002 | P0 | 인메모리 제한기 다중 인스턴스 한계 | blocked | unassigned | 2026-03-09 | 현재 배포 정책이 단일 인스턴스로 고정되고, 멀티 인스턴스 전환 시 공유 스토어 기반 limiter 선행 도입이 필수 조건으로 문서화된다. | 관련: `app/auth_security.py`, `app/rate_limit.py`. 현재 결정: 미배포 상태 기준 단일 인스턴스만 지원. 차단 사유: 공유 스토어(예: Redis/Valkey) 미도입. 해소 조건: replica 2개 이상 또는 LB 도입 요구가 생기면 공유 스토어 기반 글로벌 limiter 작업 착수. |
 | RISK-003 | P1 | 업로드 후 지오메트리 작업 내구성 부족 | todo | unassigned | 2026-03-09 | 프로세스 재시작/장애 상황에서도 작업 유실 없이 재시도 가능한 백그라운드 처리 방식이 정의된다. | 관련: `app/services/upload_service.py`, `app/services/geo_service.py` |
 | RISK-004 | P1 | 공개 다운로드 응답 메모리 사용량 리스크 | todo | unassigned | 2026-03-09 | 대용량 파일에서도 서버 메모리 급증 없이 다운로드를 처리하도록 스트리밍 응답 방식이 적용된다. | 관련: `app/services/public_download_service.py` |
 | RISK-005 | P1 | 프런트 전체 데이터 선적재로 인한 확장성 한계 | todo | unassigned | 2026-03-09 | 데이터 증가 시 초기 로딩 시간/브라우저 메모리 사용을 제어하는 점진 로딩 전략이 수립된다. | 관련: `frontend/src/map/lands-client.ts` |
@@ -56,3 +56,4 @@
 - 2026-03-07 | reviewer: team | 웹 방문 이벤트 확장(referrer/utm/context), UA 파생 분류, `/admin/stats/web` breakdown 지표 확장 반영 | 다음 액션: 로그 보존 주기/집계 고도화 운영 점검
 - 2026-03-13 | reviewer: team | RISK-001 구현 완료: `app/core/runtime_config.py` 도입, 설정/비밀번호 변경 후 `app.state.config` 즉시 교체, `login_limiter` 조건부 재생성 | 다음 액션: RISK-002 공유 스토어 전략 설계
 - 2026-03-13 | reviewer: team | 보안 감사 후속 백로그 8건 등록(RISK-010~017): SESSION_HTTPS_ONLY 핫리로드 한계 문서화, 공개 다운로드 레이트리밋, export 쿼리 타임아웃, 감사 로그 강화, 다운로드 파일 무결성, 매직 바이트 검증, CSV injection 범위, 웹 수집 경로 과수집 위험 | 다음 액션: RISK-011(레이트리밋), RISK-013(감사 로그) P1 항목 착수 검토
+- 2026-03-13 | reviewer: team | RISK-002 운영 결정 확정: 아직 미배포 상태이므로 단일 인스턴스만 지원하고, 멀티 인스턴스 전환은 공유 스토어 기반 limiter 선행 도입 전까지 차단 | 다음 액션: 첫 운영 배포에서 replica/LB 요구 발생 시 Redis/Valkey 기반 글로벌 limiter 설계 재개
