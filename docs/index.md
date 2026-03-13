@@ -62,3 +62,4 @@
 - 웹 방문 이벤트는 referrer/utm/context 확장 수집을 지원하며 `ALLOWED_WEB_TRACK_PATHS` 허용 경로 정책을 유지한다.
 - 레거시 `idle_land` 용어/테이블 전환 로직은 제거 완료 상태를 기준으로 문서를 유지한다.
 - `RISK-002` 기준으로 현재 배포 정책은 단일 앱 인스턴스만 지원하며, 멀티 인스턴스 전환은 공유 스토어 기반 limiter 도입 전까지 보류한다.
+- `RISK-011` 기준으로 `/api/public-download`에도 앱 레벨 레이트 리밋을 적용한다.

@@ -187,7 +187,7 @@
 ### 공개 다운로드 파일 제공
 1. 관리자가 `/admin/public-download/upload`로 파일을 업로드한다.
 2. 서비스는 허용 확장자/용량 검증 후 임시파일 작성 뒤 `current.<ext>`로 원자적 교체하고 메타를 갱신한다.
-3. 사용자는 `/api/public-download`로 최신 파일을 다운로드한다.
+3. 사용자는 `/api/public-download`로 최신 파일을 다운로드한다. 이 경로는 IP 기준 분당 제한을 적용하며 초과 시 `429 + Retry-After`를 반환한다.
 4. 현재 구현은 응답 시 파일 전체를 메모리로 읽는다(스트리밍 아님).
 
 ### 이벤트 수집/통계
@@ -229,6 +229,7 @@
 - `UPLOAD_SHEET_NAME`
 - `ALLOWED_WEB_TRACK_PATHS`
 - `PUBLIC_DOWNLOAD_MAX_SIZE_MB`
+- `PUBLIC_DOWNLOAD_RATE_LIMIT_PER_MINUTE`
 - `PUBLIC_DOWNLOAD_ALLOWED_EXTS`
 - `PUBLIC_DOWNLOAD_DIR`
 

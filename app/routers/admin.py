@@ -96,6 +96,7 @@ async def update_settings(
     trust_proxy_headers: str = Form(default=""),
     trusted_proxy_ips: str = Form(default=""),
     upload_sheet_name: str = Form(default=""),
+    public_download_rate_limit_per_minute: str = Form(default=""),
 ):
     updates = {
         "APP_NAME": app_name,
@@ -113,6 +114,7 @@ async def update_settings(
         "TRUST_PROXY_HEADERS": trust_proxy_headers,
         "TRUSTED_PROXY_IPS": trusted_proxy_ips,
         "UPLOAD_SHEET_NAME": upload_sheet_name,
+        "PUBLIC_DOWNLOAD_RATE_LIMIT_PER_MINUTE": public_download_rate_limit_per_minute,
     }
     admin_settings_service.apply_settings_update(
         request,

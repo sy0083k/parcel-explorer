@@ -41,6 +41,7 @@
 - `UPLOAD_SHEET_NAME`
 - `ALLOWED_WEB_TRACK_PATHS`
 - `PUBLIC_DOWNLOAD_MAX_SIZE_MB`
+- `PUBLIC_DOWNLOAD_RATE_LIMIT_PER_MINUTE`
 - `PUBLIC_DOWNLOAD_ALLOWED_EXTS`
 - `PUBLIC_DOWNLOAD_DIR`
 
@@ -120,7 +121,7 @@
 - `GET /api/lands`: pagination/cursor 동작 유지
 - `POST /api/events`, `POST /api/web-events`: 수집/검증/레이트리밋 동작 유지
 - `POST /api/web-events`: legacy payload + 확장 payload(referrer/utm/context) 모두 호환 유지
-- `GET /api/public-download`: 파일 응답/부재 시 404 유지
+- `GET /api/public-download`: 파일 응답/부재 시 404 유지, 과다 요청 시 429 + `Retry-After`
 - 권장 실행: `pytest -q tests/test_map_pagination.py tests/test_stats_api.py tests/test_public_download_api.py`
 
 ### 2. 관리자 핵심 흐름
@@ -164,7 +165,7 @@
 
 ### 공개 다운로드 실패
 - `/admin/public-download/meta`로 메타 존재 여부 확인
-- `PUBLIC_DOWNLOAD_ALLOWED_EXTS`, `PUBLIC_DOWNLOAD_MAX_SIZE_MB`, `PUBLIC_DOWNLOAD_DIR` 점검
+- `PUBLIC_DOWNLOAD_ALLOWED_EXTS`, `PUBLIC_DOWNLOAD_MAX_SIZE_MB`, `PUBLIC_DOWNLOAD_RATE_LIMIT_PER_MINUTE`, `PUBLIC_DOWNLOAD_DIR` 점검
 - `data/public_download/current.*`와 `current.json` 파일 존재/권한 확인
 
 ### 통계/원시 로그 내보내기 실패

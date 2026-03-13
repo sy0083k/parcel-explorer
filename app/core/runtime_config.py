@@ -35,6 +35,7 @@ class RuntimeConfig:
         self.UPLOAD_SHEET_NAME = s.upload_sheet_name
         self.ALLOWED_WEB_TRACK_PATHS = s.allowed_web_track_paths
         self.PUBLIC_DOWNLOAD_MAX_SIZE_MB = s.public_download_max_size_mb
+        self.PUBLIC_DOWNLOAD_RATE_LIMIT_PER_MINUTE = s.public_download_rate_limit_per_minute
         self.PUBLIC_DOWNLOAD_ALLOWED_EXTS = s.public_download_allowed_exts
         self.PUBLIC_DOWNLOAD_DIR = s.public_download_dir
 

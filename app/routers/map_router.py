@@ -12,6 +12,10 @@ WEB_EVENT_LIMIT_PER_MINUTE = 120
 RATE_LIMIT_WINDOW_SECONDS = 60
 
 
+def _client_ip(request: Request) -> str:
+    return request.client.host if request.client else "unknown"
+
+
 def _parse_cursor(raw_cursor: str | None) -> int | None:
     if raw_cursor is None or raw_cursor.strip() == "":
         return None
@@ -22,7 +26,7 @@ def _parse_cursor(raw_cursor: str | None) -> int | None:
 
 
 def _rate_limit_key(request: Request, payload: dict[str, Any]) -> str:
-    client_ip = request.client.host if request.client else "unknown"
+    client_ip = _client_ip(request)
     anon_id = str(payload.get("anonId", "")).strip()
     if anon_id:
         return f"{client_ip}:{anon_id}"
@@ -89,6 +93,13 @@ def create_router() -> APIRouter:
 
     @router.get("/public-download")
     async def get_public_download(request: Request):
+        allowed, retry_after = request.app.state.event_rate_limiter.allow(
+            key=f"public-download:{_client_ip(request)}",
+            limit=int(request.app.state.config.PUBLIC_DOWNLOAD_RATE_LIMIT_PER_MINUTE),
+            window_seconds=RATE_LIMIT_WINDOW_SECONDS,
+        )
+        if not allowed:
+            return _rate_limited_response(retry_after)
         return public_download_service.get_public_download_file_response(request)
 
     return router

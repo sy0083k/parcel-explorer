@@ -41,6 +41,7 @@ class Settings:
     upload_sheet_name: str
     allowed_web_track_paths: tuple[str, ...]
     public_download_max_size_mb: int
+    public_download_rate_limit_per_minute: int
     public_download_allowed_exts: tuple[str, ...]
     public_download_dir: str
     base_dir: str
@@ -205,6 +206,7 @@ def get_settings() -> Settings:
         upload_sheet_name=os.getenv("UPLOAD_SHEET_NAME", "목록").strip() or "목록",
         allowed_web_track_paths=_parse_allowed_web_track_paths(os.getenv("ALLOWED_WEB_TRACK_PATHS", "/")),
         public_download_max_size_mb=int(os.getenv("PUBLIC_DOWNLOAD_MAX_SIZE_MB", "25")),
+        public_download_rate_limit_per_minute=int(os.getenv("PUBLIC_DOWNLOAD_RATE_LIMIT_PER_MINUTE", "10")),
         public_download_allowed_exts=_parse_allowed_exts(
             os.getenv("PUBLIC_DOWNLOAD_ALLOWED_EXTS", "pdf,csv,xlsx")
         ),

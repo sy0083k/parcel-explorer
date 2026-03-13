@@ -27,6 +27,7 @@ WHITELIST_KEYS = {
     "TRUST_PROXY_HEADERS",
     "TRUSTED_PROXY_IPS",
     "UPLOAD_SHEET_NAME",
+    "PUBLIC_DOWNLOAD_RATE_LIMIT_PER_MINUTE",
 }
 
 INT_KEYS = {
@@ -35,6 +36,7 @@ INT_KEYS = {
     "LOGIN_MAX_ATTEMPTS",
     "LOGIN_COOLDOWN_SECONDS",
     "VWORLD_RETRIES",
+    "PUBLIC_DOWNLOAD_RATE_LIMIT_PER_MINUTE",
 }
 
 FLOAT_KEYS = {"VWORLD_TIMEOUT_S", "VWORLD_BACKOFF_S"}
@@ -60,6 +62,7 @@ def get_current_settings() -> dict[str, str]:
         "TRUST_PROXY_HEADERS": "true" if settings.trust_proxy_headers else "false",
         "TRUSTED_PROXY_IPS": ",".join(str(n) for n in settings.trusted_proxy_networks),
         "UPLOAD_SHEET_NAME": settings.upload_sheet_name,
+        "PUBLIC_DOWNLOAD_RATE_LIMIT_PER_MINUTE": str(settings.public_download_rate_limit_per_minute),
     }
 
 

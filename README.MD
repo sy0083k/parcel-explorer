@@ -52,7 +52,7 @@ python create_hash.py
 - `VWORLD_TIMEOUT_S`, `VWORLD_RETRIES`, `VWORLD_BACKOFF_S`
 - `TRUST_PROXY_HEADERS`, `TRUSTED_PROXY_IPS`
 - `UPLOAD_SHEET_NAME`, `ALLOWED_WEB_TRACK_PATHS`
-- `PUBLIC_DOWNLOAD_MAX_SIZE_MB`, `PUBLIC_DOWNLOAD_ALLOWED_EXTS`, `PUBLIC_DOWNLOAD_DIR`
+- `PUBLIC_DOWNLOAD_MAX_SIZE_MB`, `PUBLIC_DOWNLOAD_RATE_LIMIT_PER_MINUTE`, `PUBLIC_DOWNLOAD_ALLOWED_EXTS`, `PUBLIC_DOWNLOAD_DIR`
 
 ### 3) 의존성 설치
 ```bash
@@ -139,6 +139,10 @@ uvicorn app.main:app --reload
   - `POST /api/web-events`: 120 req/min
   - 초과 시 `429 Too Many Requests`, `Retry-After` 헤더 반환
   - 현재 보장 범위는 단일 앱 인스턴스 1개 기준입니다.
+- 공개 다운로드 API도 레이트리밋이 적용됩니다.
+  - `GET /api/public-download`: 기본 10 req/min (`PUBLIC_DOWNLOAD_RATE_LIMIT_PER_MINUTE`)
+  - `GET /api/v1/public-download`: `/api/public-download`와 동일
+  - 초과 시 `429 Too Many Requests`, `Retry-After` 헤더 반환
 - 웹 방문 이벤트는 referrer/utm/page query/클라이언트 컨텍스트(언어/플랫폼/화면크기) 수집을 지원하며,
   관리자 `/admin/stats/web`에서 채널/디바이스/브라우저/상위 페이지 분석 축을 제공합니다.
 

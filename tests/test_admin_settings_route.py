@@ -80,6 +80,7 @@ async def test_admin_settings_accepts_proxy_and_sheet_fields(
             "trust_proxy_headers": "true",
             "trusted_proxy_ips": "10.0.0.0/8",
             "upload_sheet_name": "목록",
+            "public_download_rate_limit_per_minute": "10",
         },
         follow_redirects=False,
     )
@@ -89,6 +90,7 @@ async def test_admin_settings_accepts_proxy_and_sheet_fields(
     assert captured["TRUST_PROXY_HEADERS"] == "true"
     assert captured["TRUSTED_PROXY_IPS"] == "10.0.0.0/8"
     assert captured["UPLOAD_SHEET_NAME"] == "목록"
+    assert captured["PUBLIC_DOWNLOAD_RATE_LIMIT_PER_MINUTE"] == "10"
 
 
 @pytest.mark.anyio
@@ -118,6 +120,7 @@ async def test_admin_settings_rejects_invalid_trusted_proxy_ips(
             "trust_proxy_headers": "true",
             "trusted_proxy_ips": "invalid-network",
             "upload_sheet_name": "목록",
+            "public_download_rate_limit_per_minute": "10",
         },
     )
 
@@ -156,12 +159,14 @@ async def test_admin_settings_updates_runtime_config(
             "trust_proxy_headers": "false",
             "trusted_proxy_ips": "",
             "upload_sheet_name": "목록",
+            "public_download_rate_limit_per_minute": "7",
         },
         follow_redirects=False,
     )
 
     assert response.status_code == 303
     assert app.state.config.APP_NAME == "Hot Reload Test"
+    assert app.state.config.PUBLIC_DOWNLOAD_RATE_LIMIT_PER_MINUTE == 7
 
 
 @pytest.mark.anyio
