@@ -1,12 +1,14 @@
 from __future__ import annotations
 
+import os
 from ipaddress import ip_network
 from pathlib import Path
 
 import bcrypt
 from fastapi import HTTPException, Request
 
-from app.core import get_settings
+from app.core.config import get_settings
+from app.core.runtime_config import rebuild_runtime_state
 from app.dependencies import validate_csrf_token
 
 WHITELIST_KEYS = {
@@ -148,6 +150,9 @@ def apply_settings_update(
         raise HTTPException(status_code=400, detail=str(exc)) from exc
 
     update_env_file(config.BASE_DIR, cleaned)
+    os.environ.update(cleaned)
+    get_settings.cache_clear()
+    rebuild_runtime_state(request.app, get_settings())
 
 
 def apply_password_update(
@@ -176,3 +181,6 @@ def apply_password_update(
 
     new_hash = bcrypt.hashpw(new_password.encode("utf-8"), bcrypt.gensalt()).decode("utf-8")
     update_admin_password_hash(config.BASE_DIR, new_hash)
+    os.environ["ADMIN_PW_HASH"] = new_hash
+    get_settings.cache_clear()
+    rebuild_runtime_state(request.app, get_settings())

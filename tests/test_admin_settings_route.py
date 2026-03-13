@@ -1,10 +1,23 @@
 import re
+from collections.abc import AsyncIterator, Callable
 
+import bcrypt
 import httpx
 import pytest
 from _pytest.monkeypatch import MonkeyPatch
+from fastapi import FastAPI
 
 CSRF_PATTERN = r'name="csrf_token" value="([^"]+)"'
+
+
+@pytest.fixture
+async def client_and_app(
+    build_app: Callable[[], FastAPI],
+) -> AsyncIterator[tuple[httpx.AsyncClient, FastAPI]]:
+    app = build_app()
+    transport = httpx.ASGITransport(app=app, client=("127.0.0.1", 50000))
+    async with httpx.AsyncClient(transport=transport, base_url="http://testserver") as client:
+        yield client, app
 
 
 async def _login_as_admin(client: httpx.AsyncClient) -> None:
@@ -110,3 +123,74 @@ async def test_admin_settings_rejects_invalid_trusted_proxy_ips(
 
     assert response.status_code == 400
     assert "TRUSTED_PROXY_IPS" in response.text
+
+
+@pytest.mark.anyio
+async def test_admin_settings_updates_runtime_config(
+    client_and_app: tuple[httpx.AsyncClient, object],
+    monkeypatch: MonkeyPatch,
+) -> None:
+    client, app = client_and_app
+    monkeypatch.setattr("app.services.admin_settings_service.update_env_file", lambda *a, **kw: None)
+
+    await _login_as_admin(client)
+    csrf_token = await _get_admin_csrf(client)
+
+    response = await client.post(
+        "/admin/settings",
+        data={
+            "csrf_token": csrf_token,
+            "settings_password": "admin-password",
+            "app_name": "Hot Reload Test",
+            "vworld_wmts_key": "test-key",
+            "vworld_geocoder_key": "test-key",
+            "allowed_ips": "127.0.0.1/32,::1/128",
+            "max_upload_size_mb": "10",
+            "max_upload_rows": "10",
+            "login_max_attempts": "5",
+            "login_cooldown_seconds": "300",
+            "vworld_timeout_s": "5.0",
+            "vworld_retries": "3",
+            "vworld_backoff_s": "0.5",
+            "session_https_only": "false",
+            "trust_proxy_headers": "false",
+            "trusted_proxy_ips": "",
+            "upload_sheet_name": "목록",
+        },
+        follow_redirects=False,
+    )
+
+    assert response.status_code == 303
+    assert app.state.config.APP_NAME == "Hot Reload Test"
+
+
+@pytest.mark.anyio
+async def test_admin_password_update_reflects_in_runtime_config(
+    client_and_app: tuple[httpx.AsyncClient, object],
+    monkeypatch: MonkeyPatch,
+) -> None:
+    client, app = client_and_app
+    monkeypatch.setattr(
+        "app.services.admin_settings_service.update_admin_password_hash",
+        lambda *a, **kw: None,
+    )
+
+    await _login_as_admin(client)
+    csrf_token = await _get_admin_csrf(client)
+    original_hash = app.state.config.ADMIN_PW_HASH
+
+    response = await client.post(
+        "/admin/password",
+        data={
+            "csrf_token": csrf_token,
+            "current_password": "admin-password",
+            "new_password": "new-password-123",
+            "new_password_confirm": "new-password-123",
+        },
+        follow_redirects=False,
+    )
+
+    assert response.status_code == 303
+    new_hash = app.state.config.ADMIN_PW_HASH
+    assert new_hash != original_hash
+    assert bcrypt.checkpw(b"new-password-123", new_hash.encode("utf-8"))

@@ -27,7 +27,7 @@
 ## 우선순위 백로그
 | id | priority | title | status | owner | target_date | success_criteria | notes |
 |---|---|---|---|---|---|---|---|
-| RISK-001 | P0 | 설정 변경 즉시 반영 불가 | todo | unassigned | 2026-03-09 | 관리자 설정/비밀번호 변경 후 재시작 없이도 반영 전략이 문서화되고 구현/운영 절차가 확정된다. | 관련: `app/core/config.py`, `app/main.py` |
+| RISK-001 | P0 | 설정 변경 즉시 반영 불가 | done | team | 2026-03-13 | 관리자 설정/비밀번호 변경 후 재시작 없이도 반영 전략이 문서화되고 구현/운영 절차가 확정된다. | `app/core/runtime_config.py` 신규 도입, `RuntimeConfig` + `rebuild_runtime_state()` 구현. `SESSION_HTTPS_ONLY`의 `Set-Cookie` 반영은 재시작 필요(나머지 즉시 반영). |
 | RISK-002 | P0 | 인메모리 제한기 다중 인스턴스 한계 | todo | unassigned | 2026-03-09 | 로그인/이벤트 레이트리밋이 멀티 인스턴스 환경에서 일관 동작하도록 공유 스토어 전략이 확정된다. | 관련: `app/auth_security.py`, `app/rate_limit.py` |
 | RISK-003 | P1 | 업로드 후 지오메트리 작업 내구성 부족 | todo | unassigned | 2026-03-09 | 프로세스 재시작/장애 상황에서도 작업 유실 없이 재시도 가능한 백그라운드 처리 방식이 정의된다. | 관련: `app/services/upload_service.py`, `app/services/geo_service.py` |
 | RISK-004 | P1 | 공개 다운로드 응답 메모리 사용량 리스크 | todo | unassigned | 2026-03-09 | 대용량 파일에서도 서버 메모리 급증 없이 다운로드를 처리하도록 스트리밍 응답 방식이 적용된다. | 관련: `app/services/public_download_service.py` |
@@ -45,3 +45,4 @@
 - 2026-03-07 | reviewer: team | `POST /logout`+CSRF 표준화(`GET /logout` 호환 유지) 및 `/admin/raw-queries/export` CSV formula injection 방어 적용 | 다음 액션: RISK-001, RISK-002 우선순위 유지
 - 2026-03-07 | reviewer: team | `deploy.yml` TODO 제거, 배포 전 품질 게이트 + SSH 원격 Docker Compose 배포 + `/health` 검증 자동화 | 다음 액션: 운영 서버 secrets/environment 보호 규칙 검토
 - 2026-03-07 | reviewer: team | 웹 방문 이벤트 확장(referrer/utm/context), UA 파생 분류, `/admin/stats/web` breakdown 지표 확장 반영 | 다음 액션: 로그 보존 주기/집계 고도화 운영 점검
+- 2026-03-13 | reviewer: team | RISK-001 구현 완료: `app/core/runtime_config.py` 도입, 설정/비밀번호 변경 후 `app.state.config` 즉시 교체, `login_limiter` 조건부 재생성 | 다음 액션: RISK-002 공유 스토어 전략 설계

@@ -16,6 +16,7 @@ from starlette.middleware.sessions import SessionMiddleware
 
 from app.auth_security import LoginAttemptLimiter
 from app.core import get_settings
+from app.core.runtime_config import RuntimeConfig
 from app.exceptions import http_exception_handler, unhandled_exception_handler
 from app.logging_utils import RequestIdFilter, configure_logging
 from app.rate_limit import SlidingWindowRateLimiter
@@ -101,37 +102,7 @@ templates = Jinja2Templates(directory=os.path.join(BASE_DIR, "templates"))
 templates.env.globals["vite_assets"] = lambda entry: vite_assets(entry, settings.base_dir)
 
 
-class Config:
-    APP_NAME = settings.app_name
-    CENTER_LON = settings.map_center_lon
-    CENTER_LAT = settings.map_center_lat
-    DEFAULT_ZOOM = settings.map_default_zoom
-    VWORLD_WMTS_KEY = settings.vworld_wmts_key
-    VWORLD_GEOCODER_KEY = settings.vworld_geocoder_key
-    BASE_DIR = settings.base_dir
-    ADMIN_ID = settings.admin_id
-    ADMIN_PW_HASH = settings.admin_pw_hash
-    ALLOWED_IP_NETWORKS = settings.allowed_ip_networks
-    MAX_UPLOAD_SIZE_MB = settings.max_upload_size_mb
-    MAX_UPLOAD_ROWS = settings.max_upload_rows
-    LOGIN_MAX_ATTEMPTS = settings.login_max_attempts
-    LOGIN_COOLDOWN_SECONDS = settings.login_cooldown_seconds
-    VWORLD_TIMEOUT_S = settings.vworld_timeout_s
-    VWORLD_RETRIES = settings.vworld_retries
-    VWORLD_BACKOFF_S = settings.vworld_backoff_s
-    SESSION_HTTPS_ONLY = settings.session_https_only
-    SESSION_COOKIE_NAME = settings.session_cookie_name
-    SESSION_NAMESPACE = settings.session_namespace
-    TRUST_PROXY_HEADERS = settings.trust_proxy_headers
-    TRUSTED_PROXY_NETWORKS = settings.trusted_proxy_networks
-    UPLOAD_SHEET_NAME = settings.upload_sheet_name
-    ALLOWED_WEB_TRACK_PATHS = settings.allowed_web_track_paths
-    PUBLIC_DOWNLOAD_MAX_SIZE_MB = settings.public_download_max_size_mb
-    PUBLIC_DOWNLOAD_ALLOWED_EXTS = settings.public_download_allowed_exts
-    PUBLIC_DOWNLOAD_DIR = settings.public_download_dir
-
-
-app.state.config = Config()
+app.state.config = RuntimeConfig(settings)
 app.state.templates = templates
 app.state.login_limiter = LoginAttemptLimiter(
     max_attempts=settings.login_max_attempts,
