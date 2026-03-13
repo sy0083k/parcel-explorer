@@ -2,7 +2,7 @@
 
 프로젝트: 관심 필지 지도 (Parcel Explorer)  
 작성일: 2026-02-23  
-최종 수정일: 2026-03-07  
+최종 수정일: 2026-03-13  
 운영 주기: 매주 1회 (월요일 기준)
 
 ## 목적
@@ -36,6 +36,14 @@
 | RISK-007 | P1 | 관리자 로그아웃 경로/CSV 내보내기 보안 정합성 | done | team | 2026-03-07 | 로그아웃 표준 경로를 `POST /logout`+CSRF로 정렬하고, raw query CSV 문자열 셀 formula injection 방어를 적용한다. | 관련: `app/routers/auth.py`, `app/services/auth_service.py`, `app/services/raw_query_export_service.py` |
 | RISK-008 | P0 | 배포 파이프라인 미완성(deploy TODO) | done | team | 2026-03-07 | `deploy.yml`의 TODO를 제거하고 배포 전 품질 게이트 + SSH 원격 Docker Compose 재배포 + `/health` 검증이 자동화된다. | 관련: `.github/workflows/deploy.yml`, `README.MD`, `docs/maintenance.md` |
 | RISK-009 | P1 | 웹 방문 유입 로그 분석 축 부족 | done | team | 2026-03-07 | `/api/web-events` 확장 필드(referrer/utm/context) 수집, UA 파생 분류 저장, `/admin/stats/web` breakdown(채널/디바이스/브라우저/페이지) 제공 및 `/api/v1/web-events` 호환 유지 | 관련: `app/services/web_stats_service.py`, `app/repositories/web_visit_repository.py`, `frontend/src/map/session-tracker.ts` |
+| RISK-010 | P1 | SESSION_HTTPS_ONLY 핫리로드 불가 | todo | unassigned | 2026-04-10 | 운영자가 설정 변경 시 `SESSION_HTTPS_ONLY` 재시작 필요성을 명시적으로 인지할 수 있도록 관리자 설정 화면·운영 가이드에 경고가 추가된다. | `app/main.py` L90-97: `SessionMiddleware(https_only=…)`는 기동 시 고정. `rebuild_runtime_state()`로 `Set-Cookie: Secure` 변경 불가. 코드 수정보다 UX 경고·운영 절차 보완이 현실적. STRIDE §S 관련. |
+| RISK-011 | P1 | 공개 다운로드 엔드포인트 레이트 리밋 없음 | todo | unassigned | 2026-04-10 | `/api/public-download`에 적절한 레이트 리밋이 적용되어 대역폭 소진 공격을 완화한다. | `app/routers/map_router.py` L90-92: `GET /api/public-download`에 슬라이딩 윈도우 미적용. `/api/events`(60/min), `/api/web-events`(120/min)와 달리 무제한. `app/rate_limit.py` 기존 구현 재사용 예정. STRIDE §D 관련. |
+| RISK-012 | P2 | 원시 로그 내보내기 쿼리 크기 상한 및 타임아웃 없음 | todo | unassigned | 2026-05-01 | export 쿼리에 실행 시간 상한 또는 SQLite `busy_timeout` 설정이 추가되고, limit 상한이 문서화된다. | `app/routers/admin.py` L201-216: 기본 `limit=10000`. `app/services/raw_query_export_service.py` L27: 100,000으로 클램프. 쿼리 실행 타임아웃 없음. 현재 SQLite 단일 인스턴스로 위험 낮음. STRIDE §D 관련. |
+| RISK-013 | P1 | 관리자 액션 감사 로그 불완전 | todo | unassigned | 2026-04-10 | 업로드(파일명·행수·결과)와 export(요청자·조건·건수) 이벤트가 구조화 로그로 기록되어 사후 감사가 가능하다. | `app/routers/admin.py` 업로드·export 핸들러, `app/services/upload_service.py`: actor/파일명/행수/결과를 `extra={"event": …}` 형식으로 기록하는 감사 로그 누락. STRIDE §R 관련. |
+| RISK-014 | P2 | 공개 다운로드 파일 무결성 검증 체계 없음 | todo | unassigned | 2026-05-01 | 파일 교체 시 SHA-256 해시가 메타데이터에 기록되고, 운영 점검 절차에 해시 검증 단계가 추가된다. | `app/services/public_download_service.py`: 원자적 파일 교체 수행 중이나 배포 후 무결성 검증 수단 없음. stride-lite §T 공백. 운영 절차·코드 양쪽 보완 필요. |
+| RISK-015 | P2 | 파일 업로드 매직 바이트 검증 없음 | todo | unassigned | 2026-05-01 | 업로드 파일의 매직 바이트가 선언된 확장자와 일치하는지 검증하는 단계가 추가된다. | `app/services/upload_service.py` L34-38(확장자), L51-57(MIME): 매직 바이트 검사 없음. `openpyxl` 파싱 시 일부 검증 제공하나 명시적 방어 층 추가 권장. STRIDE §T 관련. |
+| RISK-016 | P2 | CSV formula injection 방어 범위 불완전 | todo | unassigned | 2026-05-01 | 방어 대상 prefix 목록이 최신 OWASP CSV Injection 가이드라인 기준으로 검토되고, 필요 시 추가 prefix 또는 대체 직렬화 방식이 적용된다. | `app/services/raw_query_export_service.py` L14: `CSV_FORMULA_PREFIXES = ("=", "+", "-", "@")`. 일부 파서의 `\t`, `|` prefix 미포함. 현재 구현은 표준적이나 부분 구현 수준. STRIDE §I 관련. |
+| RISK-017 | P2 | ALLOWED_WEB_TRACK_PATHS 오구성 시 과수집 위험 | todo | unassigned | 2026-05-01 | 허용 경로 최대 개수 상한, 기본값 변경 근거 문서화, 운영 가이드에 최소 경로 원칙이 명시된다. | `app/core/config.py` L157-168: `/` 접두사 검증만 수행, 최대 항목 수 제한·와일드카드 의미 문서 없음. 기본값 `"/"`는 전체 경로 수집에 해당하므로 재검토 필요. stride-lite §I 공백. |
 
 ## 주간 리뷰 로그
 - 2026-02-23 | reviewer: team | 초기 백로그 문서 생성 및 5개 리스크 등록 | 다음 액션: RISK-001, RISK-002 우선 설계안 작성
@@ -47,3 +55,4 @@
 - 2026-03-07 | reviewer: team | `deploy.yml` TODO 제거, 배포 전 품질 게이트 + SSH 원격 Docker Compose 배포 + `/health` 검증 자동화 | 다음 액션: 운영 서버 secrets/environment 보호 규칙 검토
 - 2026-03-07 | reviewer: team | 웹 방문 이벤트 확장(referrer/utm/context), UA 파생 분류, `/admin/stats/web` breakdown 지표 확장 반영 | 다음 액션: 로그 보존 주기/집계 고도화 운영 점검
 - 2026-03-13 | reviewer: team | RISK-001 구현 완료: `app/core/runtime_config.py` 도입, 설정/비밀번호 변경 후 `app.state.config` 즉시 교체, `login_limiter` 조건부 재생성 | 다음 액션: RISK-002 공유 스토어 전략 설계
+- 2026-03-13 | reviewer: team | 보안 감사 후속 백로그 8건 등록(RISK-010~017): SESSION_HTTPS_ONLY 핫리로드 한계 문서화, 공개 다운로드 레이트리밋, export 쿼리 타임아웃, 감사 로그 강화, 다운로드 파일 무결성, 매직 바이트 검증, CSV injection 범위, 웹 수집 경로 과수집 위험 | 다음 액션: RISK-011(레이트리밋), RISK-013(감사 로그) P1 항목 착수 검토
