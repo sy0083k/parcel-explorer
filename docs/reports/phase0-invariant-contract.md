@@ -48,7 +48,7 @@
 - `GET /admin/login`: 로그인 페이지 + CSRF 토큰 제공
 - `POST /login`: 성공 시 `{"success": true}` / 실패 시 401 / 차단 시 429
 - `POST /admin/login`: `/login` alias 동작 유지
-- `GET /logout`: 세션 정리 후 로그인 페이지로 리다이렉트
+- `POST /logout`: CSRF 검증 후 세션 정리 및 로그인 페이지로 리다이렉트
 
 ### 관리자 페이지/기능
 - `GET /admin`: 미인증 시 `/admin/login`으로 303 redirect

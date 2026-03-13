@@ -2,7 +2,7 @@
 from typing import cast
 
 from fastapi import APIRouter, Depends, Form, Request
-from fastapi.responses import HTMLResponse, RedirectResponse, Response
+from fastapi.responses import HTMLResponse, Response
 
 from app.dependencies import check_internal_network, get_or_create_csrf_token, require_authenticated
 from app.services import auth_service
@@ -35,11 +35,6 @@ async def login_admin_alias(
     csrf_token: str = Form(default=""),
 ):
     return await login(request=request, username=username, password=password, csrf_token=csrf_token)
-
-
-@router.get("/logout", dependencies=[Depends(check_internal_network)])
-async def logout(request: Request) -> RedirectResponse:
-    return auth_service.logout(request)
 
 
 @router.post("/logout", dependencies=[Depends(check_internal_network), Depends(require_authenticated)])

@@ -140,7 +140,6 @@
 - `POST /login`
 - `POST /admin/login`
 - `POST /logout`
-- `GET /logout`
 - `GET /admin`
 - `POST /admin/upload`
 - `POST /admin/public-download/upload`
@@ -172,7 +171,6 @@
 
 ### 관리자 로그아웃
 1. `POST /logout`가 내부망/세션 인증/CSRF 검증 후 세션을 종료한다.
-2. `GET /logout`는 호환성 경로로 유지되며 내부망 제한을 적용한다.
 
 ### 관리자 업로드 및 지오메트리 보강
 1. `POST /admin/upload`에서 CSRF, 파일 확장자/용량/행 수/필수 컬럼을 검증한다.

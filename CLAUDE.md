@@ -95,21 +95,21 @@ logger.exception("message")  # inside except block — includes traceback automa
 - `ruff` is configured with `line-length = 100`, rules `E, F, I, B`, ignoring `E501`
 - The `docs/engineering-guidelines.md` is the source of truth for coding standards
 
-## 🔐 보안 원칙 (Claude에게 중요)
-- 절대 하지 말 것: API 키/SECRET_KEY 하드코딩, 운영 DB 직접 수정
-- CSRF 검증은 모든 상태 변경 엔드포인트에 필수 (이미 적용됨, 제거 금지)
-- ALLOWED_IPS 검증 로직은 신중히 수정할 것
-- 세션 쿠키는 SESSION_HTTPS_ONLY 설정을 존중해야 함
-- VWorld API 키 중 GEOCODER_KEY는 공개 API/로그에 절대 노출 금지
+## Security
 
-## 🛡 현재 보안 구현 위치
-- IP 허용 목록: app/core/ 또는 app/routers/
-- 세션 미들웨어: app/main.py
-- CSRF: 관리자 라우터 (app/routers/)
-- 로그인 실패 제한: 인메모리 (다중 인스턴스 시 취약, TODO)
-- Formula Injection 방어: raw-queries CSV export
+### Principles
+- Never hardcode API keys or `SECRET_KEY`; never modify the production DB directly
+- CSRF verification is required on all state-changing endpoints — do not remove it
+- Modify `ALLOWED_IPS` validation logic with care
+- Session cookies must respect the `SESSION_HTTPS_ONLY` setting
+- `VWORLD_GEOCODER_KEY` must never be exposed in public APIs or logs
 
-## ⚠️ 알려진 보안 리스크 (docs/TODO.MD 참조)
-- 로그인 실패 카운터가 인메모리 → 다중 인스턴스 환경에서 우회 가능
-- GET /logout 호환성 경로 유지 중 (CSRF 미적용)
-```
+### Implementation locations
+- IP allowlist: `app/core/config.py` (`_parse_allowed_ips`), enforced in `app/routers/admin.py`
+- Session middleware: `app/main.py`
+- CSRF: admin router (`app/routers/admin.py`)
+- Login failure limiting: in-memory (`login_limiter` in `app/routers/`); vulnerable to multi-instance bypass (TODO)
+- Formula injection defense: raw-queries CSV export
+
+### Known risks (see docs/TODO.MD)
+- Login failure counter is in-memory — bypassable in multi-instance deployments

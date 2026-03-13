@@ -56,7 +56,7 @@
 - VWorld 키 공개 정책은 문서 기준으로 분리 관리한다(`VWORLD_WMTS_KEY`: 공개 지도 렌더링 예외, `VWORLD_GEOCODER_KEY`: 관리자 보호 화면 예외 공개).
 - 관리자 통계 탭에 `poi` 경계선 현황(전체/미수집) 및 수동 재수집(잡 시작/상태 폴링) 기능을 반영한 경우, `architecture.md`와 `maintenance.md`를 함께 갱신한다.
 - 동일 브라우저/도메인 다중 앱 운영 시 세션 교차 인식을 방지하려면 앱별 `SECRET_KEY`, `SESSION_COOKIE_NAME`, `SESSION_NAMESPACE` 분리를 유지한다.
-- 로그아웃 경로는 `POST /logout` + CSRF를 기본으로 유지하고 `GET /logout`는 호환 경로 정책으로만 관리한다.
+- 로그아웃은 `POST /logout` + CSRF로만 처리한다.
 - `/admin/raw-queries/export` CSV는 문자열 셀 formula injection 완화(`=`, `+`, `-`, `@` 선두 차단)를 유지한다.
 - GitHub Deploy 워크플로는 SSH + Docker Compose 재배포(`deploy.yml`)로 운영 기준을 확정했다.
 - 웹 방문 이벤트는 referrer/utm/context 확장 수집을 지원하며 `ALLOWED_WEB_TRACK_PATHS` 허용 경로 정책을 유지한다.

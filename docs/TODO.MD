@@ -43,6 +43,7 @@
 - 2026-02-27 | reviewer: team | 비아카이브 문서를 현재 코드 기준(POI 용어/품질 게이트/API 운영 정책)으로 동기화 | 다음 액션: RISK-001, RISK-002 설계안 확정
 - 2026-03-03 | reviewer: team | 세션 교차 인식 방지를 위해 `SESSION_COOKIE_NAME`/`SESSION_NAMESPACE` 도입 및 인증 시 namespace 검증 반영 | 다음 액션: 다중 앱 운영 체크리스트 운영 프로세스에 정착
 - 2026-03-07 | reviewer: team | `POST /logout`+CSRF 표준화(`GET /logout` 호환 유지) 및 `/admin/raw-queries/export` CSV formula injection 방어 적용 | 다음 액션: RISK-001, RISK-002 우선순위 유지
+- 2026-03-13 | reviewer: team | 세션/인증 보안 감사 후속: `GET /logout` 호환 경로 제거(POST+CSRF만 유지), 세션 `max_age=3600` 적용으로 idle timeout 도입 | 다음 액션: RISK-002 공유 스토어 전략 설계
 - 2026-03-07 | reviewer: team | `deploy.yml` TODO 제거, 배포 전 품질 게이트 + SSH 원격 Docker Compose 배포 + `/health` 검증 자동화 | 다음 액션: 운영 서버 secrets/environment 보호 규칙 검토
 - 2026-03-07 | reviewer: team | 웹 방문 이벤트 확장(referrer/utm/context), UA 파생 분류, `/admin/stats/web` breakdown 지표 확장 반영 | 다음 액션: 로그 보존 주기/집계 고도화 운영 점검
 - 2026-03-13 | reviewer: team | RISK-001 구현 완료: `app/core/runtime_config.py` 도입, 설정/비밀번호 변경 후 `app.state.config` 즉시 교체, `login_limiter` 조건부 재생성 | 다음 액션: RISK-002 공유 스토어 전략 설계

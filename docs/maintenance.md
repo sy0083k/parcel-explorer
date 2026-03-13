@@ -64,7 +64,7 @@
 8. `/health` 응답 정상 확인
 9. `/api/config`, `/api/lands`, `/api/public-download` 응답 정상 확인
 10. `/admin/stats`, `/admin/stats/web`, `/admin/raw-queries/export`, `/admin/lands/geom-refresh*` 권한/응답 정상 확인
-11. `POST /logout`(내부망/인증/CSRF) 정상 동작, `GET /logout`(호환 경로) 내부망 제한 동작 확인
+11. `POST /logout`(내부망/인증/CSRF) 정상 동작 확인
 12. 지도 화면 핵심 사용자 흐름 수동 회귀(검색/엔터/지도 클릭/다운로드/이전·다음/레이어 전환) 확인
 
 ## CI/테스트 명령
@@ -123,7 +123,7 @@
 
 ### 2. 관리자 핵심 흐름
 - 로그인/CSRF/내부망 제한 유지
-- 로그아웃 경로 정책 유지 (`POST /logout` + CSRF, `GET /logout` 호환)
+- 로그아웃 경로 정책 유지 (`POST /logout` + CSRF)
 - 엑셀 업로드 + 지오메트리 보강 잡 생성
 - 통계 조회/CSV export
 - 통계 탭 경계선 재수집 버튼 실행 + 완료 후 수치 갱신 확인

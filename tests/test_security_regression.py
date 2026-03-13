@@ -95,7 +95,7 @@ async def test_internal_network_rejects_untrusted_proxy_forwarded_for(app_env: d
 
 
 @pytest.mark.anyio
-async def test_logout_cookie_secure_matches_session_https_setting(app_env: dict[str, str]) -> None:
+async def test_login_page_cookie_secure_matches_session_https_setting(app_env: dict[str, str]) -> None:
     env = dict(app_env)
     env["SESSION_HTTPS_ONLY"] = "false"
 
@@ -109,13 +109,13 @@ async def test_logout_cookie_secure_matches_session_https_setting(app_env: dict[
         app_main = importlib.reload(app_main)
         transport = httpx.ASGITransport(app=app_main.app, client=("127.0.0.1", 50000))
         async with httpx.AsyncClient(transport=transport, base_url="http://testserver") as client:
-            res = await client.get("/logout")
+            res = await client.get("/admin/login")
             cookie_header = res.headers.get("set-cookie", "")
             assert "Secure" not in cookie_header
 
 
 @pytest.mark.anyio
-async def test_logout_uses_configured_session_cookie_name(app_env: dict[str, str]) -> None:
+async def test_login_page_uses_configured_session_cookie_name(app_env: dict[str, str]) -> None:
     env = dict(app_env)
     env["SESSION_COOKIE_NAME"] = "custom_session_cookie"
 
@@ -129,7 +129,7 @@ async def test_logout_uses_configured_session_cookie_name(app_env: dict[str, str
         app_main = importlib.reload(app_main)
         transport = httpx.ASGITransport(app=app_main.app, client=("127.0.0.1", 50000))
         async with httpx.AsyncClient(transport=transport, base_url="http://testserver") as client:
-            res = await client.get("/logout")
+            res = await client.get("/admin/login")
             cookie_header = res.headers.get("set-cookie", "")
             assert cookie_header.startswith("custom_session_cookie=")
 

@@ -90,7 +90,7 @@ async def add_security_headers(
 app.add_middleware(
     SessionMiddleware,
     secret_key=settings.secret_key,
-    max_age=None,
+    max_age=3600,
     https_only=settings.session_https_only,
     session_cookie=settings.session_cookie_name,
     same_site="lax",

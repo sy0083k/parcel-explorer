@@ -15,7 +15,7 @@
 ## 범위
 - FastAPI 웹 애플리케이션
   - 공개 API: `/api/config`, `/api/lands`, `/api/events`, `/api/web-events`, `/api/public-download`, `/api/v1/*`
-  - 관리자/인증 API: `/admin/login`, `/login`, `/logout`(GET/POST), `/admin/upload`, `/admin/public-download/*`, `/admin/stats*`, `/admin/raw-queries/export`, `/admin/lands/geom-refresh*`
+  - 관리자/인증 API: `/admin/login`, `/login`, `/logout`(POST), `/admin/upload`, `/admin/public-download/*`, `/admin/stats*`, `/admin/raw-queries/export`, `/admin/lands/geom-refresh*`
   - 헬스체크: `/health`
 - SQLite 저장소 (`data/database.db`)
 - 공개 다운로드 파일 저장소 (`data/public_download/current.*`, `current.json`)
@@ -44,7 +44,7 @@
 3. 공개 사용자 -> `/api/events`, `/api/web-events` -> 이벤트 로그 테이블 저장
 4. 관리자 사용자 -> `/admin/login` -> 세션 + CSRF 토큰 발급
 5. 관리자 사용자 -> `/login` -> 인증 + 레이트 리미팅 -> 세션 생성
-6. 관리자 사용자 -> `POST /logout` -> 내부망 + 세션 + CSRF 검증 후 세션 종료 (`GET /logout` 호환 경로 유지)
+6. 관리자 사용자 -> `POST /logout` -> 내부망 + 세션 + CSRF 검증 후 세션 종료
 7. 관리자 사용자 -> `/admin/upload` -> 엑셀 파싱 + 검증 -> SQLite 저장 -> 백그라운드 지오메트리 업데이트
 8. 관리자 사용자 -> `/admin/public-download/upload` -> 파일 검증/원자적 교체 -> 메타 갱신
 9. 관리자 사용자 -> `/admin/stats`, `/admin/stats/web` -> 집계 조회
