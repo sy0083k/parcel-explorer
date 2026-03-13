@@ -1,8 +1,8 @@
 # 문서 포털 (Documentation Hub)
 
-프로젝트: 관심 필지 지도 (POI Map Geo)  
+프로젝트: 관심 필지 지도 (Parcel Explorer)  
 작성일: 2026-02-22  
-최종 수정일: 2026-03-07
+최종 수정일: 2026-03-12
 
 ## 빠른 시작 경로
 1. 왜 만드는가: [`goals.md`](goals.md)
@@ -25,6 +25,10 @@
   - STRIDE-lite 기반 위협 모델 및 권장 통제
 - `TODO.MD`
   - 우선순위 리스크/개선 백로그, 주간 상태 추적
+
+## 운영 참고 / 콘텐츠 문서
+- `video-intro-shotlist.md`
+  - 지자체/공공 실무자 대상 소개 영상 샷리스트와 편집 검수 기준
 
 ## Archive / 참고 문서
 - `refactoring-strategy.md`

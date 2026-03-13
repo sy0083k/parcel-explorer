@@ -21,7 +21,7 @@ def test_login_upload_and_lands_flow() -> None:
         from tests.helpers import temp_env
 
         env = {
-            "APP_NAME": "관심 필지 지도 (POI Map Geo)",
+            "APP_NAME": "관심 필지 지도 (Parcel Explorer)",
             "MAP_CENTER_LON": "126.45",
             "MAP_CENTER_LAT": "36.78",
             "MAP_DEFAULT_ZOOM": "14",

@@ -26,7 +26,7 @@ export function createDownloadClient() {
     try {
       const { blob, headers } = await fetchBlob("/api/public-download", { method: "GET", timeoutMs: 10000 });
       const disposition = headers.get("content-disposition");
-      const fallbackName = "poi-map-geo-download";
+      const fallbackName = "parcel-explorer-download";
       const filename = parseFilenameFromDisposition(disposition) || fallbackName;
       const objectUrl = URL.createObjectURL(blob);
       const anchor = document.createElement("a");

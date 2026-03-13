@@ -62,7 +62,7 @@ class ConfigTests(unittest.TestCase):
 class AppSmokeTests(unittest.TestCase):
     def test_root_and_config_routes(self) -> None:
         env = {
-            "APP_NAME": "관심 필지 지도 (POI Map Geo)",
+            "APP_NAME": "관심 필지 지도 (Parcel Explorer)",
             "MAP_CENTER_LON": "126.45",
             "MAP_CENTER_LAT": "36.78",
             "MAP_DEFAULT_ZOOM": "14",

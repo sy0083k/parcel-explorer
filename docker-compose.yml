@@ -3,8 +3,8 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
-    image: poi-map-geo:latest
-    container_name: poi-map-geo-app
+    image: parcel-explorer:latest
+    container_name: parcel-explorer-app
     ports:
       - "8000:8000"
     env_file:

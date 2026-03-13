@@ -1,6 +1,6 @@
-# 🏠 관심 필지 지도 (POI Map Geo)
+# 🏠 관심 필지 지도 (Parcel Explorer)
 
-브이월드(VWorld) API와 FastAPI 기반으로 관심 필지(POI, Parcel of Interest)를 지도에 시각화하고,  
+브이월드(VWorld) API와 FastAPI 기반으로 관심 필지(Parcel of Interest)를 지도에 시각화하고,  
 관리자가 엑셀 업로드로 데이터를 갱신할 수 있는 웹 애플리케이션입니다.
 
 ## 📌 활용 사례
@@ -29,7 +29,7 @@ cp .env.example .env
 ```
 
 `.env`는 `KEY=value` 형식(등호 주변 공백 없음)으로 작성하세요. 값에 공백이 포함되면 따옴표를 사용하세요.
-예: `APP_NAME="관심 필지 지도 (POI Map Geo)"`, `SESSION_HTTPS_ONLY=false`
+예: `APP_NAME="관심 필지 지도 (Parcel Explorer)"`, `SESSION_HTTPS_ONLY=false`
 
 필수 환경 변수:
 - `VWORLD_WMTS_KEY`

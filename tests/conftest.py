@@ -44,7 +44,7 @@ TEST_MARKER_BY_FILE: dict[str, str] = {
 @pytest.fixture
 def app_env() -> dict[str, str]:
     return {
-        "APP_NAME": "관심 필지 지도 (POI Map Geo)",
+        "APP_NAME": "관심 필지 지도 (Parcel Explorer)",
         "MAP_CENTER_LON": "126.45",
         "MAP_CENTER_LAT": "36.78",
         "MAP_DEFAULT_ZOOM": "14",
