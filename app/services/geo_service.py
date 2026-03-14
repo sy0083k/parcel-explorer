@@ -26,6 +26,33 @@ def enqueue_geom_update_job() -> int:
     return job_id
 
 
+def recover_interrupted_geom_jobs() -> int | None:
+    with db_connection() as conn:
+        stale_count = poi_repository.mark_stale_geom_jobs_interrupted(conn)
+        if stale_count == 0:
+            return None
+        missing_count = poi_repository.count_missing_geom(conn)
+        new_job_id: int | None = None
+        if missing_count > 0:
+            new_job_id = poi_repository.create_geom_update_job(conn)
+        conn.commit()
+    if new_job_id is None:
+        logger.info(
+            "startup recovery: %d stale job(s) marked failed, no missing geoms",
+            stale_count,
+            extra={"event": "startup.geom_recovery.skipped", "actor": "system", "status": 200},
+        )
+        return None
+    logger.warning(
+        "startup recovery: %d stale job(s) found, %d missing geom(s) — re-enqueuing as job %d",
+        stale_count,
+        missing_count,
+        new_job_id,
+        extra={"event": "startup.geom_recovery.enqueued", "actor": "system", "status": 200},
+    )
+    return new_job_id
+
+
 def run_geom_update_job(job_id: int, max_retries: int = 5) -> tuple[int, int]:
     with db_connection() as conn:
         poi_repository.mark_geom_job_running(conn, job_id)

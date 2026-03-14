@@ -1,3 +1,4 @@
+import asyncio
 import logging
 import os
 import sys
@@ -22,7 +23,7 @@ from app.logging_utils import RequestIdFilter, configure_logging
 from app.rate_limit import SlidingWindowRateLimiter
 from app.routers import admin, auth, map_router, map_v1_router
 from app.services import health_service
-from app.services.geo_service import init_db
+from app.services.geo_service import init_db, recover_interrupted_geom_jobs, run_geom_update_job
 from app.utils import vite_assets
 
 ROOT_DIR = Path(__file__).resolve().parents[1]
@@ -38,6 +39,9 @@ settings = get_settings()
 @asynccontextmanager
 async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     init_db()
+    job_id = recover_interrupted_geom_jobs()
+    if job_id is not None:
+        asyncio.create_task(asyncio.to_thread(run_geom_update_job, job_id, 5))
     yield
 
 

@@ -103,6 +103,10 @@ def fetch_latest_active_geom_job(conn: sqlite3.Connection) -> sqlite3.Row | None
     return job_repository.fetch_latest_active_geom_job(conn)
 
 
+def mark_stale_geom_jobs_interrupted(conn: sqlite3.Connection) -> int:
+    return job_repository.mark_stale_geom_jobs_interrupted(conn)
+
+
 def insert_map_event(
     conn: sqlite3.Connection,
     *,

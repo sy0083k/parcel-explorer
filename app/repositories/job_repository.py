@@ -106,3 +106,17 @@ def fetch_latest_active_geom_job(conn: sqlite3.Connection) -> sqlite3.Row | None
         """
     )
     return cursor.fetchone()
+
+
+def mark_stale_geom_jobs_interrupted(conn: sqlite3.Connection) -> int:
+    cursor = conn.cursor()
+    cursor.execute(
+        """
+        UPDATE geom_update_jobs
+           SET status = 'failed',
+               error_message = '서버 재시작으로 인해 중단됨',
+               updated_at = CURRENT_TIMESTAMP
+         WHERE status IN ('pending', 'running')
+        """
+    )
+    return cursor.rowcount
