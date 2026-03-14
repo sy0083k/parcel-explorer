@@ -16,6 +16,11 @@ const snapHeights = {
 };
 const MOBILE_SHEET_HEIGHT_VAR = "--mobile-sheet-height";
 
+function resolveCssColor(name: string, fallback: string): string {
+  const value = getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+  return value || fallback;
+}
+
 export function createListPanel(elements: ListPanelElements) {
   let startY = 0;
   let startHeight = 0;
@@ -27,7 +32,7 @@ export function createListPanel(elements: ListPanelElements) {
     document.body.style.setProperty(MOBILE_SHEET_HEIGHT_VAR, `${Math.round(clamped * 100)}vh`);
   };
 
-  const setStatus = (message: string, color = "#999"): void => {
+  const setStatus = (message: string, color = resolveCssColor("--color-loading", "#7d8791")): void => {
     if (!elements.listContainer) {
       return;
     }
@@ -47,7 +52,7 @@ export function createListPanel(elements: ListPanelElements) {
     elements.listContainer.replaceChildren();
 
     if (!features.length) {
-      setStatus("결과 없음", "red");
+      setStatus("결과 없음", resolveCssColor("--color-accent", "#3498db"));
       return;
     }
 

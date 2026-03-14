@@ -37,6 +37,11 @@ function asVectorFeature(feature: unknown): Feature<Geometry> | null {
   return feature instanceof Feature ? feature : null;
 }
 
+function readCssVar(name: string, fallback: string): string {
+  const value = getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+  return value || fallback;
+}
+
 export function createMapView(elements: MapViewElements) {
   let map: Map | null = null;
   let baseLayer: TileLayer<XYZ> | null = null;
@@ -168,8 +173,8 @@ export function createMapView(elements: MapViewElements) {
       source: vectorSource,
       zIndex: 10,
       style: new Style({
-        stroke: new Stroke({ color: "#ff3333", width: 3 }),
-        fill: new Fill({ color: "rgba(255, 51, 51, 0.2)" })
+        stroke: new Stroke({ color: readCssVar("--color-map-stroke", "#ff3333"), width: 3 }),
+        fill: new Fill({ color: readCssVar("--color-map-fill", "rgba(52, 152, 219, 0.18)") })
       })
     });
 

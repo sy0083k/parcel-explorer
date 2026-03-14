@@ -3,49 +3,51 @@
    =================================================== */
 :root {
   /* Surface / Background */
-  --color-bg-app:        #F5F2EB;
-  --color-bg-sidebar:    #FDFAF4;
-  --color-bg-filter:     #F0EDE4;
-  --color-bg-overlay:    rgba(253, 250, 244, 0.97);
-  --color-bg-card:       #FFFFFF;
+  --color-bg-app:        #eef2f5;
+  --color-bg-sidebar:    #ffffff;
+  --color-bg-filter:     #f8f9fa;
+  --color-bg-overlay:    rgba(255, 255, 255, 0.98);
+  --color-bg-card:       #ffffff;
 
   /* Ink / Text */
-  --color-ink-primary:   #1C1E2A;
-  --color-ink-secondary: #4A4E5A;
-  --color-ink-muted:     #8A8E99;
-  --color-ink-inverse:   #F5F2EB;
+  --color-ink-primary:   #243342;
+  --color-ink-secondary: #56616d;
+  --color-ink-muted:     #7d8791;
+  --color-ink-inverse:   #ffffff;
 
-  /* Accent — cadastral amber (관인 봉인색에서 차용) */
-  --color-accent:        #C8860A;
-  --color-accent-hover:  #A86E06;
-  --color-accent-subtle: #F4E8CC;
-  --color-accent-border: #E8C97A;
+  /* Accent */
+  --color-accent:        #3498db;
+  --color-accent-hover:  #2c3e50;
+  --color-accent-subtle: #e3f2fd;
+  --color-accent-border: #d4e6f1;
 
   /* Header */
-  --color-header-bg:     #1C1E2A;
+  --color-header-bg:     #2c3e50;
 
   /* Borders */
-  --color-border:        #D8D3C8;
-  --color-border-light:  #EAE6DC;
+  --color-border:        #cccccc;
+  --color-border-light:  #e6eaee;
 
   /* List states */
-  --color-item-hover:              #EDE9DF;
-  --color-item-selected:           #F4E8CC;
-  --color-item-selected-border:    #C8860A;
+  --color-item-hover:              #f1f4f6;
+  --color-item-selected:           #e3f2fd;
+  --color-item-selected-border:    #3498db;
 
   /* Navigation footer */
-  --color-nav-bg:          #E8E4DA;
-  --color-btn-nav-bg:      #FFFFFF;
-  --color-btn-nav-border:  #C8C4BA;
+  --color-nav-bg:          #eeeeee;
+  --color-btn-nav-bg:      #ffffff;
+  --color-btn-nav-border:  #bbbbbb;
 
   /* Semantic */
-  --color-error:   #C0392B;
-  --color-loading: #8A8E99;
+  --color-error:   #b44c4c;
+  --color-loading: #7d8791;
+  --color-map-stroke: #ff3333;
+  --color-map-fill: rgba(52, 152, 219, 0.18);
 
   /* Shadows */
-  --shadow-panel:  0 2px 16px rgba(28, 30, 42, 0.10);
-  --shadow-popup:  0 2px 12px rgba(28, 30, 42, 0.18);
-  --shadow-fab:    0 4px 14px rgba(28, 30, 42, 0.22);
+  --shadow-panel:  0 8px 24px rgba(44, 62, 80, 0.08);
+  --shadow-popup:  0 8px 24px rgba(0, 0, 0, 0.16);
+  --shadow-fab:    0 6px 14px rgba(0, 0, 0, 0.25);
 
   /* Typography */
   --font-body: 'Nanum Myeongjo', 'Malgun Gothic', 'Apple SD Gothic Neo', serif;
@@ -106,7 +108,7 @@ body {
 #header p {
   margin: 5px 0 0;
   font-size: 0.8em;
-  opacity: 0.65;
+  color: rgba(255, 255, 255, 0.74);
   font-weight: 400;
 }
 
@@ -126,7 +128,7 @@ body {
   font-size: 0.85em;
   font-weight: bold;
   margin-bottom: 5px;
-  color: var(--color-ink-secondary);
+  color: #555555;
 }
 
 .checkbox-group {
@@ -150,7 +152,7 @@ body {
 .checkbox-group label {
   display: inline;
   font-size: 0.9em;
-  color: var(--color-accent-hover);
+  color: #2980b9;
   cursor: pointer;
   font-weight: bold;
   margin-bottom: 0;
@@ -177,7 +179,7 @@ body {
 .area-input-container input:focus {
   outline: none;
   border-color: var(--color-accent);
-  box-shadow: 0 0 0 2px rgba(200, 134, 10, 0.15);
+  box-shadow: 0 0 0 2px rgba(52, 152, 219, 0.16);
 }
 
 /* ===================================================
@@ -199,7 +201,7 @@ body {
 .text-input:focus {
   outline: none;
   border-color: var(--color-accent);
-  box-shadow: 0 0 0 2px rgba(200, 134, 10, 0.15);
+  box-shadow: 0 0 0 2px rgba(52, 152, 219, 0.16);
 }
 
 .text-input::placeholder {
@@ -212,27 +214,27 @@ body {
 .btn-action-search {
   width: 100%;
   padding: 10px;
-  background: var(--color-accent);
+  background: linear-gradient(180deg, #3fa2e6 0%, #2f90d0 100%);
   color: var(--color-ink-inverse);
-  border: 1px solid var(--color-accent-hover);
+  border: none;
   border-radius: var(--radius-base);
   cursor: pointer;
   font-family: var(--font-body);
   font-weight: bold;
   font-size: 0.95em;
   letter-spacing: 0.03em;
-  box-shadow: 0 1px 3px rgba(28, 30, 42, 0.15);
+  box-shadow: 0 2px 6px rgba(52, 152, 219, 0.35);
   transition: background var(--transition-fast), box-shadow var(--transition-fast), transform var(--transition-fast);
 }
 
 .btn-action-search:hover {
-  background: var(--color-accent-hover);
-  box-shadow: 0 3px 8px rgba(200, 134, 10, 0.30);
+  filter: brightness(1.03);
+  box-shadow: 0 4px 10px rgba(52, 152, 219, 0.40);
 }
 
 .btn-action-search:active {
   transform: translateY(1px);
-  box-shadow: 0 1px 2px rgba(200, 134, 10, 0.20);
+  box-shadow: 0 2px 4px rgba(52, 152, 219, 0.26);
 }
 
 #btn-search { margin-top: 5px; }
@@ -260,23 +262,23 @@ body {
 .btn-secondary:active { transform: translateY(1px); }
 
 .btn-action-reset {
-  background: var(--color-ink-secondary);
+  background: linear-gradient(180deg, #6f879c 0%, #596f82 100%);
   color: var(--color-ink-inverse);
-  border: 1px solid var(--color-ink-primary);
+  border: none;
 }
 
 .btn-action-reset:hover {
-  background: var(--color-ink-primary);
+  filter: brightness(1.04);
 }
 
 .btn-action-download {
-  background: transparent;
-  color: var(--color-accent);
-  border: 1.5px solid var(--color-accent);
+  background: linear-gradient(180deg, #4da6d9 0%, #3b8fc0 100%);
+  color: var(--color-ink-inverse);
+  border: none;
 }
 
 .btn-action-download:hover {
-  background: var(--color-accent-subtle);
+  filter: brightness(1.04);
 }
 
 /* ===================================================
@@ -340,23 +342,23 @@ body {
 }
 
 .nav-btn:hover:not(:disabled) {
-  background: var(--color-bg-filter);
-  border-color: var(--color-accent);
-  color: var(--color-accent);
+  background: #f7f9fb;
+  border-color: #9eb6ca;
+  color: var(--color-accent-hover);
 }
 
 .nav-btn:disabled {
-  color: var(--color-ink-muted);
-  background: var(--color-bg-filter);
+  color: #c2c7cc;
+  background: #f9f9f9;
   cursor: not-allowed;
-  border-color: var(--color-border-light);
+  border-color: #dddddd;
 }
 
 #nav-info {
   font-size: 0.85em;
   font-family: var(--font-data);
-  color: var(--color-ink-secondary);
-  font-weight: 500;
+  color: #333333;
+  font-weight: 700;
   min-width: 60px;
   text-align: center;
 }
@@ -374,10 +376,10 @@ body {
   display: flex;
   flex-direction: column;
   gap: 5px;
-  background: rgba(253, 250, 244, 0.94);
+  background: rgba(255, 255, 255, 0.90);
   padding: 6px;
   border-radius: var(--radius-base);
-  box-shadow: 0 2px 10px rgba(28, 30, 42, 0.15);
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.15);
 }
 
 .map-controls button {
@@ -389,7 +391,7 @@ body {
   font-family: var(--font-body);
   font-weight: bold;
   border-radius: var(--radius-sm);
-  color: var(--color-ink-secondary);
+  color: var(--color-ink-primary);
   transition: background var(--transition-fast), color var(--transition-fast);
 }
 
@@ -410,14 +412,14 @@ body {
   padding: 0;
   border: none !important;
   border-radius: var(--radius-pill) !important;
-  background: var(--color-bg-card) !important;
+  background: #ffffff !important;
   box-shadow: var(--shadow-fab);
   cursor: pointer;
 }
 
 .mobile-icon-btn:hover {
-  background: var(--color-bg-card) !important;
-  box-shadow: 0 8px 18px rgba(28, 30, 42, 0.28);
+  background: #ffffff !important;
+  box-shadow: 0 8px 18px rgba(0, 0, 0, 0.28);
 }
 
 .mobile-icon-btn:active {
@@ -425,14 +427,14 @@ body {
 }
 
 .mobile-icon-btn:focus-visible {
-  outline: 2px solid var(--color-ink-primary);
+  outline: 2px solid #111111;
   outline-offset: 2px;
 }
 
 .mobile-icon-btn svg {
   width: 22px;
   height: 22px;
-  stroke: var(--color-ink-primary);
+  stroke: #111111;
   stroke-width: 2.2;
   fill: none;
   stroke-linecap: round;
@@ -456,7 +458,7 @@ body {
   flex-direction: column;
   gap: 4px;
   padding: 6px;
-  background: rgba(253, 250, 244, 0.98);
+  background: rgba(255, 255, 255, 0.98);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-base);
 }
@@ -500,19 +502,19 @@ body {
 }
 
 .mobile-search-header button {
-  border: 1px solid var(--color-border);
-  background: var(--color-nav-bg);
+  border: none;
+  background: #e5e7eb;
   border-radius: var(--radius-base);
   padding: 8px 10px;
   font-weight: bold;
   cursor: pointer;
-  color: var(--color-ink-secondary);
+  color: var(--color-ink-primary);
   font-family: var(--font-body);
   transition: background var(--transition-fast);
 }
 
 .mobile-search-header button:hover {
-  background: var(--color-bg-filter);
+  background: #d8dde3;
 }
 
 .mobile-search-actions {
@@ -588,7 +590,7 @@ body {
 
 @keyframes fab-pulse {
   0%, 100% { box-shadow: var(--shadow-fab); }
-  50%      { box-shadow: 0 0 0 8px rgba(200, 134, 10, 0.15), var(--shadow-fab); }
+  50%      { box-shadow: 0 0 0 8px rgba(52, 152, 219, 0.16), var(--shadow-fab); }
 }
 
 /* ===================================================
@@ -642,9 +644,9 @@ body {
     bottom: 0;
     left: 0;
     right: 0;
-    background: var(--color-bg-sidebar);
+    background: #ffffff;
     border-radius: 18px 18px 0 0;
-    box-shadow: 0 -5px 15px rgba(28, 30, 42, 0.15);
+    box-shadow: 0 -5px 15px rgba(0,0,0,0.15);
     z-index: 9999;
   }
 
@@ -661,7 +663,7 @@ body {
     width: 44px;
     height: 5px;
     border-radius: var(--radius-pill);
-    background: var(--color-accent-border);
+    background: #d4e6f1;
     margin: 10px auto 8px;
     flex-shrink: 0;
     touch-action: none;
@@ -705,9 +707,9 @@ body {
     bottom: 0;
     left: 0;
     right: 0;
-    background: var(--color-bg-sidebar);
+    background: #ffffff;
     border-radius: 20px 20px 0 0;
-    box-shadow: 0 -5px 15px rgba(28, 30, 42, 0.15);
+    box-shadow: 0 -5px 15px rgba(0,0,0,0.15);
     z-index: 9999;
     transition: height var(--transition-slow);
     overscroll-behavior: contain;
@@ -762,6 +764,15 @@ body {
    LOGIN PAGE
    =================================================== */
 body.login-page {
+  --color-bg-app:        #F5F2EB;
+  --color-bg-card:       #FFFFFF;
+  --color-border:        #D8D3C8;
+  --color-border-light:  #EAE6DC;
+  --color-ink-primary:   #1C1E2A;
+  --color-ink-inverse:   #F5F2EB;
+  --color-accent:        #C8860A;
+  --color-accent-hover:  #A86E06;
+  --color-error:         #C0392B;
   font-family: var(--font-body);
   display: flex;
   justify-content: center;
