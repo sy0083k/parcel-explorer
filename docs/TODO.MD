@@ -30,7 +30,7 @@
 | RISK-001 | P0 | 설정 변경 즉시 반영 불가 | done | team | 2026-03-13 | 관리자 설정/비밀번호 변경 후 재시작 없이도 반영 전략이 문서화되고 구현/운영 절차가 확정된다. | `app/core/runtime_config.py` 신규 도입, `RuntimeConfig` + `rebuild_runtime_state()` 구현. `SESSION_HTTPS_ONLY`의 `Set-Cookie` 반영은 재시작 필요(나머지 즉시 반영). |
 | RISK-002 | P0 | 인메모리 제한기 다중 인스턴스 한계 | blocked | unassigned | 2026-03-09 | 현재 배포 정책이 단일 인스턴스로 고정되고, 멀티 인스턴스 전환 시 공유 스토어 기반 limiter 선행 도입이 필수 조건으로 문서화된다. | 관련: `app/auth_security.py`, `app/rate_limit.py`. 현재 결정: 미배포 상태 기준 단일 인스턴스만 지원. 차단 사유: 공유 스토어(예: Redis/Valkey) 미도입. 해소 조건: replica 2개 이상 또는 LB 도입 요구가 생기면 공유 스토어 기반 글로벌 limiter 작업 착수. |
 | RISK-003 | P1 | 업로드 후 지오메트리 작업 내구성 부족 | todo | unassigned | 2026-03-09 | 프로세스 재시작/장애 상황에서도 작업 유실 없이 재시도 가능한 백그라운드 처리 방식이 정의된다. | 관련: `app/services/upload_service.py`, `app/services/geo_service.py` |
-| RISK-004 | P1 | 공개 다운로드 응답 메모리 사용량 리스크 | todo | unassigned | 2026-03-09 | 대용량 파일에서도 서버 메모리 급증 없이 다운로드를 처리하도록 스트리밍 응답 방식이 적용된다. | 관련: `app/services/public_download_service.py` |
+| RISK-004 | P1 | 공개 다운로드 응답 메모리 사용량 리스크 | done | team | 2026-03-14 | 대용량 파일에서도 서버 메모리 급증 없이 다운로드를 처리하도록 스트리밍 응답 방식이 적용된다. | `Response(content=file.read_bytes())`를 `FileResponse`로 교체하여 청크 스트리밍 적용. 관련: `app/services/public_download_service.py` |
 | RISK-005 | P1 | 프런트 전체 데이터 선적재로 인한 확장성 한계 | todo | unassigned | 2026-03-09 | 데이터 증가 시 초기 로딩 시간/브라우저 메모리 사용을 제어하는 점진 로딩 전략이 수립된다. | 관련: `frontend/src/map/lands-client.ts` |
 | RISK-006 | P0 | 다중 앱 세션 교차 인식 위험 | done | team | 2026-03-03 | 동일 브라우저/도메인 운영 시 앱별 `SECRET_KEY`/`SESSION_COOKIE_NAME`/`SESSION_NAMESPACE` 분리와 인증 시 namespace 검증이 적용된다. | 관련: `app/main.py`, `app/dependencies.py`, `app/services/auth_service.py` |
 | RISK-007 | P1 | 관리자 로그아웃 경로/CSV 내보내기 보안 정합성 | done | team | 2026-03-07 | 로그아웃 표준 경로를 `POST /logout`+CSRF로 정렬하고, raw query CSV 문자열 셀 formula injection 방어를 적용한다. | 관련: `app/routers/auth.py`, `app/services/auth_service.py`, `app/services/raw_query_export_service.py` |
@@ -59,3 +59,4 @@
 - 2026-03-13 | reviewer: team | RISK-002 운영 결정 확정: 아직 미배포 상태이므로 단일 인스턴스만 지원하고, 멀티 인스턴스 전환은 공유 스토어 기반 limiter 선행 도입 전까지 차단 | 다음 액션: 첫 운영 배포에서 replica/LB 요구 발생 시 Redis/Valkey 기반 글로벌 limiter 설계 재개
 - 2026-03-13 | reviewer: team | RISK-011 구현 완료: `PUBLIC_DOWNLOAD_RATE_LIMIT_PER_MINUTE` 설정 도입, `/api/public-download` 및 `/api/v1/public-download`에 IP 기준 분당 제한과 `Retry-After` 적용 | 다음 액션: RISK-013(감사 로그), RISK-004(스트리밍 응답) 우선 검토
 - 2026-03-13 | reviewer: team | RISK-013 구현 완료: 업로드와 raw query export에 요청자/조건/결과/실패 사유를 포함한 구조화 감사 로그 추가 | 다음 액션: RISK-004(스트리밍 응답), RISK-010(SESSION_HTTPS_ONLY 경고) 검토
+- 2026-03-14 | reviewer: team | RISK-004 구현 완료: 공개 다운로드 응답을 `Response(read_bytes())`에서 `FileResponse`로 교체하여 청크 스트리밍 적용, 메모리 급증 위험 해소 | 다음 액션: RISK-010(SESSION_HTTPS_ONLY 경고) 검토

@@ -9,7 +9,7 @@ from typing import Any
 from urllib.parse import quote
 
 from fastapi import HTTPException, Request, UploadFile
-from fastapi.responses import Response
+from fastapi.responses import FileResponse, Response
 
 from app.dependencies import validate_csrf_token
 
@@ -101,11 +101,12 @@ def get_public_download_file_response(request: Request) -> Response:
         raise HTTPException(status_code=404, detail="다운로드 파일을 찾을 수 없습니다.")
 
     content_type = str(meta.get("content_type", "")).strip() or "application/octet-stream"
-    content = file_path.read_bytes()
-    response = Response(content=content, media_type=content_type)
     quoted = quote(original_name)
-    response.headers["Content-Disposition"] = f"attachment; filename*=UTF-8''{quoted}"
-    return response
+    return FileResponse(
+        path=file_path,
+        media_type=content_type,
+        headers={"Content-Disposition": f"attachment; filename*=UTF-8''{quoted}"},
+    )
 
 
 def get_public_download_meta(request: Request) -> dict[str, Any]:
