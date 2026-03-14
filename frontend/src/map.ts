@@ -3,14 +3,14 @@ import "ol/ol.css";
 import { HttpError, fetchJson } from "./http";
 import { createDownloadClient } from "./map/download-client";
 import { createFilters } from "./map/filters";
-import { loadAllLandFeatures } from "./map/lands-client";
+import { streamLandFeatures } from "./map/lands-client";
 import { createListPanel } from "./map/list-panel";
 import { createMapView } from "./map/map-view";
 import { createSessionTracker } from "./map/session-tracker";
 import { createMapState } from "./map/state";
 import { createTelemetry } from "./map/telemetry";
 
-import type { BaseType, LandClickSource, LandFeatureCollection, MapConfig } from "./map/types";
+import type { BaseType, LandClickSource, LandFeature, LandFeatureCollection, MapConfig } from "./map/types";
 
 type SelectOptions = {
   shouldFit: boolean;
@@ -380,14 +380,31 @@ async function bootstrap(): Promise<void> {
     listPanel.setStatus("데이터를 불러오는 중입니다...");
     const config = await fetchJson<MapConfig>("/api/config", { timeoutMs: 10000 });
     mapView.init(config);
-    const features = await loadAllLandFeatures();
-    state.setOriginalData({ type: "FeatureCollection", features });
-    applyFilters(false);
 
-    syncDesktopToMobileInputs();
-    maybeInitMobileHistory();
-    if (isMobileViewport()) {
-      setMobileState("home", false);
+    const accumulated: LandFeature[] = [];
+    let initialRenderDone = false;
+
+    await streamLandFeatures((batch) => {
+      accumulated.push(...batch);
+
+      if (!initialRenderDone) {
+        initialRenderDone = true;
+        state.setOriginalData({ type: "FeatureCollection", features: [...accumulated] });
+        applyFilters(false);
+        syncDesktopToMobileInputs();
+        maybeInitMobileHistory();
+        if (isMobileViewport()) {
+          setMobileState("home", false);
+        }
+      } else {
+        state.appendToOriginalData(batch);
+      }
+    });
+
+    // 모든 배치 완료 후: 선택 항목이 없으면 전체 데이터로 최종 재렌더링
+    if (state.getCurrentIndex() === -1) {
+      state.setOriginalData({ type: "FeatureCollection", features: accumulated });
+      applyFilters(false);
     }
   } catch (error) {
     const message = error instanceof HttpError ? error.message : "지도를 초기화하지 못했습니다.";

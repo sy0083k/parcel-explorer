@@ -17,6 +17,15 @@ export function createMapState() {
     setOriginalData(data: LandFeatureCollection): void {
       state.originalData = data;
     },
+    appendToOriginalData(features: LandFeature[]): void {
+      if (state.originalData === null) {
+        return;
+      }
+      state.originalData = {
+        type: "FeatureCollection",
+        features: [...state.originalData.features, ...features],
+      };
+    },
     getOriginalData(): LandFeatureCollection | null {
       return state.originalData;
     },

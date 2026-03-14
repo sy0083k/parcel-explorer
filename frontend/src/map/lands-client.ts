@@ -2,8 +2,9 @@ import { fetchJson } from "../http";
 
 import type { LandFeature, LandsPageResponse } from "./types";
 
-export async function loadAllLandFeatures(): Promise<LandFeature[]> {
-  const allFeatures: LandFeature[] = [];
+export async function streamLandFeatures(
+  onBatch: (features: LandFeature[]) => void,
+): Promise<void> {
   let cursor: string | null = null;
 
   while (true) {
@@ -13,13 +14,13 @@ export async function loadAllLandFeatures(): Promise<LandFeature[]> {
     }
 
     const page = await fetchJson<LandsPageResponse>(`/api/lands?${query.toString()}`, { timeoutMs: 20000 });
-    allFeatures.push(...page.features);
+    if (page.features.length > 0) {
+      onBatch(page.features);
+    }
 
     if (!page.nextCursor) {
       break;
     }
     cursor = page.nextCursor;
   }
-
-  return allFeatures;
 }
