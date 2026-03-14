@@ -1,4 +1,5 @@
 import io
+import logging
 from typing import Any
 
 import pandas as pd
@@ -79,6 +80,74 @@ def test_upload_service_success(
         file=file,
     )
     assert result["success"] is True
+
+
+def test_upload_service_emits_audit_log_on_success(
+    build_app: Any, monkeypatch: MonkeyPatch, db_path: Any, caplog: pytest.LogCaptureFixture
+) -> None:
+    app = build_app()
+    from app.db.connection import db_connection
+    from app.repositories import poi_repository
+
+    with db_connection() as conn:
+        poi_repository.init_db(conn)
+    request = _make_request(app, csrf_token="csrf")
+    file = _make_upload_file(
+        "upload.xlsx", b"dummy", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+    )
+    df = pd.DataFrame(
+        {
+            "소재지(지번)": ["addr"],
+            "(공부상)지목": ["답"],
+            "(공부상)면적(㎡)": [12.5],
+            "행정재산": ["Y"],
+            "일반재산": ["N"],
+            "담당자연락처": ["010"],
+        }
+    )
+    monkeypatch.setattr(pd, "ExcelFile", lambda *_args, **_kwargs: DummyExcelFile(sheet_names=["목록"]))
+    monkeypatch.setattr(pd, "read_excel", lambda *_args, **_kwargs: df)
+
+    with caplog.at_level(logging.INFO, logger="app.services.upload_service"):
+        result = upload_service.handle_excel_upload(
+            request=request,
+            background_tasks=BackgroundTasks(),
+            csrf_token="csrf",
+            file=file,
+        )
+
+    assert result["success"] is True
+    success_record = next(record for record in caplog.records if record.event == "admin.upload.succeeded")
+    assert success_record.upload_filename == "upload.xlsx"
+    assert success_record.row_count == 1
+    assert success_record.geom_job_id == result["geomJobId"]
+
+
+def test_upload_service_emits_audit_log_on_validation_failure(
+    build_app: Any, monkeypatch: MonkeyPatch, db_path: Any, caplog: pytest.LogCaptureFixture
+) -> None:
+    app = build_app()
+    request = _make_request(app, csrf_token="csrf")
+    file = _make_upload_file(
+        "upload.xlsx", b"dummy", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+    )
+    df = pd.DataFrame({"소재지(지번)": ["addr"]})
+    monkeypatch.setattr(pd, "ExcelFile", lambda *_args, **_kwargs: DummyExcelFile(sheet_names=["목록"]))
+    monkeypatch.setattr(pd, "read_excel", lambda *_args, **_kwargs: df)
+
+    with caplog.at_level(logging.WARNING, logger="app.services.upload_service"):
+        with pytest.raises(HTTPException):
+            upload_service.handle_excel_upload(
+                request=request,
+                background_tasks=BackgroundTasks(),
+                csrf_token="csrf",
+                file=file,
+            )
+
+    rejected_record = next(record for record in caplog.records if record.event == "admin.upload.rejected")
+    assert rejected_record.upload_filename == "upload.xlsx"
+    assert rejected_record.reason == "missing_required_columns"
+    assert rejected_record.row_count == 1
 
 
 def test_upload_service_rejects_bad_extension(build_app: Any, db_path: Any) -> None:

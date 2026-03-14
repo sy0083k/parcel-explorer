@@ -1,10 +1,11 @@
+import logging
 import re
 
 import httpx
 import pytest
 
 from app.db.connection import db_connection
-from app.repositories import poi_repository
+from app.repositories import event_repository, poi_repository
 from app.routers import map_router
 
 CSRF_PATTERN = r'name="csrf_token" value="([^"]+)"'
@@ -338,6 +339,56 @@ async def test_admin_can_export_raw_query_csv(async_client: httpx.AsyncClient, d
     assert "충남 서산시 대산읍 독곶리 1-1" in export_all.text
     assert "99" in export_all.text
     assert "map_click" in export_all.text
+
+
+@pytest.mark.anyio
+async def test_admin_raw_query_export_emits_audit_logs(
+    async_client: httpx.AsyncClient, db_path: object, caplog: pytest.LogCaptureFixture
+) -> None:
+    with db_connection() as conn:
+        poi_repository.init_db(conn)
+        event_repository.init_event_schema(conn)
+        event_repository.insert_raw_query_log(
+            conn,
+            event_type="search",
+            anon_id="anon-export-1",
+            raw_region_query="예천동",
+            raw_min_area_input="120",
+            raw_max_area_input="500",
+            raw_rent_only_input="true",
+            raw_land_id_input=None,
+            raw_land_address_input=None,
+            raw_click_source_input=None,
+            raw_payload_json="{}",
+        )
+        conn.commit()
+
+    await _login_as_admin(async_client)
+
+    with caplog.at_level(logging.INFO, logger="app.routers.admin"):
+        response = await async_client.get("/admin/raw-queries/export?event_type=search&limit=100")
+
+    assert response.status_code == 200
+    success_record = next(record for record in caplog.records if record.event == "admin.raw_queries_export.succeeded")
+    assert success_record.event_type_filter == "search"
+    assert success_record.requested_limit == 100
+    assert success_record.effective_limit == 100
+    assert success_record.exported_row_count == 1
+
+
+@pytest.mark.anyio
+async def test_admin_raw_query_export_logs_rejected_requests(
+    async_client: httpx.AsyncClient, caplog: pytest.LogCaptureFixture
+) -> None:
+    await _login_as_admin(async_client)
+
+    with caplog.at_level(logging.WARNING, logger="app.routers.admin"):
+        response = await async_client.get("/admin/raw-queries/export?event_type=invalid")
+
+    assert response.status_code == 400
+    rejected_record = next(record for record in caplog.records if record.event == "admin.raw_queries_export.rejected")
+    assert rejected_record.event_type_filter == "invalid"
+    assert rejected_record.status == 400
 
 
 @pytest.mark.anyio

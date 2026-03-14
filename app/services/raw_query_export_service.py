@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import csv
+from dataclasses import dataclass
 from datetime import datetime, timedelta
 from io import StringIO
 
@@ -14,13 +15,20 @@ EVENT_TYPE_LAND_CLICK = "land_click"
 CSV_FORMULA_PREFIXES = ("=", "+", "-", "@")
 
 
+@dataclass(frozen=True)
+class RawQueryCsvExportResult:
+    csv_text: str
+    row_count: int
+    effective_limit: int
+
+
 def export_raw_query_csv(
     *,
     event_type: str,
     date_from: str | None,
     date_to: str | None,
     limit: int,
-) -> str:
+) -> RawQueryCsvExportResult:
     if event_type not in {"all", EVENT_TYPE_SEARCH, EVENT_TYPE_LAND_CLICK}:
         raise HTTPException(status_code=400, detail="event_type must be one of: all, search, land_click.")
 
@@ -74,7 +82,11 @@ def export_raw_query_csv(
                 _safe_csv_string(row["raw_payload_json"]),
             ]
         )
-    return output.getvalue()
+    return RawQueryCsvExportResult(
+        csv_text=output.getvalue(),
+        row_count=len(rows),
+        effective_limit=clamped_limit,
+    )
 
 
 def _safe_csv_string(value: object) -> str:

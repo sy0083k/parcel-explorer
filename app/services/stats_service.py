@@ -58,7 +58,7 @@ def export_raw_query_csv(
     date_from: str | None,
     date_to: str | None,
     limit: int,
-) -> str:
+) -> raw_query_export_service.RawQueryCsvExportResult:
     return raw_query_export_service.export_raw_query_csv(
         event_type=event_type,
         date_from=date_from,

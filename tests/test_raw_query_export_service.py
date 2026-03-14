@@ -26,14 +26,16 @@ def test_raw_query_export_service_export_csv(db_path: object) -> None:
         )
         conn.commit()
 
-    csv_text = raw_query_export_service.export_raw_query_csv(
+    result = raw_query_export_service.export_raw_query_csv(
         event_type="search",
         date_from=None,
         date_to=None,
         limit=100,
     )
-    assert "event_type" in csv_text
-    assert "search" in csv_text
+    assert "event_type" in result.csv_text
+    assert "search" in result.csv_text
+    assert result.row_count == 1
+    assert result.effective_limit == 100
 
 
 def test_raw_query_export_service_escapes_formula_like_cells(db_path: object) -> None:
@@ -54,16 +56,16 @@ def test_raw_query_export_service_escapes_formula_like_cells(db_path: object) ->
         )
         conn.commit()
 
-    csv_text = raw_query_export_service.export_raw_query_csv(
+    result = raw_query_export_service.export_raw_query_csv(
         event_type="search",
         date_from=None,
         date_to=None,
         limit=100,
     )
-    assert "'=anon" in csv_text
-    assert "'+region" in csv_text
-    assert "'-10" in csv_text
-    assert "'@max" in csv_text
-    assert "'=true" in csv_text
-    assert "'=addr" in csv_text
-    assert "'+map" in csv_text
+    assert "'=anon" in result.csv_text
+    assert "'+region" in result.csv_text
+    assert "'-10" in result.csv_text
+    assert "'@max" in result.csv_text
+    assert "'=true" in result.csv_text
+    assert "'=addr" in result.csv_text
+    assert "'+map" in result.csv_text

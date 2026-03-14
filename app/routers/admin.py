@@ -3,7 +3,7 @@ import logging
 from datetime import datetime
 from typing import cast
 
-from fastapi import APIRouter, BackgroundTasks, Depends, File, Form, Request, UploadFile
+from fastapi import APIRouter, BackgroundTasks, Depends, File, Form, HTTPException, Request, UploadFile
 from fastapi.responses import HTMLResponse, RedirectResponse, Response
 
 from app.dependencies import (
@@ -202,17 +202,80 @@ async def get_web_stats(days: int = 30) -> dict:
 
 @router.get("/raw-queries/export", dependencies=[Depends(check_internal_network), Depends(require_authenticated)])
 async def export_raw_queries(
+    request: Request,
     event_type: str = "all",
     date_from: str | None = None,
     date_to: str | None = None,
     limit: int = 10000,
 ) -> Response:
-    csv_text = stats_service.export_raw_query_csv(
-        event_type=event_type,
-        date_from=date_from,
-        date_to=date_to,
-        limit=limit,
-    )
+    request_id = getattr(request.state, "request_id", "-")
+    actor = request.session.get("user", "anonymous")
+    client_ip = request.client.host if request.client else "unknown"
     filename = f"raw-queries-{datetime.now().strftime('%Y%m%d')}.csv"
+    try:
+        result = stats_service.export_raw_query_csv(
+            event_type=event_type,
+            date_from=date_from,
+            date_to=date_to,
+            limit=limit,
+        )
+    except HTTPException as exc:
+        logger.warning(
+            "raw query export rejected",
+            extra={
+                "request_id": request_id,
+                "event": "admin.raw_queries_export.rejected",
+                "actor": actor,
+                "ip": client_ip,
+                "status": exc.status_code,
+                "event_type_filter": event_type,
+                "date_from": date_from or "-",
+                "date_to": date_to or "-",
+                "requested_limit": limit,
+                "effective_limit": "-",
+                "exported_row_count": "-",
+                "export_filename": filename,
+                "reason": exc.detail if isinstance(exc.detail, str) else "invalid_request",
+            },
+        )
+        raise
+    except Exception:
+        logger.exception(
+            "raw query export failed",
+            extra={
+                "request_id": request_id,
+                "event": "admin.raw_queries_export.failed",
+                "actor": actor,
+                "ip": client_ip,
+                "status": 500,
+                "event_type_filter": event_type,
+                "date_from": date_from or "-",
+                "date_to": date_to or "-",
+                "requested_limit": limit,
+                "effective_limit": "-",
+                "exported_row_count": "-",
+                "export_filename": filename,
+                "reason": "unexpected_exception",
+            },
+        )
+        raise
+
+    logger.info(
+        "raw query export succeeded",
+        extra={
+            "request_id": request_id,
+            "event": "admin.raw_queries_export.succeeded",
+            "actor": actor,
+            "ip": client_ip,
+            "status": 200,
+            "event_type_filter": event_type,
+            "date_from": date_from or "-",
+            "date_to": date_to or "-",
+            "requested_limit": limit,
+            "effective_limit": result.effective_limit,
+            "exported_row_count": result.row_count,
+            "export_filename": filename,
+        },
+    )
     headers = {"Content-Disposition": f'attachment; filename="{filename}"'}
-    return Response(content=csv_text, media_type="text/csv; charset=utf-8", headers=headers)
+    return Response(content=result.csv_text, media_type="text/csv; charset=utf-8", headers=headers)

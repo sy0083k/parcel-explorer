@@ -154,6 +154,7 @@ uvicorn app.main:app --reload
 - 수평 확장이 필요해지면 공유 스토어 기반 limiter를 선행 도입한 뒤 배포 절차를 다시 정의해야 합니다.
 - API 버전 정책(`/api` vs `/api/v1`)의 운영 절차는 `docs/architecture.md`와 `docs/maintenance.md`를 기준으로 관리하세요.
 - `/admin/raw-queries/export` CSV는 문자열 셀 선두 `=`, `+`, `-`, `@` 값에 `'` 접두를 추가해 formula injection을 완화합니다.
+- 관리자 업로드와 `/admin/raw-queries/export`는 요청자, 조건, 결과 건수/실패 사유를 구조화 감사 로그로 기록합니다.
 
 ## ✅ 테스트 및 품질 체크
 ```bash

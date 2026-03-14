@@ -129,6 +129,7 @@
 - 로그아웃 경로 정책 유지 (`POST /logout` + CSRF)
 - 엑셀 업로드 + 지오메트리 보강 잡 생성
 - 통계 조회/CSV export
+- 업로드/CSV export 감사 로그(event/actor/ip/status/upload_filename 또는 export_filename/row_count 또는 exported_row_count) 확인
 - 통계 탭 경계선 재수집 버튼 실행 + 완료 후 수치 갱신 확인
 - 권장 실행: `pytest -q tests/test_security_regression.py tests/test_upload_service.py tests/test_geo_service.py tests/test_stats_api.py`
 
@@ -201,6 +202,7 @@
 ## 로그
 - 요청 ID 및 구조화 필드(event/actor/ip/status)를 사용하여 장애 추적
 - 관리자 업로드/로그인/설정변경 로그가 정상적으로 기록되는지 확인
+- 관리자 업로드와 raw query export는 감사 로그 필드(upload_filename/row_count/geom_job_id, event_type_filter/exported_row_count/export_filename)가 포함되는지 확인
 - 이벤트 수집 API 호출량과 오류율을 주기적으로 확인
 
 ## 보안 운영

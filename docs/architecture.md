@@ -178,6 +178,7 @@
 1. `POST /admin/upload`에서 CSRF, 파일 확장자/용량/행 수/필수 컬럼을 검증한다.
 2. 정규화/검증된 행으로 `poi`를 교체 저장한다.
 3. 백그라운드 작업으로 지오메트리 보강 잡을 실행한다.
+4. 업로드 시작/거부/성공/실패는 파일명, 행 수, 실패 건수, `geomJobId`를 포함한 구조화 감사 로그로 기록한다.
 
 ### 관리자 수동 경계선 재수집
 1. `POST /admin/lands/geom-refresh`가 활성 잡 존재 여부를 확인한다.
@@ -197,6 +198,7 @@
 4. 관리자는 `/admin/stats`, `/admin/stats/web`에서 집계 지표를 조회한다(`/admin/stats/web`: 채널/디바이스/브라우저/상위 페이지/UTM/referrer breakdown 포함).
 5. `/api/v1/web-events`는 `/api/web-events`와 동등 계약을 유지한다(확장 필드 optional 호환).
 6. CSV 내보내기 시 문자열 셀은 formula injection 방지를 위해 선두 `=`, `+`, `-`, `@` 값을 `'` 접두 처리한다.
+7. `/admin/raw-queries/export`는 필터 조건, 요청 limit, 실제 내보낸 건수를 구조화 감사 로그로 기록한다.
 
 ### 헬스체크
 1. `GET /health`는 DB ping 결과를 반환한다.
