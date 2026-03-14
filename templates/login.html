@@ -2,24 +2,23 @@
 <html lang="ko">
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>관리자 로그인</title>
-    <style>
-        body { font-family: 'Malgun Gothic', sans-serif; display: flex; justify-content: center; align-items: center; height: 100vh; background: #f0f2f5; margin: 0; }
-        .login-card { background: white; padding: 40px; border-radius: 12px; box-shadow: 0 4px 20px rgba(0,0,0,0.1); width: 300px; }
-        input { width: 100%; padding: 10px; margin-bottom: 10px; box-sizing: border-box; }
-        button { width: 100%; padding: 12px; background: #3498db; color: white; border: none; border-radius: 5px; cursor: pointer; }
-    </style>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Nanum+Myeongjo:wght@400;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', path='css/style.css') }}">
 </head>
-<body>
+<body class="login-page">
     <div class="login-card">
-        <h2>🔐 관리자 로그인</h2>
+        <h2>관리자 로그인</h2>
         <form id="loginForm">
             <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
             <input type="text" name="username" placeholder="아이디" required>
             <input type="password" name="password" placeholder="비밀번호" required>
             <button type="submit">로그인</button>
         </form>
-        <p id="msg" style="color:red; font-size:12px;"></p>
+        <p id="msg"></p>
     </div>
     {% set assets = vite_assets('src/login.ts') %}
     {% for css_file in assets.css %}
