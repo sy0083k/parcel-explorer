@@ -169,6 +169,21 @@
 - `PUBLIC_DOWNLOAD_ALLOWED_EXTS`, `PUBLIC_DOWNLOAD_MAX_SIZE_MB`, `PUBLIC_DOWNLOAD_RATE_LIMIT_PER_MINUTE`, `PUBLIC_DOWNLOAD_DIR` 점검
 - `data/public_download/current.*`와 `current.json` 파일 존재/권한 확인
 
+### 공개 다운로드 파일 무결성 점검
+
+업로드 시 SHA-256 해시가 `current.json`에 자동 기록된다.
+
+**관리자 화면에서 확인:**
+`GET /admin/public-download/meta` 응답의 `sha256` 필드를 확인한다.
+
+**서버에서 직접 검증:**
+```bash
+sha256sum data/public_download/current.<ext>
+# 출력값을 current.json의 sha256 필드와 대조한다.
+```
+
+배포 후 또는 이상 징후 감지 시 위 절차를 수행한다.
+
 ### 통계/원시 로그 내보내기 실패
 - `/admin/stats`, `/admin/stats/web`, `/admin/raw-queries/export` 응답 및 권한 확인
 - `/admin/stats/web`의 breakdown(`channel/device/browser/page/referrer/utm`) 필드 누락 여부 확인

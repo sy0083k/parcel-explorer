@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import hashlib
 import json
 import os
 import tempfile
@@ -51,6 +52,7 @@ def handle_public_download_upload(
     target_path = target_dir / stored_name
 
     # Write to temp file first, then replace atomically.
+    sha256 = hashlib.sha256()
     with tempfile.NamedTemporaryFile(delete=False, dir=target_dir, prefix="upload-", suffix=f".{ext}") as tmp:
         tmp_path = Path(tmp.name)
         while True:
@@ -58,6 +60,7 @@ def handle_public_download_upload(
             if not chunk:
                 break
             tmp.write(chunk)
+            sha256.update(chunk)
 
     tmp_path.replace(target_path)
 
@@ -67,6 +70,7 @@ def handle_public_download_upload(
         "content_type": (file.content_type or "").strip(),
         "uploaded_at": datetime.now(UTC).isoformat(),
         "size_bytes": file_size,
+        "sha256": sha256.hexdigest(),
     }
     _meta_path(target_dir).write_text(json.dumps(meta, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
 

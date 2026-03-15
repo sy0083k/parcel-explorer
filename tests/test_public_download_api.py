@@ -148,6 +148,39 @@ async def test_public_download_rate_limit_is_keyed_by_client_ip(
 
 
 @pytest.mark.anyio
+async def test_upload_records_sha256_in_metadata(
+    build_app: object,
+    tmp_path: object,
+) -> None:
+    """업로드 후 current.json에 sha256 필드가 기록된다."""
+    import hashlib
+
+    app = build_app()
+    app.state.config.PUBLIC_DOWNLOAD_DIR = str(tmp_path / "public_download")
+    app.state.config.PUBLIC_DOWNLOAD_MAX_SIZE_MB = 5
+    app.state.config.PUBLIC_DOWNLOAD_ALLOWED_EXTS = ("pdf", "csv", "xlsx")
+
+    transport = httpx.ASGITransport(app=app, client=("127.0.0.1", 50000))
+    async with httpx.AsyncClient(transport=transport, base_url="http://testserver") as client:
+        await _login_as_admin(client)
+        csrf_token = await _get_admin_csrf(client)
+
+        content = b"%PDF-1.7\nFile content for sha256 test\n"
+        upload = await client.post(
+            "/admin/public-download/upload",
+            data={"csrf_token": csrf_token},
+            files={"file": ("report.pdf", io.BytesIO(content), "application/pdf")},
+        )
+        assert upload.status_code == 200
+
+        meta_resp = await client.get("/admin/public-download/meta")
+        assert meta_resp.status_code == 200
+        meta = meta_resp.json()
+        assert "sha256" in meta
+        assert meta["sha256"] == hashlib.sha256(content).hexdigest()
+
+
+@pytest.mark.anyio
 async def test_public_download_upload_rejects_disallowed_extension(
     build_app: object,
     tmp_path: object,
