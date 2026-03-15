@@ -50,8 +50,8 @@
   --shadow-fab:    0 6px 14px rgba(0, 0, 0, 0.25);
 
   /* Typography */
-  --font-body: 'Nanum Myeongjo', 'Malgun Gothic', 'Apple SD Gothic Neo', serif;
-  --font-data: 'DM Mono', 'Consolas', 'D2Coding', monospace;
+  --font-body: 'Malgun Gothic', 'Apple SD Gothic Neo', sans-serif;
+  --font-data: 'Consolas', 'D2Coding', monospace;
 
   /* Motion */
   --transition-fast: 0.10s ease;
