@@ -664,15 +664,23 @@ body {
     height: 5px;
     border-radius: var(--radius-pill);
     background: #d4e6f1;
-    margin: 10px auto 8px;
+    padding: 16px 32px;
+    background-clip: content-box;
+    margin: -6px auto -8px;
+    box-sizing: content-box;
     flex-shrink: 0;
     touch-action: none;
+    cursor: grab;
     transition: background var(--transition-base), width var(--transition-base);
   }
 
   body.mobile-results .mobile-handle:hover {
     width: 56px;
     background: var(--color-accent);
+  }
+
+  body.mobile-results .mobile-handle:active {
+    cursor: grabbing;
   }
 
   /* 레이어 선택: 단일 버튼 + 팝오버 */
