@@ -112,6 +112,25 @@ def handle_excel_upload(
             detail=f"파일 용량 제한({config.MAX_UPLOAD_SIZE_MB}MB)을 초과했습니다.",
         )
 
+    header = file.file.read(8)
+    file.file.seek(0)
+    if not land_validators.check_excel_magic_bytes(header, filename):
+        _log_upload_audit(
+            level=logging.WARNING,
+            message="upload rejected: magic bytes mismatch",
+            request_id=request_id,
+            actor=actor,
+            client_ip=client_ip,
+            status=400,
+            event="admin.upload.rejected",
+            filename=original_filename or filename,
+            content_type=content_type,
+            file_size_bytes=file_size,
+            requested_sheet=requested_sheet,
+            reason="invalid_magic_bytes",
+        )
+        raise HTTPException(status_code=400, detail="파일 형식이 선언된 확장자와 일치하지 않습니다.")
+
     allowed_content_types = {
         "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
         "application/vnd.ms-excel",

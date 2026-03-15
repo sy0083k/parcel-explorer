@@ -57,7 +57,7 @@ def test_upload_service_success(
         poi_repository.init_db(conn)
     request = _make_request(app, csrf_token="csrf")
     file = _make_upload_file(
-        "upload.xlsx", b"dummy", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+        "upload.xlsx", b"PK\x03\x04dummy", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
     )
 
     df = pd.DataFrame(
@@ -93,7 +93,7 @@ def test_upload_service_emits_audit_log_on_success(
         poi_repository.init_db(conn)
     request = _make_request(app, csrf_token="csrf")
     file = _make_upload_file(
-        "upload.xlsx", b"dummy", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+        "upload.xlsx", b"PK\x03\x04dummy", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
     )
     df = pd.DataFrame(
         {
@@ -129,7 +129,7 @@ def test_upload_service_emits_audit_log_on_validation_failure(
     app = build_app()
     request = _make_request(app, csrf_token="csrf")
     file = _make_upload_file(
-        "upload.xlsx", b"dummy", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+        "upload.xlsx", b"PK\x03\x04dummy", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
     )
     df = pd.DataFrame({"소재지(지번)": ["addr"]})
     monkeypatch.setattr(pd, "ExcelFile", lambda *_args, **_kwargs: DummyExcelFile(sheet_names=["목록"]))
@@ -200,7 +200,7 @@ def test_upload_service_missing_columns(
     app = build_app()
     request = _make_request(app, csrf_token="csrf")
     file = _make_upload_file(
-        "upload.xlsx", b"dummy", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+        "upload.xlsx", b"PK\x03\x04dummy", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
     )
     df = pd.DataFrame({"소재지(지번)": ["addr"]})
     monkeypatch.setattr(pd, "ExcelFile", lambda *_args, **_kwargs: DummyExcelFile(sheet_names=["목록"]))
@@ -227,7 +227,7 @@ def test_upload_service_sheet_name_fallback(
         poi_repository.init_db(conn)
     request = _make_request(app, csrf_token="csrf")
     file = _make_upload_file(
-        "upload.xlsx", b"dummy", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+        "upload.xlsx", b"PK\x03\x04dummy", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
     )
     df = pd.DataFrame(
         {
@@ -260,10 +260,20 @@ def test_upload_service_sheet_name_fallback(
 
 
 @pytest.mark.parametrize(
-    ("filename", "expected_engine", "content_type"),
+    ("filename", "expected_engine", "content_type", "content"),
     [
-        ("upload.xlsx", "openpyxl", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"),
-        ("upload.xls", "xlrd", "application/vnd.ms-excel"),
+        (
+            "upload.xlsx",
+            "openpyxl",
+            "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            b"PK\x03\x04dummy",
+        ),
+        (
+            "upload.xls",
+            "xlrd",
+            "application/vnd.ms-excel",
+            b"\xd0\xcf\x11\xe0\xa1\xb1\x1a\xe1dummy",
+        ),
     ],
 )
 def test_upload_service_selects_excel_engine_by_extension(
@@ -273,6 +283,7 @@ def test_upload_service_selects_excel_engine_by_extension(
     filename: str,
     expected_engine: str,
     content_type: str,
+    content: bytes,
 ) -> None:
     app = build_app()
     from app.db.connection import db_connection
@@ -282,7 +293,7 @@ def test_upload_service_selects_excel_engine_by_extension(
         poi_repository.init_db(conn)
 
     request = _make_request(app, csrf_token="csrf")
-    file = _make_upload_file(filename, b"dummy", content_type)
+    file = _make_upload_file(filename, content, content_type)
     df = pd.DataFrame(
         {
             "소재지(지번)": ["addr"],
@@ -311,3 +322,45 @@ def test_upload_service_selects_excel_engine_by_extension(
     )
     assert result["success"] is True
     assert called["engine"] == expected_engine
+
+
+@pytest.mark.unit
+def test_upload_service_rejects_magic_bytes_mismatch(build_app: Any, db_path: Any) -> None:
+    app = build_app()
+    request = _make_request(app, csrf_token="csrf")
+    file = _make_upload_file(
+        "malicious.xlsx",
+        b"\x00\x00\x00\x00malicious content",
+        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    )
+    with pytest.raises(HTTPException) as exc:
+        upload_service.handle_excel_upload(
+            request=request,
+            background_tasks=BackgroundTasks(),
+            csrf_token="csrf",
+            file=file,
+        )
+    assert exc.value.status_code == 400
+
+
+@pytest.mark.unit
+def test_upload_service_emits_audit_log_on_magic_bytes_rejection(
+    build_app: Any, db_path: Any, caplog: pytest.LogCaptureFixture
+) -> None:
+    app = build_app()
+    request = _make_request(app, csrf_token="csrf")
+    file = _make_upload_file(
+        "malicious.xlsx",
+        b"<html>not excel</html>",
+        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    )
+    with caplog.at_level(logging.WARNING, logger="app.services.upload_service"):
+        with pytest.raises(HTTPException):
+            upload_service.handle_excel_upload(
+                request=request,
+                background_tasks=BackgroundTasks(),
+                csrf_token="csrf",
+                file=file,
+            )
+    record = next(r for r in caplog.records if r.event == "admin.upload.rejected")
+    assert record.reason == "invalid_magic_bytes"

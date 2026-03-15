@@ -90,3 +90,17 @@ def _append_error(
             "value": "" if value is None else str(value),
         }
     )
+
+
+_MAGIC_BYTES: dict[str, bytes] = {
+    ".xlsx": b"PK\x03\x04",
+    ".xls": b"\xd0\xcf\x11\xe0\xa1\xb1\x1a\xe1",
+}
+
+
+def check_excel_magic_bytes(header: bytes, filename: str) -> bool:
+    """파일 첫 바이트가 선언된 확장자의 시그니처와 일치하는지 검증한다."""
+    for ext, magic in _MAGIC_BYTES.items():
+        if filename.endswith(ext):
+            return header[: len(magic)] == magic
+    return False
