@@ -58,6 +58,14 @@ class ConfigTests(unittest.TestCase):
             with self.assertRaises(config.SettingsError):
                 config.get_settings()
 
+    def test_too_many_web_track_paths_rejected(self) -> None:
+        from app.core import config
+
+        # 21개 경로 — 상한(20) 초과
+        paths = ",".join(f"/{i}" for i in range(21))
+        with self.assertRaises(config.SettingsError):
+            config._parse_allowed_web_track_paths(paths)
+
 
 class AppSmokeTests(unittest.TestCase):
     def test_root_and_config_routes(self) -> None:

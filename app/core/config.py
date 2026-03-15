@@ -157,6 +157,9 @@ def _parse_allowed_exts(raw_value: str) -> tuple[str, ...]:
     return tuple(dict.fromkeys(values))
 
 
+_MAX_ALLOWED_WEB_TRACK_PATHS = 20
+
+
 def _parse_allowed_web_track_paths(raw_value: str) -> tuple[str, ...]:
     values: list[str] = []
     for raw_entry in raw_value.split(","):
@@ -168,7 +171,13 @@ def _parse_allowed_web_track_paths(raw_value: str) -> tuple[str, ...]:
         values.append(entry)
     if not values:
         return ("/",)
-    return tuple(dict.fromkeys(values))
+    deduped = list(dict.fromkeys(values))
+    if len(deduped) > _MAX_ALLOWED_WEB_TRACK_PATHS:
+        raise SettingsError(
+            f"ALLOWED_WEB_TRACK_PATHS must not exceed {_MAX_ALLOWED_WEB_TRACK_PATHS} entries "
+            f"(got {len(deduped)})."
+        )
+    return tuple(deduped)
 
 
 def _validate_admin_hash(hash_value: str) -> str:

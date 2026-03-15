@@ -221,6 +221,18 @@ sha256sum data/public_download/current.<ext>
 - 이벤트 수집 API 호출량과 오류율을 주기적으로 확인
 
 ## 보안 운영
+
+### 웹 방문 수집 경로 최소화
+
+`ALLOWED_WEB_TRACK_PATHS`는 웹 방문 이벤트를 수집할 페이지 경로 허용 목록이다.
+
+**최소 경로 원칙:** 실제 추적이 필요한 경로만 명시한다. 기본값 `"/"`는 모든 경로를 수집하므로
+운영 환경에서는 구체적인 경로 목록으로 교체하는 것을 권장한다.
+
+- 최대 20개 경로까지 등록 가능하다 (초과 시 시작 오류).
+- `"/"` 포함 시 서버 시작 시 WARNING 로그가 기록된다.
+- 변경 후 `rebuild_runtime_state()`로 즉시 반영되며 재시작이 필요 없다.
+
 - 세션 시크릿(`SECRET_KEY`) 정기 교체
 - VWorld 키(`VWORLD_WMTS_KEY`, `VWORLD_GEOCODER_KEY`) 사용량 모니터링 및 이상 징후 알림 점검
 - `VWORLD_GEOCODER_KEY` 유출 의심 시 재발급/교체 런북에 따라 즉시 로테이션 수행

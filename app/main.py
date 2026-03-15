@@ -42,6 +42,12 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     job_id = recover_interrupted_geom_jobs()
     if job_id is not None:
         asyncio.create_task(asyncio.to_thread(run_geom_update_job, job_id, 5))
+    if "/" in settings.allowed_web_track_paths:
+        logger.warning(
+            "ALLOWED_WEB_TRACK_PATHS contains '/' — all page paths will be collected. "
+            "Specify explicit paths in production to minimize data collection.",
+            extra={"event": "config.web_track_paths.all_paths_active"},
+        )
     yield
 
 
