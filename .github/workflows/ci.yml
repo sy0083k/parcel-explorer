@@ -17,6 +17,7 @@ jobs:
         uses: actions/setup-python@v5
         with:
           python-version: "3.12"
+          cache: "pip"
 
       - name: Install Python dependencies
         run: |
@@ -45,10 +46,9 @@ jobs:
         run: |
           python -m compileall -q app tests
           mypy app tests create_hash.py
-          pip install ruff xenon
           ruff check app tests
           scripts/check_quality_warnings.sh
           pytest -q -m unit
           pytest -q -m integration
           pytest -q -m e2e
-          pytest -q
+          pytest -q --cov=app --cov-report=term-missing --cov-fail-under=70
