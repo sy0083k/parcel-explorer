@@ -44,6 +44,8 @@ class Settings:
     public_download_rate_limit_per_minute: int
     public_download_allowed_exts: tuple[str, ...]
     public_download_dir: str
+    raw_query_export_max_rows: int
+    raw_query_export_timeout_s: float
     base_dir: str
 
 
@@ -212,5 +214,7 @@ def get_settings() -> Settings:
         ),
         public_download_dir=os.getenv("PUBLIC_DOWNLOAD_DIR", "data/public_download").strip()
         or "data/public_download",
+        raw_query_export_max_rows=int(os.getenv("RAW_QUERY_EXPORT_MAX_ROWS", "100000")),
+        raw_query_export_timeout_s=float(os.getenv("RAW_QUERY_EXPORT_TIMEOUT_S", "30.0")),
         base_dir=str(base_dir),
     )

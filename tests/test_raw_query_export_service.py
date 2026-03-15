@@ -1,3 +1,8 @@
+import sqlite3
+
+import pytest
+from fastapi import HTTPException
+
 from app.db.connection import db_connection
 from app.repositories import event_repository
 from app.services import raw_query_export_service
@@ -69,3 +74,44 @@ def test_raw_query_export_service_escapes_formula_like_cells(db_path: object) ->
     assert "'=true" in result.csv_text
     assert "'=addr" in result.csv_text
     assert "'+map" in result.csv_text
+
+
+@pytest.mark.unit
+def test_export_max_rows_cap_is_applied(db_path: object) -> None:
+    """max_rows보다 큰 limit은 max_rows로 클램프된다."""
+    with db_connection() as conn:
+        event_repository.init_event_schema(conn)
+        conn.commit()
+
+    result = raw_query_export_service.export_raw_query_csv(
+        event_type="all",
+        date_from=None,
+        date_to=None,
+        limit=999999,
+        max_rows=500,
+    )
+    assert result.effective_limit == 500
+
+
+@pytest.mark.unit
+def test_export_raises_503_on_query_timeout(db_path: object, monkeypatch: pytest.MonkeyPatch) -> None:
+    """쿼리 실행 시간 초과(interrupted) 시 HTTP 503이 발생한다."""
+
+    def _interrupted(*_args: object, **_kwargs: object) -> None:
+        raise sqlite3.OperationalError("interrupted")
+
+    monkeypatch.setattr(event_repository, "fetch_raw_query_logs", _interrupted)
+
+    with db_connection() as conn:
+        event_repository.init_event_schema(conn)
+        conn.commit()
+
+    with pytest.raises(HTTPException) as exc:
+        raw_query_export_service.export_raw_query_csv(
+            event_type="all",
+            date_from=None,
+            date_to=None,
+            limit=100,
+            timeout_s=30.0,
+        )
+    assert exc.value.status_code == 503

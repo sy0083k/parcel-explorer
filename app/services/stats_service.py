@@ -59,11 +59,14 @@ def export_raw_query_csv(
     date_to: str | None,
     limit: int,
 ) -> raw_query_export_service.RawQueryCsvExportResult:
+    settings = get_settings()
     return raw_query_export_service.export_raw_query_csv(
         event_type=event_type,
         date_from=date_from,
         date_to=date_to,
         limit=limit,
+        max_rows=settings.raw_query_export_max_rows,
+        timeout_s=settings.raw_query_export_timeout_s,
     )
 
 

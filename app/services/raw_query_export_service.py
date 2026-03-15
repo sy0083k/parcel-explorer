@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 import csv
+import sqlite3
+import threading
 from dataclasses import dataclass
 from datetime import datetime, timedelta
 from io import StringIO
@@ -28,24 +30,38 @@ def export_raw_query_csv(
     date_from: str | None,
     date_to: str | None,
     limit: int,
+    max_rows: int = 100000,
+    timeout_s: float = 30.0,
 ) -> RawQueryCsvExportResult:
     if event_type not in {"all", EVENT_TYPE_SEARCH, EVENT_TYPE_LAND_CLICK}:
         raise HTTPException(status_code=400, detail="event_type must be one of: all, search, land_click.")
 
-    clamped_limit = max(1, min(int(limit), 100000))
+    clamped_limit = max(1, min(int(limit), max_rows))
     created_at_from = parse_date_start(date_from)
     created_at_to = parse_date_end_exclusive(date_to)
     if created_at_from is not None and created_at_to is not None and created_at_from >= created_at_to:
         raise HTTPException(status_code=400, detail="date_from must be earlier than or equal to date_to.")
 
     with db_connection(row_factory=True) as conn:
-        rows = event_repository.fetch_raw_query_logs(
-            conn,
-            event_type=None if event_type == "all" else event_type,
-            created_at_from=created_at_from,
-            created_at_to=created_at_to,
-            limit=clamped_limit,
-        )
+        timer = threading.Timer(timeout_s, conn.interrupt)
+        timer.start()
+        try:
+            rows = event_repository.fetch_raw_query_logs(
+                conn,
+                event_type=None if event_type == "all" else event_type,
+                created_at_from=created_at_from,
+                created_at_to=created_at_to,
+                limit=clamped_limit,
+            )
+        except sqlite3.OperationalError as exc:
+            if "interrupted" in str(exc).lower():
+                raise HTTPException(
+                    status_code=503,
+                    detail="쿼리 실행 시간이 초과되었습니다. 조건을 좁혀 다시 시도하세요.",
+                ) from exc
+            raise
+        finally:
+            timer.cancel()
 
     output = StringIO()
     writer = csv.writer(output)
