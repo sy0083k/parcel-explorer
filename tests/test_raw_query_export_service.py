@@ -115,3 +115,31 @@ def test_export_raises_503_on_query_timeout(db_path: object, monkeypatch: pytest
             timeout_s=30.0,
         )
     assert exc.value.status_code == 503
+
+
+def test_raw_query_export_service_escapes_tab_and_pipe_prefix(db_path: object) -> None:
+    with db_connection() as conn:
+        event_repository.init_event_schema(conn)
+        event_repository.insert_raw_query_log(
+            conn,
+            event_type="search",
+            anon_id="\tanon",
+            raw_region_query="|region",
+            raw_min_area_input="100",
+            raw_max_area_input="500",
+            raw_rent_only_input="false",
+            raw_land_id_input=None,
+            raw_land_address_input=None,
+            raw_click_source_input=None,
+            raw_payload_json="{}",
+        )
+        conn.commit()
+
+    result = raw_query_export_service.export_raw_query_csv(
+        event_type="search",
+        date_from=None,
+        date_to=None,
+        limit=100,
+    )
+    assert "'\tanon" in result.csv_text
+    assert "'|region" in result.csv_text

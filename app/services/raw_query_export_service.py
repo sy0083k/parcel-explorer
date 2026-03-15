@@ -14,7 +14,7 @@ from app.repositories import event_repository
 
 EVENT_TYPE_SEARCH = "search"
 EVENT_TYPE_LAND_CLICK = "land_click"
-CSV_FORMULA_PREFIXES = ("=", "+", "-", "@")
+CSV_FORMULA_PREFIXES = ("=", "+", "-", "@", "\t", "|")
 
 
 @dataclass(frozen=True)

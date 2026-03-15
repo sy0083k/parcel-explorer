@@ -2,7 +2,7 @@
 
 프로젝트: 관심 필지 지도 (Parcel Explorer)  
 작성일: 2026-02-23  
-최종 수정일: 2026-03-13  
+최종 수정일: 2026-03-15  
 운영 주기: 매주 1회 (월요일 기준)
 
 ## 목적
@@ -42,7 +42,7 @@
 | RISK-013 | P1 | 관리자 액션 감사 로그 불완전 | done | team | 2026-04-10 | 업로드(파일명·행수·결과)와 export(요청자·조건·건수) 이벤트가 구조화 로그로 기록되어 사후 감사가 가능하다. | `admin.upload.*`, `admin.raw_queries_export.*` 감사 로그 추가. 업로드는 파일명/행수/실패사유/`geomJobId`, export는 필터/limit/건수/파일명을 기록. 관련: `app/services/upload_service.py`, `app/routers/admin.py`, `app/services/raw_query_export_service.py` |
 | RISK-014 | P2 | 공개 다운로드 파일 무결성 검증 체계 없음 | todo | unassigned | 2026-05-01 | 파일 교체 시 SHA-256 해시가 메타데이터에 기록되고, 운영 점검 절차에 해시 검증 단계가 추가된다. | `app/services/public_download_service.py`: 원자적 파일 교체 수행 중이나 배포 후 무결성 검증 수단 없음. stride-lite §T 공백. 운영 절차·코드 양쪽 보완 필요. |
 | RISK-015 | P2 | 파일 업로드 매직 바이트 검증 없음 | done | team | 2026-03-15 | 업로드 파일의 매직 바이트가 선언된 확장자와 일치하는지 검증하는 단계가 추가된다. | `app/validators/land_validators.py`: `_MAGIC_BYTES` + `check_excel_magic_bytes()` 추가. `app/services/upload_service.py`: 크기 검사 직후 8바이트 매직 바이트 검증 삽입, 불일치 시 HTTP 400 + `reason=invalid_magic_bytes` 감사 로그. 신규 종속성 없음. STRIDE §T 관련. |
-| RISK-016 | P2 | CSV formula injection 방어 범위 불완전 | todo | unassigned | 2026-05-01 | 방어 대상 prefix 목록이 최신 OWASP CSV Injection 가이드라인 기준으로 검토되고, 필요 시 추가 prefix 또는 대체 직렬화 방식이 적용된다. | `app/services/raw_query_export_service.py` L14: `CSV_FORMULA_PREFIXES = ("=", "+", "-", "@")`. 일부 파서의 `\t`, `|` prefix 미포함. 현재 구현은 표준적이나 부분 구현 수준. STRIDE §I 관련. |
+| RISK-016 | P2 | CSV formula injection 방어 범위 불완전 | done | team | 2026-03-15 | 방어 대상 prefix 목록이 최신 OWASP CSV Injection 가이드라인 기준으로 검토되고, 필요 시 추가 prefix 또는 대체 직렬화 방식이 적용된다. | `CSV_FORMULA_PREFIXES`에 `\t`(탭, 일부 파서 formula 해석 벡터)·`|`(파이프, LibreOffice Calc DDE 벡터) 추가. 상수 1줄 변경, `_safe_csv_string()` 함수 본체 무수정. 파이프라인 통합 테스트 1개 추가, pytest 전체 통과. STRIDE §I 관련. |
 | RISK-017 | P2 | ALLOWED_WEB_TRACK_PATHS 오구성 시 과수집 위험 | todo | unassigned | 2026-05-01 | 허용 경로 최대 개수 상한, 기본값 변경 근거 문서화, 운영 가이드에 최소 경로 원칙이 명시된다. | `app/core/config.py` L157-168: `/` 접두사 검증만 수행, 최대 항목 수 제한·와일드카드 의미 문서 없음. 기본값 `"/"`는 전체 경로 수집에 해당하므로 재검토 필요. stride-lite §I 공백. |
 
 ## 주간 리뷰 로그
@@ -65,3 +65,4 @@
 - 2026-03-14 | reviewer: team | RISK-005 구현 완료: loadAllLandFeatures를 streamLandFeatures(onBatch)로 교체하여 첫 배치 즉시 렌더링, 나머지 백그라운드 축적 후 최종 완료 시 한 번 재렌더링. state.appendToOriginalData 추가 | 다음 액션: RISK-012(export 타임아웃) 검토
 - 2026-03-15 | reviewer: team | RISK-015 구현 완료: `check_excel_magic_bytes()` 추가(land_validators.py), 업로드 크기 검사 직후 8바이트 매직 바이트 대조 삽입, 불일치 시 HTTP 400 + 감사 로그. 신규 종속성 없음. 기존 테스트 매직 바이트 프리픽스 교체 + 신규 거부 테스트 2개 추가, pytest 전체 통과 | 다음 액션: RISK-012(export 쿼리 타임아웃) 검토
 - 2026-03-15 | reviewer: team | RISK-012 구현 완료: `RAW_QUERY_EXPORT_MAX_ROWS`/`RAW_QUERY_EXPORT_TIMEOUT_S` 환경변수 도입(config.py), `threading.Timer`+`conn.interrupt()` 타임아웃 블록 추가(raw_query_export_service.py), stats_service에서 설정값 주입. 신규 단위 테스트 2개(max_rows 클램프, 503 타임아웃), pytest 전체 통과 | 다음 액션: 잔여 P2 항목 검토
+- 2026-03-15 | reviewer: team | RISK-016 구현 완료: `CSV_FORMULA_PREFIXES`에 `\t`(탭, 일부 파서 formula 해석 벡터)·`|`(파이프, LibreOffice Calc DDE 벡터) 추가. 상수 1줄 변경, `_safe_csv_string()` 함수 본체 무수정. 파이프라인 통합 테스트 1개 추가, pytest 전체 통과 | 다음 액션: RISK-014(다운로드 파일 무결성), RISK-017(웹 수집 경로 과수집) 잔여 P2 항목 검토
