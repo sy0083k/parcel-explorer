@@ -58,6 +58,7 @@ def run_geom_update_job(job_id: int, max_retries: int = 5) -> tuple[int, int]:
         poi_repository.mark_geom_job_running(conn, job_id)
         conn.commit()
 
+    started = time.perf_counter()
     updated_count = 0
     failed_count = 0
     try:
@@ -67,6 +68,18 @@ def run_geom_update_job(job_id: int, max_retries: int = 5) -> tuple[int, int]:
                 conn, job_id, updated_count=updated_count, failed_count=failed_count
             )
             conn.commit()
+        logger.info(
+            "geom job completed",
+            extra={
+                "event": "geom.job.completed",
+                "actor": "system",
+                "status": 200,
+                "job_id": job_id,
+                "updated_count": updated_count,
+                "failed_count": failed_count,
+                "duration_ms": round((time.perf_counter() - started) * 1000, 2),
+            },
+        )
     except Exception as exc:
         with db_connection() as conn:
             poi_repository.mark_geom_job_failed(
@@ -77,6 +90,18 @@ def run_geom_update_job(job_id: int, max_retries: int = 5) -> tuple[int, int]:
                 error_message=str(exc)[:2000],
             )
             conn.commit()
+        logger.error(
+            "geom job failed",
+            extra={
+                "event": "geom.job.failed",
+                "actor": "system",
+                "status": 500,
+                "job_id": job_id,
+                "updated_count": updated_count,
+                "failed_count": failed_count,
+                "duration_ms": round((time.perf_counter() - started) * 1000, 2),
+            },
+        )
         raise
     return updated_count, failed_count
 

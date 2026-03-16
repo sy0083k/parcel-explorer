@@ -200,6 +200,26 @@
   - p95 regression <= 10%
   - error rate <= 0.5%
 
+### 5. 성능 기준선 갱신
+
+기준선 JSON 파일 경로: `.agent-memory/ops/baselines/nonfunctional-baseline.json`
+
+기준선을 새로 측정하고 저장하려면 앱이 실행 중인 상태에서 아래 명령을 실행한다:
+
+```bash
+python scripts/run_nonfunctional_checks.py --samples 30 \
+  | python -c "import sys,json; d=json.load(sys.stdin); print(json.dumps({k: v['p95_ms'] for k,v in d['results'].items()}, indent=2))" \
+  > .agent-memory/ops/baselines/nonfunctional-baseline.json
+```
+
+이후 비교 시:
+```bash
+python scripts/run_nonfunctional_checks.py --samples 30 \
+  --baseline .agent-memory/ops/baselines/nonfunctional-baseline.json
+```
+
+기준선은 주요 변경(성능에 영향을 줄 수 있는 미들웨어/DB/외부 클라이언트 수정) 후 갱신한다.
+
 ## 장애 대응
 ### 로그인 실패/차단 급증
 - `LOGIN_MAX_ATTEMPTS`, `LOGIN_COOLDOWN_SECONDS` 점검

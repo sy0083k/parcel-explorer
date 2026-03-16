@@ -74,7 +74,10 @@ async def add_request_context(
             "event": "http.request.completed",
             "actor": "anonymous",
             "ip": client_ip,
+            "method": request.method,
+            "path": request.url.path,
             "status": response.status_code,
+            "status_class": f"{response.status_code // 100}xx",
             "latency_ms": latency_ms,
         },
     )
