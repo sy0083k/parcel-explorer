@@ -19,6 +19,10 @@
     - 충돌 지점(있다면)과 사유/대안
   - `docs/refactoring-strategy.md`, `docs/reports/*`는 **아카이브/기준선 참고용**이며 현행 강제 규칙으로 사용하지 않는다.
 
+  ## Response Requirements (필수)
+  - After completing any task that modifies repository files, suggest an appropriate git commit title in the final response.
+  - 저장소 파일 변경에는 코드와 문서 변경을 모두 포함한다.
+
   ## Execution Reference
   - 앱 실행: `uvicorn app.main:app --reload`
   - 의존성 설치: `pip install -r requirements.txt` / `cd frontend && npm ci`
