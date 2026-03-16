@@ -140,6 +140,15 @@ async function bootstrap(): Promise<void> {
       return;
     }
     document.body.classList.add(`mobile-${mobileState}`);
+
+    const overlay = document.getElementById("mobile-search-overlay");
+    if (overlay) {
+      if (mobileState === "search") {
+        overlay.removeAttribute("inert");
+      } else {
+        overlay.setAttribute("inert", "");
+      }
+    }
   };
 
   const setMobileState = (nextState: MobileViewState, pushHistory = true): void => {
