@@ -2,6 +2,8 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
+After completing any task that modifies code, suggest an appropriate git commit title.
+
 ## Mandatory Pre-Check
 - 계획 수립/구현/리뷰 전에 `docs/engineering-guidelines.md`를 먼저 확인한다 (최우선 기준).
 - `docs/refactoring-strategy.md`, `docs/reports/*`는 **아카이브/기준선 참고용**이며 현행 강제 규칙으로 사용하지 않는다.
