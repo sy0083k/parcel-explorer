@@ -1,4 +1,5 @@
 import io
+import json
 import logging
 from typing import Any
 
@@ -6,6 +7,7 @@ import pandas as pd
 import pytest
 from _pytest.monkeypatch import MonkeyPatch
 from fastapi import BackgroundTasks, FastAPI, HTTPException
+from fastapi.responses import JSONResponse
 from starlette.datastructures import UploadFile
 from starlette.requests import Request
 
@@ -364,3 +366,78 @@ def test_upload_service_emits_audit_log_on_magic_bytes_rejection(
             )
     record = next(r for r in caplog.records if r.event == "admin.upload.rejected")
     assert record.reason == "invalid_magic_bytes"
+
+
+@pytest.mark.unit
+def test_upload_service_returns_json_response_on_row_validation_failure(
+    build_app: Any, monkeypatch: MonkeyPatch, db_path: Any, caplog: pytest.LogCaptureFixture
+) -> None:
+    app = build_app()
+    request = _make_request(app, csrf_token="csrf")
+    file = _make_upload_file(
+        "upload.xlsx",
+        b"PK\x03\x04dummy",
+        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    )
+    df = pd.DataFrame(
+        {
+            "소재지(지번)": [""],
+            "(공부상)지목": ["답"],
+            "(공부상)면적(㎡)": [12.5],
+            "행정재산": ["Y"],
+            "일반재산": ["N"],
+            "담당자연락처": ["010"],
+        }
+    )
+    monkeypatch.setattr(pd, "ExcelFile", lambda *_args, **_kwargs: DummyExcelFile(sheet_names=["목록"]))
+    monkeypatch.setattr(pd, "read_excel", lambda *_args, **_kwargs: df)
+
+    with caplog.at_level(logging.WARNING, logger="app.services.upload_service"):
+        result = upload_service.handle_excel_upload(
+            request=request,
+            background_tasks=BackgroundTasks(),
+            csrf_token="csrf",
+            file=file,
+    )
+
+    assert isinstance(result, JSONResponse)
+    assert result.status_code == 400
+    assert json.loads(result.body) == {
+        "success": False,
+        "message": "데이터 검증 실패",
+        "failed": 1,
+        "errors": [{"row": 1, "field": "address", "code": "missing", "value": ""}],
+    }
+    rejected_record = next(record for record in caplog.records if record.event == "admin.upload.rejected")
+    assert rejected_record.reason == "row_validation_failed"
+    assert rejected_record.failed_rows == 1
+
+
+@pytest.mark.unit
+def test_upload_service_returns_500_and_logs_when_processing_crashes(
+    build_app: Any, monkeypatch: MonkeyPatch, db_path: Any, caplog: pytest.LogCaptureFixture
+) -> None:
+    app = build_app()
+    request = _make_request(app, csrf_token="csrf")
+    file = _make_upload_file(
+        "upload.xlsx",
+        b"PK\x03\x04dummy",
+        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    )
+    monkeypatch.setattr(pd, "ExcelFile", lambda *_args, **_kwargs: DummyExcelFile(sheet_names=["목록"]))
+    monkeypatch.setattr(pd, "read_excel", lambda *_args, **_kwargs: (_ for _ in ()).throw(RuntimeError("boom")))
+
+    with caplog.at_level(logging.ERROR, logger="app.services.upload_service"):
+        result = upload_service.handle_excel_upload(
+            request=request,
+            background_tasks=BackgroundTasks(),
+            csrf_token="csrf",
+            file=file,
+        )
+
+    assert isinstance(result, JSONResponse)
+    assert result.status_code == 500
+    assert json.loads(result.body) == {"success": False, "message": "업로드 처리 중 오류가 발생했습니다."}
+    failure_record = next(record for record in caplog.records if record.event == "admin.upload.failed")
+    assert failure_record.upload_filename == "upload.xlsx"
+    assert failure_record.reason == "unexpected_exception"
