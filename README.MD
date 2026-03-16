@@ -109,8 +109,7 @@ uvicorn app.main:app --reload
 ### 관리자/인증
 - `GET /admin/login`
 - `POST /login` (`POST /admin/login` alias 지원)
-- `POST /logout` (권장)
-- `GET /logout`
+- `POST /logout`
 - `GET /admin`
 - `POST /admin/upload`
 - `POST /admin/public-download/upload`
@@ -129,7 +128,7 @@ uvicorn app.main:app --reload
 
 ## 🛡 보안/운영 포인트 (핵심)
 - 관리자 보호 경로는 내부망 허용 IP(`ALLOWED_IPS`)와 세션 인증으로 보호되며, 상태 변경 요청에는 CSRF 검증을 적용합니다.
-- 로그아웃은 `POST /logout`를 기본 경로로 사용하며 CSRF 검증을 적용합니다. `GET /logout`는 호환성 경로로만 유지됩니다.
+- 로그아웃은 `POST /logout` + CSRF로만 처리합니다.
 - 동일 브라우저/도메인에서 여러 앱을 운영할 경우 `SECRET_KEY`, `SESSION_COOKIE_NAME`, `SESSION_NAMESPACE`를 앱별로 분리해야 세션 교차 인식을 방지할 수 있습니다.
 - `VWORLD_WMTS_KEY`는 공개 지도 렌더링(`/api/config`)용 예외 공개 키입니다.
 - `VWORLD_GEOCODER_KEY`는 관리자 보호 화면(`/admin`)에서 운영 편의를 위해 예외 공개될 수 있으며, 공개 API/로그 노출은 금지합니다.
@@ -147,7 +146,8 @@ uvicorn app.main:app --reload
   관리자 `/admin/stats/web`에서 채널/디바이스/브라우저/상위 페이지 분석 축을 제공합니다.
 
 ## ⚠️ 운영 주의사항
-- 관리자 화면에서 `.env`를 갱신해도 실행 중 프로세스의 설정 객체는 즉시 교체되지 않습니다. 운영 환경에서는 설정/비밀번호 변경 후 앱 재시작 절차를 함께 운영하세요.
+- 관리자 화면에서 변경한 설정/비밀번호는 `.env`와 `app.state.config`에 즉시 반영됩니다.
+- 예외적으로 `SESSION_HTTPS_ONLY`는 `SessionMiddleware` 초기화 시 고정되므로, 값을 바꾼 뒤에는 반드시 앱을 재시작해야 `Secure` 쿠키 속성이 반영됩니다.
 - `SESSION_COOKIE_NAME` 또는 `SESSION_NAMESPACE`를 변경하면 기존 세션이 무효화되므로 관리자 재로그인이 필요합니다.
 - 로그인 실패 제한과 이벤트 레이트리밋은 현재 인메모리 구현이며, 지원 배포 형태는 단일 앱 인스턴스 1개입니다.
 - 로드밸런서 뒤 다중 인스턴스, 다중 replica, 다중 호스트 배포는 `RISK-002` 해소 전까지 지원하지 않습니다.
@@ -155,6 +155,12 @@ uvicorn app.main:app --reload
 - API 버전 정책(`/api` vs `/api/v1`)의 운영 절차는 `docs/architecture.md`와 `docs/maintenance.md`를 기준으로 관리하세요.
 - `/admin/raw-queries/export` CSV는 문자열 셀 선두 `=`, `+`, `-`, `@` 값에 `'` 접두를 추가해 formula injection을 완화합니다.
 - 관리자 업로드와 `/admin/raw-queries/export`는 요청자, 조건, 결과 건수/실패 사유를 구조화 감사 로그로 기록합니다.
+
+## 🚦 첫 배포 전 체크포인트
+- `docs/maintenance.md`의 `첫 배포 전 실행 순서`를 기준으로 준비합니다.
+- 배포 차단 항목은 세 가지입니다: 문서와 실제 동작 불일치 제거, 전체 품질 게이트 통과 확인, 운영 `.env`/GitHub Secrets 확정.
+- 현재 지원 배포 토폴로지는 Docker Compose 기반 단일 `app` 인스턴스 1개입니다.
+- 첫 배포 리허설에서는 `/health`, `/api/config`, `/api/lands`, `/api/public-download`, `/admin/login`, `/admin/stats`, `POST /logout`를 최소 smoke set으로 확인합니다.
 
 ## ✅ 테스트 및 품질 체크
 ```bash

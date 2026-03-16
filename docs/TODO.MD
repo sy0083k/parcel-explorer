@@ -2,7 +2,7 @@
 
 프로젝트: 관심 필지 지도 (Parcel Explorer)  
 작성일: 2026-02-23  
-최종 수정일: 2026-03-15  
+최종 수정일: 2026-03-16  
 운영 주기: 매주 1회 (월요일 기준)
 
 ## 목적
@@ -68,3 +68,4 @@
 - 2026-03-15 | reviewer: team | RISK-016 구현 완료: `CSV_FORMULA_PREFIXES`에 `\t`(탭, 일부 파서 formula 해석 벡터)·`|`(파이프, LibreOffice Calc DDE 벡터) 추가. 상수 1줄 변경, `_safe_csv_string()` 함수 본체 무수정. 파이프라인 통합 테스트 1개 추가, pytest 전체 통과 | 다음 액션: RISK-014(다운로드 파일 무결성), RISK-017(웹 수집 경로 과수집) 잔여 P2 항목 검토
 - 2026-03-15 | reviewer: team | RISK-014 구현 완료: 청크 쓰기 루프에 sha256 누적 연산 추가, `current.json`에 `sha256` 필드 기록. `docs/maintenance.md`에 무결성 점검 절차 추가, stride-lite §T 공백 해소 | 다음 액션: RISK-017(웹 수집 경로 과수집) 잔여 P2 항목 검토
 - 2026-03-15 | reviewer: team | RISK-017 구현 완료: `ALLOWED_WEB_TRACK_PATHS` 최대 20개 상한 추가(초과 시 `SettingsError`), `"/"` 포함 시 시작 WARNING 로그, `.env.example` 주석 과수집 위험 명시, `docs/maintenance.md` 최소 경로 원칙 섹션, stride-lite §I 공백 해소. 신규 단위 테스트 1개, pytest 전체 통과 | 다음 액션: 잔여 P2 항목 없음 — P1 항목 검토
+- 2026-03-16 | reviewer: team | 첫 배포 준비 기준을 문서화: `README.MD`/`docs/architecture.md`의 로그아웃·설정 반영 설명을 코드 기준으로 정정하고, `docs/maintenance.md`에 `첫 배포 전 실행 순서`(P0/P1/P2)를 추가 | 다음 액션: 전체 품질 게이트 종료 시간과 첫 배포 리허설 결과를 운영 기록으로 남김

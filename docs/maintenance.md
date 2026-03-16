@@ -2,7 +2,7 @@
 
 프로젝트: 관심 필지 지도 (Parcel Explorer)  
 작성일: 2026-02-11  
-최종 수정일: 2026-03-13
+최종 수정일: 2026-03-16
 
 ## 목적
 운영 중인 서비스의 안정성과 보안을 유지하기 위해 필요한 점검, 변경, 장애 대응 절차를 정의한다.
@@ -68,6 +68,56 @@
 11. `/admin/stats`, `/admin/stats/web`, `/admin/raw-queries/export`, `/admin/lands/geom-refresh*` 권한/응답 정상 확인
 12. `POST /logout`(내부망/인증/CSRF) 정상 동작 확인
 13. 지도 화면 핵심 사용자 흐름 수동 회귀(검색/엔터/지도 클릭/다운로드/이전·다음/레이어 전환) 확인
+
+## 첫 배포 전 실행 순서
+첫 배포는 `GitHub Actions -> SSH -> Docker Compose -> 단일 app 인스턴스 1개`를 기준 경로로 고정한다.
+
+### P0 배포 차단 항목
+1. 문서 정합성
+   - `README.MD`, `docs/architecture.md`, 본 문서의 로그아웃/설정 반영/단일 인스턴스 설명이 실제 코드와 일치해야 한다.
+   - 통과 기준: `POST /logout`만 표기되고, 설정 핫리로드와 `SESSION_HTTPS_ONLY` 재시작 예외가 명시되어 있다.
+2. 품질 게이트
+   - `python -m compileall -q app tests`
+   - `mypy app tests create_hash.py`
+   - `ruff check app tests`
+   - `scripts/check_quality_warnings.sh`
+   - `cd frontend && npm ci && npm run typecheck && npm run build`
+   - `pytest -m unit -q`
+   - `pytest -m integration -q`
+   - `pytest -m e2e -q`
+   - `pytest -q`
+   - 통과 기준: 실패/멈춤 없이 종료한다. 장시간 테스트가 있으면 원인과 허용 시간을 배포 기록에 남긴다.
+3. 운영 환경 확정
+   - `.env` 필수값(`VWORLD_*`, `ADMIN_*`, `SECRET_KEY`)과 선택값 중 `ALLOWED_IPS`, `SESSION_*`, `TRUST_PROXY_*`, `PUBLIC_DOWNLOAD_*`를 운영값으로 확정한다.
+   - GitHub Secrets(`PROD_HOST`, `PROD_PORT`, `PROD_USER`, `PROD_SSH_KEY`, `PROD_DEPLOY_PATH`)를 등록한다.
+   - 통과 기준: `.env`와 GitHub Actions secrets에 placeholder가 남아 있지 않다.
+
+### P1 첫 배포 직후 리스크 저감 항목
+1. 서버 리허설
+   - `docker compose build`
+   - `docker compose up -d`
+   - `docker compose ps`
+   - `curl http://127.0.0.1:8000/health`
+2. 공개/관리자 smoke set
+   - `GET /api/config`
+   - `GET /api/lands`
+   - `GET /api/public-download`
+   - `GET /admin/login`
+   - `GET /admin/stats`
+   - `POST /logout`
+   - 통과 기준: 공개 엔드포인트는 기대 상태코드, 관리자 엔드포인트는 내부망/세션 정책대로 응답한다.
+3. 관리자 수동 회귀
+   - 로그인
+   - 업로드
+   - 공개 다운로드 파일 업로드
+   - 통계 조회
+   - 경계선 재수집 시작/상태 조회
+   - 로그아웃
+
+### P2 배포 후 후속 개선
+1. `scripts/run_nonfunctional_checks.py`로 성능 기준선 저장
+2. DB/공개 다운로드 파일 백업 절차 자동화
+3. `RISK-002`는 `blocked` 유지: 멀티 인스턴스 요구가 생길 때만 공유 스토어 limiter 작업 착수
 
 ## CI/테스트 명령
 - `python -m compileall -q app tests`
