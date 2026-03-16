@@ -44,6 +44,8 @@
 - `PUBLIC_DOWNLOAD_RATE_LIMIT_PER_MINUTE`
 - `PUBLIC_DOWNLOAD_ALLOWED_EXTS`
 - `PUBLIC_DOWNLOAD_DIR`
+- `RAW_QUERY_EXPORT_MAX_ROWS`
+- `RAW_QUERY_EXPORT_TIMEOUT_S`
 
 ## 주기적 점검
 - VWorld API 키 유효성 확인
@@ -257,6 +259,7 @@ sha256sum data/public_download/current.<ext>
 ### 통계/원시 로그 내보내기 실패
 - `/admin/stats`, `/admin/stats/web`, `/admin/raw-queries/export` 응답 및 권한 확인
 - `/admin/stats/web`의 breakdown(`channel/device/browser/page/referrer/utm`) 필드 누락 여부 확인
+- `RAW_QUERY_EXPORT_MAX_ROWS`, `RAW_QUERY_EXPORT_TIMEOUT_S` 설정값이 운영 기준에 맞는지 확인
 - CSV를 스프레드시트로 열 때 선두 `=`, `+`, `-`, `@` 값이 `'` 접두 처리되어 formula injection이 차단되는지 확인
 - 경계선 재수집 상태 확인 시 `/admin/lands/geom-refresh/{job_id}` 응답 및 권한 확인
 - `map_event_log`, `raw_query_log`, `web_visit_event` 테이블 상태 확인

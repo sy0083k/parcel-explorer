@@ -69,7 +69,7 @@
   - `telemetry.ts`: 검색/클릭 이벤트 전송
   - `download-client.ts`: 공개 다운로드 API 호출/파일 저장
   - `session-tracker.ts`: 방문 세션 쿠키, heartbeat/pagehide 이벤트 전송
-  - `lands-client.ts`: `/api/lands` 페이지네이션 로더(현재는 전체 페이지 선수집)
+  - `lands-client.ts`: `/api/lands` 500건 배치 페이지네이션 로더(첫 배치 즉시 반영, 잔여 페이지 백그라운드 수집)
   - `state.ts`: 지도 화면 상태 저장소
   - `types.ts`: 지도 화면 공통 타입
 
@@ -234,6 +234,8 @@
 - `PUBLIC_DOWNLOAD_RATE_LIMIT_PER_MINUTE`
 - `PUBLIC_DOWNLOAD_ALLOWED_EXTS`
 - `PUBLIC_DOWNLOAD_DIR`
+- `RAW_QUERY_EXPORT_MAX_ROWS`
+- `RAW_QUERY_EXPORT_TIMEOUT_S`
 
 ## 운영 참고 및 알려진 제약
 - 관리자 보호 경로는 내부 IP 허용 목록으로 제한되며, 인증이 필요한 경로는 세션 인증으로 보호된다.
@@ -250,7 +252,7 @@
   - 관련 TODO: `RISK-003` 완료
 - 공개 다운로드 응답은 `FileResponse` 기반 스트리밍으로 전달한다.  
   - 관련 TODO: `RISK-004` 완료
-- 지도 프런트는 첫 배치 도착 즉시 렌더링하고 잔여 페이지는 백그라운드에서 수집한다.  
+- 지도 프런트는 `/api/lands`를 500건 배치로 수집하며, 첫 배치 도착 즉시 렌더링하고 잔여 페이지는 백그라운드에서 수집한다.  
   - 관련 TODO: `RISK-005` 완료
 - 이벤트 로그/원시 로그는 운영 중 누적되므로 보존/정리 정책을 별도로 운영한다.
 
