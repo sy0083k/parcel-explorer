@@ -10,7 +10,7 @@ from pathlib import Path
 from typing import cast
 
 from fastapi import FastAPI, HTTPException, Request
-from fastapi.responses import HTMLResponse, Response
+from fastapi.responses import FileResponse, HTMLResponse, Response
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from starlette.middleware.sessions import SessionMiddleware
@@ -124,6 +124,11 @@ app.include_router(auth.router, tags=["Authentication"])
 app.include_router(admin.router, prefix="/admin", tags=["Admin"])
 app.include_router(map_router.router, prefix="/api", tags=["Map"])
 app.include_router(map_v1_router.router, prefix="/api/v1", tags=["MapV1"])
+
+
+@app.get("/favicon.ico", include_in_schema=False)
+async def favicon() -> FileResponse:
+    return FileResponse(os.path.join(BASE_DIR, "static", "favicon.svg"), media_type="image/svg+xml")
 
 
 @app.get("/", response_class=HTMLResponse)
