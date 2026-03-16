@@ -1,96 +1,79 @@
 from __future__ import annotations
 
 import os
+from collections.abc import Mapping
+from dataclasses import dataclass
 from ipaddress import ip_network
 from pathlib import Path
+from typing import Any, Literal
 
 import bcrypt
 from fastapi import HTTPException, Request
+from starlette.datastructures import FormData
 
 from app.core.config import get_settings
 from app.core.runtime_config import rebuild_runtime_state
 from app.dependencies import validate_csrf_token
 
-WHITELIST_KEYS = {
-    "APP_NAME",
-    "VWORLD_WMTS_KEY",
-    "VWORLD_GEOCODER_KEY",
-    "ALLOWED_IPS",
-    "MAX_UPLOAD_SIZE_MB",
-    "MAX_UPLOAD_ROWS",
-    "LOGIN_MAX_ATTEMPTS",
-    "LOGIN_COOLDOWN_SECONDS",
-    "VWORLD_TIMEOUT_S",
-    "VWORLD_RETRIES",
-    "VWORLD_BACKOFF_S",
-    "SESSION_HTTPS_ONLY",
-    "TRUST_PROXY_HEADERS",
-    "TRUSTED_PROXY_IPS",
-    "UPLOAD_SHEET_NAME",
-    "PUBLIC_DOWNLOAD_RATE_LIMIT_PER_MINUTE",
-}
-
-INT_KEYS = {
-    "MAX_UPLOAD_SIZE_MB",
-    "MAX_UPLOAD_ROWS",
-    "LOGIN_MAX_ATTEMPTS",
-    "LOGIN_COOLDOWN_SECONDS",
-    "VWORLD_RETRIES",
-    "PUBLIC_DOWNLOAD_RATE_LIMIT_PER_MINUTE",
-}
-
-FLOAT_KEYS = {"VWORLD_TIMEOUT_S", "VWORLD_BACKOFF_S"}
-
-BOOL_KEYS = {"SESSION_HTTPS_ONLY"}
+FieldKind = Literal["str", "int", "float", "bool", "network_list"]
 
 
+@dataclass(frozen=True)
+class AdminSettingField:
+    env_key: str
+    form_field: str
+    settings_attr: str
+    kind: FieldKind
+
+
+ADMIN_SETTINGS_FIELDS: tuple[AdminSettingField, ...] = (
+    AdminSettingField("APP_NAME", "app_name", "app_name", "str"),
+    AdminSettingField("VWORLD_WMTS_KEY", "vworld_wmts_key", "vworld_wmts_key", "str"),
+    AdminSettingField("VWORLD_GEOCODER_KEY", "vworld_geocoder_key", "vworld_geocoder_key", "str"),
+    AdminSettingField("ALLOWED_IPS", "allowed_ips", "allowed_ip_networks", "network_list"),
+    AdminSettingField("MAX_UPLOAD_SIZE_MB", "max_upload_size_mb", "max_upload_size_mb", "int"),
+    AdminSettingField("MAX_UPLOAD_ROWS", "max_upload_rows", "max_upload_rows", "int"),
+    AdminSettingField("LOGIN_MAX_ATTEMPTS", "login_max_attempts", "login_max_attempts", "int"),
+    AdminSettingField("LOGIN_COOLDOWN_SECONDS", "login_cooldown_seconds", "login_cooldown_seconds", "int"),
+    AdminSettingField("VWORLD_TIMEOUT_S", "vworld_timeout_s", "vworld_timeout_s", "float"),
+    AdminSettingField("VWORLD_RETRIES", "vworld_retries", "vworld_retries", "int"),
+    AdminSettingField("VWORLD_BACKOFF_S", "vworld_backoff_s", "vworld_backoff_s", "float"),
+    AdminSettingField("SESSION_HTTPS_ONLY", "session_https_only", "session_https_only", "bool"),
+    AdminSettingField("TRUST_PROXY_HEADERS", "trust_proxy_headers", "trust_proxy_headers", "bool"),
+    AdminSettingField("TRUSTED_PROXY_IPS", "trusted_proxy_ips", "trusted_proxy_networks", "network_list"),
+    AdminSettingField("UPLOAD_SHEET_NAME", "upload_sheet_name", "upload_sheet_name", "str"),
+    AdminSettingField(
+        "PUBLIC_DOWNLOAD_RATE_LIMIT_PER_MINUTE",
+        "public_download_rate_limit_per_minute",
+        "public_download_rate_limit_per_minute",
+        "int",
+    ),
+)
+
+ADMIN_SETTINGS_FIELD_BY_KEY = {field.env_key: field for field in ADMIN_SETTINGS_FIELDS}
 def get_current_settings() -> dict[str, str]:
     settings = get_settings()
     return {
-        "APP_NAME": settings.app_name,
-        "VWORLD_WMTS_KEY": settings.vworld_wmts_key,
-        "VWORLD_GEOCODER_KEY": settings.vworld_geocoder_key,
-        "ALLOWED_IPS": ",".join(str(n) for n in settings.allowed_ip_networks),
-        "MAX_UPLOAD_SIZE_MB": str(settings.max_upload_size_mb),
-        "MAX_UPLOAD_ROWS": str(settings.max_upload_rows),
-        "LOGIN_MAX_ATTEMPTS": str(settings.login_max_attempts),
-        "LOGIN_COOLDOWN_SECONDS": str(settings.login_cooldown_seconds),
-        "VWORLD_TIMEOUT_S": str(settings.vworld_timeout_s),
-        "VWORLD_RETRIES": str(settings.vworld_retries),
-        "VWORLD_BACKOFF_S": str(settings.vworld_backoff_s),
-        "SESSION_HTTPS_ONLY": "true" if settings.session_https_only else "false",
-        "TRUST_PROXY_HEADERS": "true" if settings.trust_proxy_headers else "false",
-        "TRUSTED_PROXY_IPS": ",".join(str(n) for n in settings.trusted_proxy_networks),
-        "UPLOAD_SHEET_NAME": settings.upload_sheet_name,
-        "PUBLIC_DOWNLOAD_RATE_LIMIT_PER_MINUTE": str(settings.public_download_rate_limit_per_minute),
+        field.env_key: _serialize_setting_value(field, getattr(settings, field.settings_attr))
+        for field in ADMIN_SETTINGS_FIELDS
     }
+
+
+def collect_settings_updates(form_data: Mapping[str, Any] | FormData) -> dict[str, str]:
+    updates: dict[str, str] = {}
+    for field in ADMIN_SETTINGS_FIELDS:
+        value = form_data.get(field.form_field, "")
+        updates[field.env_key] = value if isinstance(value, str) else str(value)
+    return updates
 
 
 def validate_updates(updates: dict[str, str]) -> dict[str, str]:
     cleaned: dict[str, str] = {}
     for key, value in updates.items():
-        if key not in WHITELIST_KEYS:
+        field = ADMIN_SETTINGS_FIELD_BY_KEY.get(key)
+        if field is None:
             continue
-        raw = value.strip()
-        if key in INT_KEYS:
-            if not raw.isdigit():
-                raise ValueError(f"{key} must be an integer.")
-        if key in FLOAT_KEYS:
-            try:
-                float(raw)
-            except ValueError as exc:
-                raise ValueError(f"{key} must be a float.") from exc
-        if key == "TRUSTED_PROXY_IPS":
-            for candidate in [item.strip() for item in raw.split(",") if item.strip()]:
-                try:
-                    ip_network(candidate, strict=False)
-                except ValueError as exc:
-                    raise ValueError(f"Invalid TRUSTED_PROXY_IPS entry: {candidate}") from exc
-        if key in BOOL_KEYS or key == "TRUST_PROXY_HEADERS":
-            if raw.lower() not in {"true", "false"}:
-                raise ValueError(f"{key} must be true or false.")
-            raw = raw.lower()
-        cleaned[key] = raw
+        cleaned[key] = _normalize_update_value(field, value)
     return cleaned
 
 
@@ -128,6 +111,50 @@ def _format_env_value(value: str) -> str:
     if " " in value or "#" in value:
         return f"\"{value}\""
     return value
+
+
+def _serialize_setting_value(field: AdminSettingField, value: Any) -> str:
+    if field.kind == "bool":
+        return "true" if value else "false"
+    if field.kind in {"int", "float"}:
+        return str(value)
+    if field.kind == "network_list":
+        return ",".join(str(item) for item in value)
+    return str(value)
+
+
+def _normalize_update_value(field: AdminSettingField, value: str) -> str:
+    raw = value.strip()
+    if field.kind == "int":
+        if not raw.isdigit():
+            raise ValueError(f"{field.env_key} must be an integer.")
+        return raw
+    if field.kind == "float":
+        try:
+            float(raw)
+        except ValueError as exc:
+            raise ValueError(f"{field.env_key} must be a float.") from exc
+        return raw
+    if field.kind == "bool":
+        if raw.lower() not in {"true", "false"}:
+            raise ValueError(f"{field.env_key} must be true or false.")
+        return raw.lower()
+    if field.kind == "network_list":
+        for candidate in [item.strip() for item in raw.split(",") if item.strip()]:
+            try:
+                ip_network(candidate, strict=False)
+            except ValueError as exc:
+                raise ValueError(f"Invalid {field.env_key} entry: {candidate}") from exc
+        return raw
+    return raw
+
+
+def get_admin_settings_fields() -> tuple[AdminSettingField, ...]:
+    return ADMIN_SETTINGS_FIELDS
+
+
+def get_admin_settings_form_names() -> tuple[str, ...]:
+    return tuple(field.form_field for field in ADMIN_SETTINGS_FIELDS)
 
 
 def apply_settings_update(

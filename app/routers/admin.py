@@ -88,48 +88,13 @@ async def get_public_download_meta(request: Request) -> dict:
 @router.post("/settings", dependencies=[Depends(check_internal_network), Depends(require_authenticated)])
 async def update_settings(
     request: Request,
-    csrf_token: str = Form(default=""),
-    settings_password: str = Form(default=""),
-    app_name: str = Form(default=""),
-    vworld_wmts_key: str = Form(default=""),
-    vworld_geocoder_key: str = Form(default=""),
-    allowed_ips: str = Form(default=""),
-    max_upload_size_mb: str = Form(default=""),
-    max_upload_rows: str = Form(default=""),
-    login_max_attempts: str = Form(default=""),
-    login_cooldown_seconds: str = Form(default=""),
-    vworld_timeout_s: str = Form(default=""),
-    vworld_retries: str = Form(default=""),
-    vworld_backoff_s: str = Form(default=""),
-    session_https_only: str = Form(default=""),
-    trust_proxy_headers: str = Form(default=""),
-    trusted_proxy_ips: str = Form(default=""),
-    upload_sheet_name: str = Form(default=""),
-    public_download_rate_limit_per_minute: str = Form(default=""),
 ):
-    updates = {
-        "APP_NAME": app_name,
-        "VWORLD_WMTS_KEY": vworld_wmts_key,
-        "VWORLD_GEOCODER_KEY": vworld_geocoder_key,
-        "ALLOWED_IPS": allowed_ips,
-        "MAX_UPLOAD_SIZE_MB": max_upload_size_mb,
-        "MAX_UPLOAD_ROWS": max_upload_rows,
-        "LOGIN_MAX_ATTEMPTS": login_max_attempts,
-        "LOGIN_COOLDOWN_SECONDS": login_cooldown_seconds,
-        "VWORLD_TIMEOUT_S": vworld_timeout_s,
-        "VWORLD_RETRIES": vworld_retries,
-        "VWORLD_BACKOFF_S": vworld_backoff_s,
-        "SESSION_HTTPS_ONLY": session_https_only,
-        "TRUST_PROXY_HEADERS": trust_proxy_headers,
-        "TRUSTED_PROXY_IPS": trusted_proxy_ips,
-        "UPLOAD_SHEET_NAME": upload_sheet_name,
-        "PUBLIC_DOWNLOAD_RATE_LIMIT_PER_MINUTE": public_download_rate_limit_per_minute,
-    }
+    form_data = await request.form()
     admin_settings_service.apply_settings_update(
         request,
-        csrf_token=csrf_token,
-        settings_password=settings_password,
-        updates=updates,
+        csrf_token=str(form_data.get("csrf_token", "")),
+        settings_password=str(form_data.get("settings_password", "")),
+        updates=admin_settings_service.collect_settings_updates(form_data),
     )
     request_id = getattr(request.state, "request_id", "-")
     client_ip = request.client.host if request.client else "unknown"

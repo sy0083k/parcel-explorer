@@ -6,6 +6,9 @@ import httpx
 import pytest
 from _pytest.monkeypatch import MonkeyPatch
 from fastapi import FastAPI
+from starlette.datastructures import FormData
+
+from app.services import admin_settings_service
 
 CSRF_PATTERN = r'name="csrf_token" value="([^"]+)"'
 
@@ -43,6 +46,67 @@ async def _get_admin_csrf(client: httpx.AsyncClient) -> str:
     match = re.search(CSRF_PATTERN, admin_page.text)
     assert match is not None
     return match.group(1)
+
+
+def test_admin_settings_metadata_matches_current_settings_keys() -> None:
+    fields = admin_settings_service.get_admin_settings_fields()
+    current_settings = admin_settings_service.get_current_settings()
+
+    assert tuple(field.env_key for field in fields) == tuple(current_settings.keys())
+
+
+def test_admin_settings_collects_updates_from_form_data() -> None:
+    updates = admin_settings_service.collect_settings_updates(
+        FormData(
+            {
+                "app_name": "Parcel Explorer",
+                "vworld_wmts_key": "wmts-key",
+                "vworld_geocoder_key": "geocoder-key",
+                "allowed_ips": "127.0.0.1/32",
+                "max_upload_size_mb": "10",
+                "max_upload_rows": "100",
+                "login_max_attempts": "5",
+                "login_cooldown_seconds": "300",
+                "vworld_timeout_s": "5.0",
+                "vworld_retries": "3",
+                "vworld_backoff_s": "0.5",
+                "session_https_only": "true",
+                "trust_proxy_headers": "false",
+                "trusted_proxy_ips": "10.0.0.0/8",
+                "upload_sheet_name": "목록",
+                "public_download_rate_limit_per_minute": "7",
+                "unexpected_field": "ignored",
+            }
+        )
+    )
+
+    assert tuple(updates.keys()) == tuple(
+        field.env_key for field in admin_settings_service.get_admin_settings_fields()
+    )
+    assert updates["APP_NAME"] == "Parcel Explorer"
+    assert updates["TRUSTED_PROXY_IPS"] == "10.0.0.0/8"
+    assert "unexpected_field" not in updates
+
+
+def test_admin_settings_form_names_match_expected_contract() -> None:
+    assert admin_settings_service.get_admin_settings_form_names() == (
+        "app_name",
+        "vworld_wmts_key",
+        "vworld_geocoder_key",
+        "allowed_ips",
+        "max_upload_size_mb",
+        "max_upload_rows",
+        "login_max_attempts",
+        "login_cooldown_seconds",
+        "vworld_timeout_s",
+        "vworld_retries",
+        "vworld_backoff_s",
+        "session_https_only",
+        "trust_proxy_headers",
+        "trusted_proxy_ips",
+        "upload_sheet_name",
+        "public_download_rate_limit_per_minute",
+    )
 
 
 @pytest.mark.anyio

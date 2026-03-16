@@ -251,7 +251,8 @@
 - 프록시 환경에서는 신뢰 프록시(`TRUSTED_PROXY_IPS`) 경유 요청에 한해 `X-Forwarded-For`를 사용한다.
 - `VWORLD_WMTS_KEY`는 지도 렌더링을 위해 `/api/config`에서 예외 공개되며, 도메인/용도 제한 및 사용량 모니터링 정책을 유지한다.
 - `VWORLD_GEOCODER_KEY`는 관리자 보호 화면(`/admin`)에서 운영 목적으로 예외 공개할 수 있으며, 공개 API/로그 노출은 금지한다.
-- 관리자 설정/비밀번호 변경은 `.env`를 갱신한 뒤 `rebuild_runtime_state()`로 `app.state.config`에 즉시 반영된다.
+- 관리자 설정 변경은 라우터가 폼 입력을 수집하고, `app/services/admin_settings_service.py`의 단일 필드 메타데이터를 기준으로 검증/`.env` 반영/`rebuild_runtime_state()`를 수행한다.
+- 관리자 비밀번호 변경은 `.env`를 갱신한 뒤 `rebuild_runtime_state()`로 `app.state.config`에 즉시 반영된다.
 - 단, `SESSION_HTTPS_ONLY`는 `SessionMiddleware` 초기화 시 고정되므로 변경 후 재시작이 필요하다.  
   - 관련 TODO: `RISK-001` 완료
 - 로그인/이벤트 레이트리밋은 인메모리 구현이며 현재 지원 배포 정책은 단일 인스턴스다. 멀티 인스턴스/로드밸런서 뒤 배포는 공유 스토어 기반 limiter 도입 전까지 지원하지 않는다.  
