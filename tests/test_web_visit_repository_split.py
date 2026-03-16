@@ -68,3 +68,90 @@ def test_web_visit_repository_schema_upgrade_is_idempotent(db_path: object) -> N
         assert "utm_source" in columns
         assert "page_query" in columns
         assert "browser_family" in columns
+
+
+def test_web_visit_repository_channel_breakdown_classifies_sources(db_path: object) -> None:
+    with db_connection(row_factory=True) as conn:
+        web_visit_repository.init_web_visit_schema(conn)
+        web_visit_repository.insert_web_visit_event(
+            conn,
+            anon_id="anon-direct",
+            session_id="s-direct",
+            event_type="visit_start",
+            page_path="/",
+            occurred_at="2026-02-20 00:00:00",
+            is_bot=False,
+        )
+        web_visit_repository.insert_web_visit_event(
+            conn,
+            anon_id="anon-organic",
+            session_id="s-organic",
+            event_type="visit_start",
+            page_path="/",
+            occurred_at="2026-02-20 00:01:00",
+            is_bot=False,
+            referrer_domain="google.com",
+        )
+        web_visit_repository.insert_web_visit_event(
+            conn,
+            anon_id="anon-email",
+            session_id="s-email",
+            event_type="visit_start",
+            page_path="/",
+            occurred_at="2026-02-20 00:02:00",
+            is_bot=False,
+            utm_medium="newsletter",
+        )
+        web_visit_repository.insert_web_visit_event(
+            conn,
+            anon_id="anon-social",
+            session_id="s-social",
+            event_type="visit_start",
+            page_path="/",
+            occurred_at="2026-02-20 00:03:00",
+            is_bot=False,
+            utm_medium="social",
+        )
+        web_visit_repository.insert_web_visit_event(
+            conn,
+            anon_id="anon-paid",
+            session_id="s-paid",
+            event_type="visit_start",
+            page_path="/",
+            occurred_at="2026-02-20 00:04:00",
+            is_bot=False,
+            utm_medium="cpc",
+        )
+        web_visit_repository.insert_web_visit_event(
+            conn,
+            anon_id="anon-campaign",
+            session_id="s-campaign",
+            event_type="visit_start",
+            page_path="/",
+            occurred_at="2026-02-20 00:05:00",
+            is_bot=False,
+            utm_medium="offline",
+        )
+        web_visit_repository.insert_web_visit_event(
+            conn,
+            anon_id="anon-referral",
+            session_id="s-referral",
+            event_type="visit_start",
+            page_path="/",
+            occurred_at="2026-02-20 00:06:00",
+            is_bot=False,
+            referrer_domain="example.com",
+        )
+        conn.commit()
+
+        rows = web_visit_repository.fetch_channel_breakdown(conn, since_utc="2026-02-19 00:00:00")
+
+    assert {row["channel"] for row in rows} == {
+        "campaign",
+        "direct",
+        "email",
+        "organic_search",
+        "paid",
+        "referral",
+        "social",
+    }
