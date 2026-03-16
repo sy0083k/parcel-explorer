@@ -60,8 +60,16 @@
 ## 프런트엔드 구조
 - **엔트리 포인트**
   - `frontend/src/map.ts`: 지도 페이지 오케스트레이션(모듈 조립/이벤트 바인딩)
-  - `frontend/src/admin.ts`: 관리자 페이지 인터랙션
+  - `frontend/src/admin.ts`: 관리자 페이지 오케스트레이션(탭/업로드/통계/경계선 재수집 모듈 조립)
   - `frontend/src/login.ts`: 로그인 페이지 인터랙션
+- **관리자 기능 모듈(`frontend/src/admin/`)**
+  - `tabs.ts`: 사이드바 탭 전환과 패널 활성화
+  - `upload.ts`: 엑셀 업로드/공개 다운로드 파일 업로드
+  - `stats.ts`: 관리자 통계/웹 통계 로드와 DOM 반영
+  - `charts.ts`: Chart.js 렌더링/파기 관리
+  - `geom-refresh.ts`: 경계선 재수집 시작/상태 폴링
+  - `settings.ts`: 설정 폼 사전 검증
+  - `dom.ts`, `types.ts`: 공용 DOM 조회 유틸과 응답 타입
 - **지도 기능 모듈(`frontend/src/map/`)**
   - `map-view.ts`: OpenLayers 초기화, 레이어 전환, 피처 렌더링/선택/팝업
   - `filters.ts`: 검색 입력값 수집, 필터 계산, 엔터 처리
