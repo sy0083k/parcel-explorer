@@ -3,11 +3,11 @@
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
 After completing any task that modifies repository files, suggest an appropriate git commit title in the final response.
-저장소 파일 변경에는 코드와 문서 변경을 모두 포함한다.
+Repository file changes include both code changes and documentation changes.
 
 ## Mandatory Pre-Check
-- 계획 수립/구현/리뷰 전에 `docs/engineering-guidelines.md`를 먼저 확인한다 (최우선 기준).
-- `docs/refactoring-strategy.md`, `docs/reports/*`는 **아카이브/기준선 참고용**이며 현행 강제 규칙으로 사용하지 않는다.
+- Before planning, implementation, or review, check `docs/engineering-guidelines.md` first (highest-priority source of truth).
+- `docs/refactoring-strategy.md` and `docs/reports/*` are **archive/baseline references only** and must not be used as current mandatory rules.
 
 ## Commands
 
@@ -71,18 +71,18 @@ Router -> Service -> Repository -> (DB)
 - `frontend/src/map/`: feature modules (`map-view`, `filters`, `list-panel`, `telemetry`, `download-client`, `session-tracker`, `lands-client`, `state`, `types`)
 - `frontend/src/http.ts`: **all** network calls must go through this utility (timeout/error normalization)
 - `frontend/src/admin.ts`, `login.ts`: page-specific entry points
-- 중복 fetch/에러 처리 로직 복붙 금지
+- Do not copy-paste duplicate fetch/error-handling logic.
 
 ### API versioning
 `/api/v1/*` is an alias for `/api/*` with identical contracts. Implementation: `map_v1_router.py` reuses `map_router.py`'s `create_router()`. New features go in `/api/*` first; maintain equivalence in `/api/v1/*`.
 
-API 계약(필드/상태코드/의미) 변경 시 `/api/v1/*` 동등성 영향과 운영 절차를 함께 검토한다.
+When changing the API contract (fields, status codes, or semantics), review the impact on `/api/v1/*` equivalence and the related operational procedures together.
 
 ### Key runtime details
 - DB: SQLite at `data/database.db`, initialized on startup via `lifespan` in `main.py`
 - Sessions: Starlette `SessionMiddleware` with bcrypt-hashed admin credentials
 - Security: admin routes require IP allowlist (`ALLOWED_IPS`) + session auth + CSRF on state-changing requests
-- Rate limiting: in-memory sliding window — `POST /api/events` (60/min), `POST /api/web-events` (120/min), `GET /public-download` (설정 기반)
+- Rate limiting: in-memory sliding window — `POST /api/events` (60/min), `POST /api/web-events` (120/min), `GET /public-download` (config-driven)
 - Background jobs: geometry enrichment via VWorld WFS runs as a FastAPI background task; not durable across restarts
 - Static assets: Vite builds to `static/dist/`; templates use `vite_assets()` helper to resolve hashed filenames
 
@@ -102,7 +102,7 @@ logger.exception("message")  # inside except block — includes traceback automa
 - Rate limiting and login attempt tracking are in-memory; they don't share state across multiple instances
 - When updating features or security controls, sync the relevant docs: `docs/architecture.md`, `docs/maintenance.md`, `docs/stride-lite.md`, `README.MD`, `docs/index.md`, `docs/TODO.MD`
 - Test markers: tag new tests with `@pytest.mark.unit`, `@pytest.mark.integration`, or `@pytest.mark.e2e`
-- 변경 설명(PR/커밋 메시지)에는 테스트 결과와 잔여 리스크를 포함한다
+- Include test results and residual risks in change descriptions (PRs/commit messages).
 - `ruff` is configured with `line-length = 100`, rules `E, F, I, B`, ignoring `E501`
 - The `docs/engineering-guidelines.md` is the source of truth for coding standards; `docs/index.md` is the documentation hub
 
@@ -113,7 +113,7 @@ logger.exception("message")  # inside except block — includes traceback automa
 - CSRF verification is required on all state-changing endpoints — do not remove it
 - Modify `ALLOWED_IPS` validation logic with care
 - Session cookies must respect the `SESSION_HTTPS_ONLY` setting
-- `VWORLD_GEOCODER_KEY`는 공개 API 응답·로그에 노출하지 않는다. 단, 관리자 전용 경로에서의 운영 목적 노출은 공개 범위와 통제 조건을 문서에 명시한 경우 허용한다.
+- Do not expose `VWORLD_GEOCODER_KEY` in public API responses or logs. Operational exposure on admin-only routes is allowed only when the disclosure scope and control conditions are documented.
 
 ### Implementation locations
 - IP allowlist: `app/core/config.py` (`_parse_allowed_ips`), enforced in `app/routers/admin.py`
@@ -121,11 +121,11 @@ logger.exception("message")  # inside except block — includes traceback automa
 - CSRF: admin router (`app/routers/admin.py`)
 - Login failure limiting: in-memory (`LoginAttemptLimiter` in `app/auth_security.py`, used in `app/services/auth_service.py`); vulnerable to multi-instance bypass (TODO)
 - Formula injection defense: raw-queries CSV export
-- 프록시 신뢰 정책: `TRUST_PROXY_HEADERS` / `TRUSTED_PROXY_IPS` — `app/core/config.py`에서 관리
+- Proxy trust policy: `TRUST_PROXY_HEADERS` / `TRUSTED_PROXY_IPS` — managed in `app/core/config.py`
 
 ### Known risks (see docs/TODO.MD)
 - Login failure counter is in-memory — bypassable in multi-instance deployments
 
 ## TODO Governance
-- 리스크/개선 작업을 다룰 때 `docs/TODO.MD`를 함께 업데이트한다.
-- 상태(`todo/doing/blocked/done`), 목표일, 리뷰 로그를 최신화한다.
+- When handling risk/improvement work, update `docs/TODO.MD` as well.
+- Keep status (`todo/doing/blocked/done`), target dates, and review logs up to date.
