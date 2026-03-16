@@ -18,16 +18,16 @@ export function createMapViewStyles(isReducedMotion: () => boolean) {
 
   const selectedHaloStyle = new Style({
     stroke: new Stroke({ color: "rgba(255, 255, 255, 0.95)", width: 8 }),
-    fill: new Fill({ color: "rgba(0, 0, 0, 0)" })
+    fill: new Fill({ color: "rgba(255, 51, 51, 0.2)" })
   });
 
   const selectedInnerStyle = new Style({
-    stroke: new Stroke({ color: "#ffd400", width: 4 }),
+    stroke: new Stroke({ color: "#ff3333", width: 4 }),
     fill: new Fill({ color: "rgba(0, 0, 0, 0)" })
   });
 
   const selectedPulseStroke = new Stroke({
-    color: `rgba(255, 212, 0, ${selectionPulseMinAlpha})`,
+    color: `rgba(255, 51, 51, ${selectionPulseMinAlpha})`,
     width: selectionPulseMinWidth
   });
 
@@ -46,7 +46,7 @@ export function createMapViewStyles(isReducedMotion: () => boolean) {
     const pulseWidth =
       selectionPulseMinWidth + (selectionPulseMaxWidth - selectionPulseMinWidth) * eased;
 
-    selectedPulseStroke.setColor(`rgba(255, 212, 0, ${pulseAlpha})`);
+    selectedPulseStroke.setColor(`rgba(255, 51, 51, ${pulseAlpha})`);
     selectedPulseStroke.setWidth(pulseWidth);
 
     if (isReducedMotion()) {
