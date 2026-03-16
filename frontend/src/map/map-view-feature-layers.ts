@@ -14,8 +14,8 @@ type LayerDeps = {
 const selectionPulseTickMs = 100;
 
 export function createMapViewFeatureLayers(deps: LayerDeps) {
-  let vectorLayer: VectorLayer<VectorSource<Feature<Geometry>>> | null = null;
-  let selectedVectorLayer: VectorLayer<VectorSource<Feature<Geometry>>> | null = null;
+  let parcels: VectorLayer<VectorSource<Feature<Geometry>>> | null = null;
+  let parcelsSelected: VectorLayer<VectorSource<Feature<Geometry>>> | null = null;
   let selectedFeatureId: number | null = null;
   let featuresById = new globalThis.Map<number, Feature<Geometry>>();
   let selectionPulseTimerId: number | null = null;
@@ -30,11 +30,11 @@ export function createMapViewFeatureLayers(deps: LayerDeps) {
   };
 
   const startSelectionPulse = (): void => {
-    if (selectionPulseTimerId !== null || !selectedVectorLayer) {
+    if (selectionPulseTimerId !== null || !parcelsSelected) {
       return;
     }
     selectionPulseTimerId = window.setInterval(() => {
-      selectedVectorLayer?.changed();
+      parcelsSelected?.changed();
     }, selectionPulseTickMs);
   };
 
@@ -47,21 +47,23 @@ export function createMapViewFeatureLayers(deps: LayerDeps) {
   };
 
   const ensureLayers = (): void => {
-    if (!vectorLayer) {
-      vectorLayer = new VectorLayer({
+    if (!parcels) {
+      parcels = new VectorLayer({
+        properties: { name: 'parcels' },
         source: new VectorSource<Feature<Geometry>>(),
         zIndex: 10,
         style: deps.defaultStyleSelector
       });
-      deps.map.addLayer(vectorLayer);
+      deps.map.addLayer(parcels);
     }
-    if (!selectedVectorLayer) {
-      selectedVectorLayer = new VectorLayer({
+    if (!parcelsSelected) {
+      parcelsSelected = new VectorLayer({
+        properties: { name: 'parcels-selected' },
         source: new VectorSource<Feature<Geometry>>(),
         zIndex: 11,
         style: deps.selectedStyleSelector
       });
-      deps.map.addLayer(selectedVectorLayer);
+      deps.map.addLayer(parcelsSelected);
     }
   };
 
@@ -72,8 +74,8 @@ export function createMapViewFeatureLayers(deps: LayerDeps) {
       }
     | null => {
     ensureLayers();
-    const baseSource = vectorLayer?.getSource();
-    const selectedSource = selectedVectorLayer?.getSource();
+    const baseSource = parcels?.getSource();
+    const selectedSource = parcelsSelected?.getSource();
     if (!baseSource || !selectedSource) {
       return null;
     }
@@ -171,8 +173,8 @@ export function createMapViewFeatureLayers(deps: LayerDeps) {
   const getAllFeatures = (): Iterable<Feature<Geometry>> => featuresById.values();
 
   const refreshTheme = (): void => {
-    vectorLayer?.changed();
-    selectedVectorLayer?.changed();
+    parcels?.changed();
+    parcelsSelected?.changed();
   };
 
   ensureLayers();
