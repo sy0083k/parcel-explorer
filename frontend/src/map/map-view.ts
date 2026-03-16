@@ -1,20 +1,17 @@
 import Feature from "ol/Feature";
 import GeoJSON from "ol/format/GeoJSON";
 import type Geometry from "ol/geom/Geometry";
+import { createEmpty, extend, getCenter } from "ol/extent";
 import Overlay from "ol/Overlay";
 import TileLayer from "ol/layer/Tile";
-import VectorLayer from "ol/layer/Vector";
 import Map from "ol/Map";
 import View from "ol/View";
-import { getCenter } from "ol/extent";
 import { fromLonLat } from "ol/proj";
-import VectorSource from "ol/source/Vector";
 import XYZ from "ol/source/XYZ";
-import Fill from "ol/style/Fill";
-import Stroke from "ol/style/Stroke";
-import Style from "ol/style/Style";
 
 import type { BaseType, LandFeatureCollection, LandFeatureProperties, MapConfig } from "./types";
+import { createMapViewStyles } from "./map-view-styles";
+import { createMapViewFeatureLayers } from "./map-view-feature-layers";
 
 type MapViewElements = {
   popupElement: HTMLElement;
@@ -37,17 +34,12 @@ function asVectorFeature(feature: unknown): Feature<Geometry> | null {
   return feature instanceof Feature ? feature : null;
 }
 
-function readCssVar(name: string, fallback: string): string {
-  const value = getComputedStyle(document.documentElement).getPropertyValue(name).trim();
-  return value || fallback;
-}
-
 export function createMapView(elements: MapViewElements) {
   let map: Map | null = null;
   let baseLayer: TileLayer<XYZ> | null = null;
   let satLayer: TileLayer<XYZ> | null = null;
   let hybLayer: TileLayer<XYZ> | null = null;
-  let vectorLayer: VectorLayer<VectorSource<Feature<Geometry>>> | null = null;
+  let featureLayers: ReturnType<typeof createMapViewFeatureLayers> | null = null;
   let onFeatureClick: ((payload: FeatureClickPayload) => void) | null = null;
 
   const overlay = new Overlay({ element: elements.popupElement, autoPan: false });
@@ -55,6 +47,7 @@ export function createMapView(elements: MapViewElements) {
   elements.popupCloser?.addEventListener("click", (event: Event) => {
     event.preventDefault();
     overlay.setPosition(undefined);
+    featureLayers?.selectFeatureId(null);
   });
 
   const showPopup = (feature: Feature<Geometry>, coordinate: number[], panIntoView = false): void => {
@@ -104,6 +97,14 @@ export function createMapView(elements: MapViewElements) {
       })
     });
 
+    const reducedMotionMedia = window.matchMedia("(prefers-reduced-motion: reduce)");
+    const styles = createMapViewStyles(() => reducedMotionMedia.matches);
+    featureLayers = createMapViewFeatureLayers({
+      map,
+      defaultStyleSelector: styles.defaultStyleSelector,
+      selectedStyleSelector: styles.selectedStyleSelector
+    });
+
     map.on("singleclick", (evt) => {
       if (!map) {
         return;
@@ -113,6 +114,7 @@ export function createMapView(elements: MapViewElements) {
       const feature = asVectorFeature(clickedFeature);
       if (!feature) {
         overlay.setPosition(undefined);
+        featureLayers?.selectFeatureId(null);
         return;
       }
 
@@ -151,54 +153,55 @@ export function createMapView(elements: MapViewElements) {
   };
 
   const renderFeatures = (data: LandFeatureCollection): void => {
-    if (!map) {
+    if (!map || !featureLayers) {
       return;
     }
 
-    if (vectorLayer) {
-      map.removeLayer(vectorLayer);
-    }
-
-    const vectorSource = new VectorSource<Feature<Geometry>>();
     const parsed = new GeoJSON().readFeatures(data, {
       featureProjection: "EPSG:3857"
     }) as Feature<Geometry>[];
 
+    const next = new globalThis.Map<number, Feature<Geometry>>();
     parsed.forEach((feature, idx) => {
       feature.setId(idx);
-      vectorSource.addFeature(feature);
+      next.set(idx, feature);
     });
 
-    vectorLayer = new VectorLayer({
-      source: vectorSource,
-      zIndex: 10,
-      style: new Style({
-        stroke: new Stroke({ color: readCssVar("--color-map-stroke", "#ff3333"), width: 3 }),
-        fill: new Fill({ color: readCssVar("--color-map-fill", "rgba(52, 152, 219, 0.18)") })
-      })
-    });
-
-    map.addLayer(vectorLayer);
+    featureLayers.setFeatures(next);
   };
 
   const fitToFeatures = (): void => {
-    const source = vectorLayer?.getSource();
-    if (!source || !map || source.getFeatures().length === 0) {
+    if (!map || !featureLayers) {
       return;
     }
 
-    map.getView().fit(source.getExtent(), { padding: [50, 50, 50, 50], duration: 500 });
+    const allFeatures = [...featureLayers.getAllFeatures()];
+    if (allFeatures.length === 0) {
+      return;
+    }
+
+    const extent = createEmpty();
+    allFeatures.forEach((f) => {
+      const geom = f.getGeometry();
+      if (geom) {
+        extend(extent, geom.getExtent());
+      }
+    });
+
+    map.getView().fit(extent, { padding: [50, 50, 50, 50], duration: 500 });
   };
 
   const selectFeatureByIndex = (index: number, options: SelectOptions): boolean => {
-    if (!vectorLayer || !map) {
+    if (!featureLayers || !map) {
       return false;
     }
 
-    const feature = vectorLayer.getSource()?.getFeatureById(index) as Feature<Geometry> | null;
+    const feature = featureLayers.getFeatureById(index);
     if (!feature) {
       return false;
     }
+
+    featureLayers.selectFeatureId(index);
 
     const geometry = feature.getGeometry();
     if (!geometry) {
@@ -244,6 +247,7 @@ export function createMapView(elements: MapViewElements) {
 
   const clearPopup = (): void => {
     overlay.setPosition(undefined);
+    featureLayers?.selectFeatureId(null);
   };
 
   const setFeatureClickHandler = (handler: (payload: FeatureClickPayload) => void): void => {
