@@ -279,7 +279,7 @@ async function bootstrap(): Promise<void> {
       return;
     }
     layerPopover.classList.remove("open");
-    layerPopover.setAttribute("aria-hidden", "true");
+    layerPopover.setAttribute("inert", "");
     layerToggleBtn.setAttribute("aria-expanded", "false");
   };
 
@@ -318,7 +318,11 @@ async function bootstrap(): Promise<void> {
     event.stopPropagation();
     const willOpen = !layerPopover.classList.contains("open");
     layerPopover.classList.toggle("open", willOpen);
-    layerPopover.setAttribute("aria-hidden", willOpen ? "false" : "true");
+    if (willOpen) {
+      layerPopover.removeAttribute("inert");
+    } else {
+      layerPopover.setAttribute("inert", "");
+    }
     layerToggleBtn.setAttribute("aria-expanded", willOpen ? "true" : "false");
   });
   mobileBaseBtn?.addEventListener("click", () => changeLayerFromMobile("Base"));
