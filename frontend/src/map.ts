@@ -1,6 +1,8 @@
 import "ol/ol.css";
 
 import { HttpError, fetchJson } from "./http";
+import { createDetailPanel } from "./map/detail-panel";
+import { createDetailPanelLayout } from "./map/detail-panel-layout";
 import { createDownloadClient } from "./map/download-client";
 import { createFilters } from "./map/filters";
 import { streamLandFeatures } from "./map/lands-client";
@@ -16,7 +18,6 @@ type SelectOptions = {
   shouldFit: boolean;
   clickSource?: LandClickSource;
   coordinateOverride?: number[];
-  panIntoView?: boolean;
 };
 
 type MobileViewState = "home" | "search" | "results";
@@ -58,25 +59,26 @@ async function bootstrap(): Promise<void> {
   const mobileSatelliteBtn = document.getElementById("m-btn-Satellite");
   const mobileHybridBtn = document.getElementById("m-btn-Hybrid");
 
-  const popupElement = document.getElementById("popup");
-  const popupContent = document.getElementById("popup-content");
-  const popupCloser = document.getElementById("popup-closer");
-
-  if (!(popupElement instanceof HTMLElement) || !(popupContent instanceof HTMLElement)) {
-    return;
-  }
-
   const state = createMapState();
   const telemetry = createTelemetry();
   const sessionTracker = createSessionTracker({
     getOrCreateAnonId: telemetry.getOrCreateAnonId,
     postWebEvent: telemetry.postWebEvent
   });
-  const mapView = createMapView({
-    popupElement,
-    popupContent,
-    popupCloser: popupCloser instanceof HTMLElement ? popupCloser : null
+  const mapView = createMapView();
+
+  const panelEl = document.getElementById("land-info-panel");
+  const panelContent = document.getElementById("land-info-content");
+  const panelCloseBtn = document.getElementById("land-info-close");
+
+  const detailPanel = createDetailPanel({
+    panel: panelEl instanceof HTMLElement ? panelEl : document.createElement("aside"),
+    content: panelContent instanceof HTMLElement ? panelContent : document.createElement("div"),
+    closeBtn: panelCloseBtn instanceof HTMLElement ? panelCloseBtn : document.createElement("button"),
   });
+  createDetailPanelLayout({ panel: panelEl instanceof HTMLElement ? panelEl : document.createElement("aside") });
+
+  detailPanel.bindCloseButton(() => detailPanel.dismiss());
   const listPanel = createListPanel({
     listContainer: document.getElementById("list-container"),
     navInfo: document.getElementById("nav-info"),
@@ -190,8 +192,17 @@ async function bootstrap(): Promise<void> {
     mapView.selectFeatureByIndex(index, {
       shouldFit: options.shouldFit,
       coordinateOverride: options.coordinateOverride,
-      panIntoView: options.panIntoView
     });
+
+    if (options.clickSource === "map_click") {
+      const selected = currentFeatures[index];
+      if (selected) {
+        detailPanel.renderProperties(selected.properties);
+        detailPanel.show();
+      }
+    } else if (options.clickSource === "nav_prev" || options.clickSource === "nav_next") {
+      detailPanel.dismiss();
+    }
 
     updateNavigation();
     listPanel.scrollTo(index);
@@ -238,6 +249,7 @@ async function bootstrap(): Promise<void> {
     filters.reset();
     syncDesktopToMobileInputs();
     mapView.clearPopup();
+    detailPanel.dismiss();
     applyFilters(false);
   };
 
@@ -272,8 +284,11 @@ async function bootstrap(): Promise<void> {
       shouldFit: false,
       clickSource: "map_click",
       coordinateOverride: coordinate,
-      panIntoView: true
     });
+  });
+
+  mapView.setEmptyClickHandler(() => {
+    detailPanel.dismiss();
   });
 
   document.getElementById("btn-search")?.addEventListener("click", () => applyFilters(true));

@@ -534,51 +534,96 @@ body {
 }
 
 /* ===================================================
-   MAP POPUP (OL)
+   LAND INFO PANEL
    =================================================== */
-.ol-popup {
-  position: absolute;
-  background-color: var(--color-bg-card);
-  box-shadow: var(--shadow-popup);
-  padding: 15px;
-  border-radius: var(--radius-lg);
+#land-info-panel {
+  position: fixed;
+  top: 20px;
+  right: 20px;
+  width: 320px;
+  max-height: calc(var(--land-info-panel-max-height, 100vh) - 40px);
+  display: flex;
+  flex-direction: column;
+  background: var(--color-bg-card);
   border: 1px solid var(--color-border);
-  bottom: 12px;
-  left: -50px;
-  min-width: 350px;
-  line-height: 1.45;
-  word-break: keep-all;
-  overflow-wrap: anywhere;
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-panel);
+  z-index: 1100;
+  overflow: hidden;
   font-family: var(--font-body);
-  animation: popup-rise 0.20s ease-out both;
+  animation: panel-slide-in 0.18s ease-out both;
 }
 
-.ol-popup:after {
-  top: 100%;
-  border: solid transparent;
-  content: " ";
-  height: 0;
-  width: 0;
-  position: absolute;
-  border-top-color: var(--color-bg-card);
-  border-width: 10px;
-  left: 48px;
-  margin-left: -10px;
+#land-info-panel.is-hidden { display: none; }
+
+.land-info-header {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 14px 10px;
+  border-bottom: 1px solid var(--color-border-light);
+  background: var(--color-bg-filter);
 }
 
-.ol-popup-closer {
-  text-decoration: none;
-  position: absolute;
-  top: 2px;
-  right: 8px;
-  color: var(--color-ink-muted);
-  font-weight: bold;
-  transition: color var(--transition-fast);
-}
-
-.ol-popup-closer:hover {
+.land-info-header h3 {
+  margin: 0;
+  font-size: 0.95rem;
+  font-weight: 700;
   color: var(--color-ink-primary);
 }
+
+.land-info-close {
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  color: var(--color-ink-muted);
+  font-size: 1rem;
+  padding: 2px 6px;
+  border-radius: var(--radius-sm);
+  transition: color var(--transition-fast), background var(--transition-fast);
+}
+
+.land-info-close:hover {
+  color: var(--color-ink-primary);
+  background: var(--color-item-hover);
+}
+
+.land-info-content {
+  flex: 1;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior: contain;
+  padding: 12px 14px;
+}
+
+.land-info-empty {
+  color: var(--color-ink-muted);
+  font-size: 0.88rem;
+  text-align: center;
+  padding: 20px 0;
+}
+
+.land-info-grid {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  column-gap: 16px;
+  row-gap: 6px;
+  margin: 0;
+  padding: 0;
+  font-size: 0.88rem;
+  line-height: 1.4;
+  word-break: keep-all;
+  overflow-wrap: anywhere;
+}
+
+.land-info-grid dt {
+  color: var(--color-ink-secondary);
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.land-info-grid dd { margin: 0; color: var(--color-ink-primary); }
 
 /* ===================================================
    MICRO-ANIMATIONS
@@ -588,9 +633,9 @@ body {
   to   { opacity: 1; transform: translateX(0); }
 }
 
-@keyframes popup-rise {
-  from { opacity: 0; transform: translateY(8px); }
-  to   { opacity: 1; transform: translateY(0); }
+@keyframes panel-slide-in {
+  from { opacity: 0; transform: translateX(12px); }
+  to   { opacity: 1; transform: translateX(0); }
 }
 
 @keyframes fab-pulse {
@@ -739,11 +784,11 @@ body {
   .map-controls button { font-size: 12px; }
   .ol-zoom { display: none !important; }
 
-  .ol-popup {
-    min-width: 0;
-    width: clamp(320px, 88vw, 520px);
-    max-width: calc(100vw - 24px);
-    left: -24px;
+  #land-info-panel {
+    width: clamp(260px, 80vw, 340px);
+    top: 12px;
+    right: 10px;
+    max-height: 50vh;
   }
 
   #header { padding: 10px 20px; }
@@ -770,7 +815,6 @@ body {
   #header h2 { font-size: 1rem; }
   #filter-section { padding: 12px; }
   .area-input-container input { padding: 10px; }
-  .ol-popup { padding: 12px; }
 }
 
 /* ===================================================

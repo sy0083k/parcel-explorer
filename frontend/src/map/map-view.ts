@@ -2,22 +2,15 @@ import Feature from "ol/Feature";
 import GeoJSON from "ol/format/GeoJSON";
 import type Geometry from "ol/geom/Geometry";
 import { createEmpty, extend, getCenter } from "ol/extent";
-import Overlay from "ol/Overlay";
 import TileLayer from "ol/layer/Tile";
 import Map from "ol/Map";
 import View from "ol/View";
 import { fromLonLat } from "ol/proj";
 import XYZ from "ol/source/XYZ";
 
-import type { BaseType, LandFeatureCollection, LandFeatureProperties, MapConfig } from "./types";
+import type { BaseType, LandFeatureCollection, MapConfig } from "./types";
 import { createMapViewStyles } from "./map-view-styles";
 import { createMapViewFeatureLayers } from "./map-view-feature-layers";
-
-type MapViewElements = {
-  popupElement: HTMLElement;
-  popupContent: HTMLElement;
-  popupCloser: HTMLElement | null;
-};
 
 type FeatureClickPayload = {
   index: number;
@@ -27,51 +20,20 @@ type FeatureClickPayload = {
 type SelectOptions = {
   shouldFit: boolean;
   coordinateOverride?: number[];
-  panIntoView?: boolean;
 };
 
 function asVectorFeature(feature: unknown): Feature<Geometry> | null {
   return feature instanceof Feature ? feature : null;
 }
 
-export function createMapView(elements: MapViewElements) {
+export function createMapView() {
   let map: Map | null = null;
   let baseLayer: TileLayer<XYZ> | null = null;
   let satLayer: TileLayer<XYZ> | null = null;
   let hybLayer: TileLayer<XYZ> | null = null;
   let featureLayers: ReturnType<typeof createMapViewFeatureLayers> | null = null;
   let onFeatureClick: ((payload: FeatureClickPayload) => void) | null = null;
-
-  const overlay = new Overlay({ element: elements.popupElement, autoPan: false });
-
-  elements.popupCloser?.addEventListener("click", (event: Event) => {
-    event.preventDefault();
-    overlay.setPosition(undefined);
-    featureLayers?.selectFeatureId(null);
-  });
-
-  const showPopup = (feature: Feature<Geometry>, coordinate: number[], panIntoView = false): void => {
-    const props = feature.getProperties() as LandFeatureProperties;
-    elements.popupContent.replaceChildren();
-
-    const rows = [
-      ["📍 주소", props.address],
-      ["📏 면적", `${props.area}㎡`],
-      ["📂 지목", props.land_type],
-      ["📞 문의", props.contact]
-    ];
-
-    rows.forEach(([label, value]) => {
-      const line = document.createElement("div");
-      line.textContent = `${label}: ${value || ""}`;
-      elements.popupContent.appendChild(line);
-    });
-
-    overlay.setPosition(coordinate);
-    if (panIntoView) {
-      overlay.panIntoView({ animation: { duration: 250 } });
-    }
-  };
+  let onEmptyClick: (() => void) | null = null;
 
   const init = (config: MapConfig): void => {
     const commonSource = (type: BaseType) =>
@@ -87,7 +49,6 @@ export function createMapView(elements: MapViewElements) {
     map = new Map({
       target: "map",
       layers: [baseLayer, satLayer, hybLayer],
-      overlays: [overlay],
       view: new View({
         center: fromLonLat(config.center),
         zoom: config.zoom,
@@ -113,8 +74,8 @@ export function createMapView(elements: MapViewElements) {
       const clickedFeature = map.forEachFeatureAtPixel(evt.pixel, (item) => item);
       const feature = asVectorFeature(clickedFeature);
       if (!feature) {
-        overlay.setPosition(undefined);
         featureLayers?.selectFeatureId(null);
+        onEmptyClick?.();
         return;
       }
 
@@ -233,9 +194,6 @@ export function createMapView(elements: MapViewElements) {
       }
     }
 
-    const popupCoordinate = options.coordinateOverride ?? focusCoord;
-    showPopup(feature, popupCoordinate, Boolean(options.panIntoView));
-
     if (options.shouldFit) {
       window.setTimeout(() => {
         map?.getView().animate({ center: focusCoord, duration: 120 });
@@ -246,12 +204,15 @@ export function createMapView(elements: MapViewElements) {
   };
 
   const clearPopup = (): void => {
-    overlay.setPosition(undefined);
     featureLayers?.selectFeatureId(null);
   };
 
   const setFeatureClickHandler = (handler: (payload: FeatureClickPayload) => void): void => {
     onFeatureClick = handler;
+  };
+
+  const setEmptyClickHandler = (handler: () => void): void => {
+    onEmptyClick = handler;
   };
 
   return {
@@ -261,7 +222,8 @@ export function createMapView(elements: MapViewElements) {
     init,
     renderFeatures,
     selectFeatureByIndex,
-    setFeatureClickHandler
+    setFeatureClickHandler,
+    setEmptyClickHandler
   };
 }
 

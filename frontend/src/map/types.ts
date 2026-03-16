@@ -12,6 +12,7 @@ export type LandFeatureProperties = {
   adm_property?: string;
   gen_property?: string;
   contact?: string;
+  source_fields?: Array<{ key: string; label: string; value: string }>;
 };
 
 export type LandFeature = {

@@ -112,10 +112,15 @@
         </div>
     </div>
 
-    <div id="popup" class="ol-popup">
-        <a href="#" id="popup-closer" class="ol-popup-closer">✖</a>
-        <div id="popup-content"></div>
-    </div>
+    <aside id="land-info-panel" class="is-hidden" aria-live="polite" aria-label="선택 토지 재산 상세 정보">
+        <header class="land-info-header">
+            <h3 id="land-info-title">재산 상세 정보</h3>
+            <button id="land-info-close" class="land-info-close" type="button" aria-label="재산 상세 정보 닫기">✕</button>
+        </header>
+        <div id="land-info-content" class="land-info-content">
+            <div class="land-info-empty">토지를 선택하면 상세 정보가 표시됩니다.</div>
+        </div>
+    </aside>
 
     {% set assets = vite_assets('src/map.ts') %}
     {% for css_file in assets.css %}
