@@ -47,3 +47,5 @@ export function createDownloadClient() {
     downloadPreparedFile
   };
 }
+
+export type DownloadClient = ReturnType<typeof createDownloadClient>;

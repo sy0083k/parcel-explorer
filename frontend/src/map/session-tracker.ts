@@ -243,3 +243,5 @@ export function createSessionTracker(deps: SessionTrackerDeps) {
     mount
   };
 }
+
+export type SessionTracker = ReturnType<typeof createSessionTracker>;
