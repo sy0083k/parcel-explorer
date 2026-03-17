@@ -65,3 +65,4 @@
 - `RISK-011` 기준으로 `/api/public-download`에도 앱 레벨 레이트 리밋을 적용한다.
 - `RISK-013` 기준으로 관리자 업로드와 raw query export는 구조화 감사 로그를 남긴다.
 - 첫 배포 준비는 `docs/maintenance.md`의 `첫 배포 전 실행 순서`를 기준으로 진행한다.
+- 브라우저 E2E는 Playwright 스펙을 pytest `e2e` 분류로 래핑해 지도/통계 핵심 흐름을 검증한다.

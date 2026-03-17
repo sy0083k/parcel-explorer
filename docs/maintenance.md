@@ -132,12 +132,13 @@
 - `pytest -q`
 - `pytest -m unit -q`
 - `pytest -m integration -q`
-- `pytest -m e2e -q` (`RUN_HTTP_E2E=1` 미설정 시 skip)
+- `pytest -m e2e -q` (`RUN_HTTP_E2E=1`, `RUN_BROWSER_E2E=1` 미설정 시 각 E2E가 skip)
 - `coverage run -m pytest`
 - `coverage report -m`
 
 ### 선택 실행
 - HTTP E2E 스모크: `RUN_HTTP_E2E=1 pytest -q tests/test_e2e_smoke.py`
+- Playwright 브라우저 E2E: `cd frontend && npx playwright install chromium && cd .. && RUN_BROWSER_E2E=1 pytest -q tests/test_playwright_e2e.py`
 
 ## 배포 워크플로 (GitHub Actions)
 - 파일: `.github/workflows/deploy.yml`
@@ -189,8 +190,10 @@
 ### 3. 프런트 핵심 UX
 - 지역/면적 Enter 검색
 - 리스트-지도 선택 동기화
+- 지도 로딩 후 검색/목록 선택 telemetry 전송
+- 관리자 통계 탭 렌더링(카운트 + 차트 초기화)
 - 다운로드 버튼 동작
-- 실행 방식: 수동 회귀 + 선택적으로 `RUN_HTTP_E2E=1 pytest -m e2e -q`
+- 실행 방식: 수동 회귀 + 선택적으로 `RUN_HTTP_E2E=1 pytest -m e2e -q`, `RUN_BROWSER_E2E=1 pytest -q tests/test_playwright_e2e.py`
 
 ### 4. 비기능 검증
 - 동일 트래픽 기준 응답 시간 악화 여부(p95) 확인
