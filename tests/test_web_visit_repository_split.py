@@ -1,5 +1,5 @@
 from app.db.connection import db_connection
-from app.repositories import web_visit_repository
+from app.repositories import web_visit_query_repository, web_visit_repository
 
 
 def test_web_visit_repository_aggregates(db_path: object) -> None:
@@ -155,3 +155,8 @@ def test_web_visit_repository_channel_breakdown_classifies_sources(db_path: obje
         "referral",
         "social",
     }
+
+
+def test_web_visit_repository_facade_re_exports_query_functions() -> None:
+    assert web_visit_repository.fetch_web_total_visitors is web_visit_query_repository.fetch_web_total_visitors
+    assert web_visit_repository.fetch_channel_breakdown is web_visit_query_repository.fetch_channel_breakdown

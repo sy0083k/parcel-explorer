@@ -58,7 +58,10 @@
   - `app/repositories/land_repository.py`
   - `app/repositories/job_repository.py`
   - `app/repositories/event_repository.py`
-  - `app/repositories/web_visit_repository.py`
+  - `app/repositories/web_visit_repository.py` (Facade)
+  - `app/repositories/web_visit_schema_repository.py`
+  - `app/repositories/web_visit_write_repository.py`
+  - `app/repositories/web_visit_query_repository.py`
   - `app/repositories/health_repository.py`
 - **클라이언트**: 외부 API 연동
   - `app/clients/vworld_client.py`
