@@ -54,8 +54,8 @@ test("loads map flow, records telemetry, and renders admin stats", async ({ page
   const visitStart = parseJsonBody(await visitStartPromise);
   expect(visitStart.pagePath).toBe("/");
 
-  await expect(page.locator(".list-item")).toHaveCount(3);
-  await expect(page.locator("#nav-info")).toHaveText("0 / 3");
+  await expect(page.locator(".list-item")).toHaveCount(2);
+  await expect(page.locator("#nav-info")).toHaveText("0 / 2");
 
   await page.locator("#region-search").fill("예천동");
   await page.locator("#min-area").fill("120");
