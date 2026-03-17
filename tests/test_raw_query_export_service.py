@@ -1,11 +1,12 @@
 import sqlite3
 
 import pytest
-from fastapi import HTTPException
 
 from app.db.connection import db_connection
 from app.repositories import event_repository
 from app.services import raw_query_export_service
+from app.services.service_errors import ServiceError, ValidationError
+from app.services.service_models import RawQueryExportCommand
 
 
 def test_raw_query_export_service_date_parsers() -> None:
@@ -32,10 +33,12 @@ def test_raw_query_export_service_export_csv(db_path: object) -> None:
         conn.commit()
 
     result = raw_query_export_service.export_raw_query_csv(
-        event_type="search",
-        date_from=None,
-        date_to=None,
-        limit=100,
+        RawQueryExportCommand(
+            event_type="search",
+            date_from=None,
+            date_to=None,
+            limit=100,
+        )
     )
     assert "event_type" in result.csv_text
     assert "search" in result.csv_text
@@ -62,10 +65,12 @@ def test_raw_query_export_service_escapes_formula_like_cells(db_path: object) ->
         conn.commit()
 
     result = raw_query_export_service.export_raw_query_csv(
-        event_type="search",
-        date_from=None,
-        date_to=None,
-        limit=100,
+        RawQueryExportCommand(
+            event_type="search",
+            date_from=None,
+            date_to=None,
+            limit=100,
+        )
     )
     assert "'=anon" in result.csv_text
     assert "'+region" in result.csv_text
@@ -84,11 +89,13 @@ def test_export_max_rows_cap_is_applied(db_path: object) -> None:
         conn.commit()
 
     result = raw_query_export_service.export_raw_query_csv(
-        event_type="all",
-        date_from=None,
-        date_to=None,
-        limit=999999,
-        max_rows=500,
+        RawQueryExportCommand(
+            event_type="all",
+            date_from=None,
+            date_to=None,
+            limit=999999,
+            max_rows=500,
+        )
     )
     assert result.effective_limit == 500
 
@@ -106,13 +113,15 @@ def test_export_raises_503_on_query_timeout(db_path: object, monkeypatch: pytest
         event_repository.init_event_schema(conn)
         conn.commit()
 
-    with pytest.raises(HTTPException) as exc:
+    with pytest.raises(ServiceError) as exc:
         raw_query_export_service.export_raw_query_csv(
-            event_type="all",
-            date_from=None,
-            date_to=None,
-            limit=100,
-            timeout_s=30.0,
+            RawQueryExportCommand(
+                event_type="all",
+                date_from=None,
+                date_to=None,
+                limit=100,
+                timeout_s=30.0,
+            )
         )
     assert exc.value.status_code == 503
 
@@ -136,10 +145,26 @@ def test_raw_query_export_service_escapes_tab_and_pipe_prefix(db_path: object) -
         conn.commit()
 
     result = raw_query_export_service.export_raw_query_csv(
-        event_type="search",
-        date_from=None,
-        date_to=None,
-        limit=100,
+        RawQueryExportCommand(
+            event_type="search",
+            date_from=None,
+            date_to=None,
+            limit=100,
+        )
     )
     assert "'\tanon" in result.csv_text
     assert "'|region" in result.csv_text
+
+
+def test_raw_query_export_service_invalid_event_type_raises_validation_error() -> None:
+    with pytest.raises(ValidationError) as exc:
+        raw_query_export_service.export_raw_query_csv(
+            RawQueryExportCommand(
+                event_type="invalid",
+                date_from=None,
+                date_to=None,
+                limit=100,
+            )
+        )
+    assert exc.value.status_code == 400
+    assert exc.value.message == "event_type must be one of: all, search, land_click."

@@ -4,10 +4,10 @@ import json
 import re
 from typing import Any
 
-from fastapi import HTTPException
-
 from app.db.connection import db_connection
 from app.repositories import event_repository
+from app.services.service_errors import ValidationError
+from app.services.service_models import MapEventCommand
 
 EVENT_TYPE_SEARCH = "search"
 EVENT_TYPE_LAND_CLICK = "land_click"
@@ -22,7 +22,8 @@ MIN_AREA_BUCKET_OVERFLOW = "1000+"
 DIGIT_RE = re.compile(r"\d+")
 
 
-def record_map_event(payload: dict[str, Any]) -> None:
+def record_map_event(command: MapEventCommand) -> None:
+    payload = command.payload
     event_type = str(payload.get("eventType", "")).strip()
     anon_id = normalize_anon_id(payload.get("anonId"))
     raw_payload_json = serialize_raw_payload(payload)
@@ -66,7 +67,7 @@ def record_map_event(payload: dict[str, Any]) -> None:
     if event_type == EVENT_TYPE_LAND_CLICK:
         land_address = normalize_land_address(payload.get("landAddress"))
         if not land_address:
-            raise HTTPException(status_code=400, detail="landAddress is required for land_click.")
+            raise ValidationError(status_code=400, message="landAddress is required for land_click.")
         with db_connection() as conn:
             event_repository.insert_map_event(
                 conn,
@@ -90,7 +91,7 @@ def record_map_event(payload: dict[str, Any]) -> None:
             conn.commit()
         return
 
-    raise HTTPException(status_code=400, detail="Unsupported eventType.")
+    raise ValidationError(status_code=400, message="Unsupported eventType.")
 
 
 def get_admin_stats(limit: int = 10) -> dict[str, Any]:
@@ -153,9 +154,9 @@ def parse_min_area(raw: Any) -> float:
     try:
         value = float(raw)
     except (TypeError, ValueError) as exc:
-        raise HTTPException(status_code=400, detail="minArea must be a number.") from exc
+        raise ValidationError(status_code=400, message="minArea must be a number.") from exc
     if value < 0:
-        raise HTTPException(status_code=400, detail="minArea must be >= 0.")
+        raise ValidationError(status_code=400, message="minArea must be >= 0.")
     return value
 
 

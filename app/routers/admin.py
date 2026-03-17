@@ -294,7 +294,7 @@ async def export_raw_queries(
             date_to=date_to,
             limit=limit,
         )
-    except HTTPException as exc:
+    except ServiceError as exc:
         logger.warning(
             "raw query export rejected",
             extra={
@@ -310,10 +310,10 @@ async def export_raw_queries(
                 "effective_limit": "-",
                 "exported_row_count": "-",
                 "export_filename": filename,
-                "reason": exc.detail if isinstance(exc.detail, str) else "invalid_request",
+                "reason": exc.message or "invalid_request",
             },
         )
-        raise
+        raise HTTPException(status_code=exc.status_code, detail=exc.message) from exc
     except Exception:
         logger.exception(
             "raw query export failed",

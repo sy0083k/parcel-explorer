@@ -2,10 +2,9 @@ from __future__ import annotations
 
 from typing import Any
 
-from fastapi import Request
-
 from app.db.connection import db_connection
 from app.repositories import web_visit_repository
+from app.services.service_models import RequestMetadata, WebVisitEventCommand
 from app.services.web_stats_normalizers import (
     classify_browser_family,
     classify_device_type,
@@ -29,27 +28,24 @@ from app.services.web_stats_types import (
 )
 
 
-def record_web_visit_event(payload: dict[str, Any], request: Request, *, allowed_paths: tuple[str, ...]) -> None:
-    normalized_event = normalize_web_visit_event(payload, request, allowed_paths=allowed_paths)
+def record_web_visit_event(command: WebVisitEventCommand) -> None:
+    normalized_event = normalize_web_visit_event(command)
     persist_web_visit_event(normalized_event)
 
 
-def normalize_web_visit_event(
-    payload: dict[str, Any],
-    request: Request,
-    *,
-    allowed_paths: tuple[str, ...],
-) -> NormalizedWebVisitEvent:
+def normalize_web_visit_event(command: WebVisitEventCommand) -> NormalizedWebVisitEvent:
+    payload = command.payload
+    metadata = command.metadata
     event_type = normalize_event_type(payload.get("eventType"))
     anon_id = normalize_required_token(payload.get("anonId"), "anonId")
     session_id = normalize_required_token(payload.get("sessionId"), "sessionId")
-    page_path = normalize_page_path(payload.get("pagePath"), allowed_paths=allowed_paths)
+    page_path = normalize_page_path(payload.get("pagePath"), allowed_paths=metadata.allowed_web_track_paths)
     page_query = normalize_query_string(payload.get("pageQuery"), max_length=1024)
     occurred_at = parse_client_ts(payload.get("clientTs"))
 
     client_context = normalize_client_context(payload)
     marketing_context = normalize_marketing_context(payload)
-    user_agent_context = derive_user_agent_context(request)
+    user_agent_context = derive_user_agent_context(metadata)
 
     return NormalizedWebVisitEvent(
         anon_id=anon_id,
@@ -101,8 +97,8 @@ def normalize_marketing_context(payload: dict[str, Any]) -> MarketingContext:
     )
 
 
-def derive_user_agent_context(request: Request) -> UserAgentContext:
-    user_agent = request.headers.get("user-agent", "")[:500] or None
+def derive_user_agent_context(metadata: RequestMetadata) -> UserAgentContext:
+    user_agent = (metadata.user_agent or "")[:500] or None
     is_bot = is_bot_user_agent(user_agent or "")
     return UserAgentContext(
         user_agent=user_agent,

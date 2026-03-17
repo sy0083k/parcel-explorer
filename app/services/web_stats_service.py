@@ -2,14 +2,13 @@ from __future__ import annotations
 
 from typing import Any
 
-from fastapi import Request
-
 from app.services import web_stats_constants as constants
 from app.services import web_stats_ingest as ingest
 from app.services import web_stats_normalizers as normalizers
 from app.services import web_stats_presenter as presenter
 from app.services import web_stats_queries as queries
 from app.services import web_stats_types as types
+from app.services.service_models import WebVisitEventCommand
 
 WEB_EVENT_TYPE_VISIT_START = constants.WEB_EVENT_TYPE_VISIT_START
 WEB_EVENT_TYPE_HEARTBEAT = constants.WEB_EVENT_TYPE_HEARTBEAT
@@ -57,9 +56,8 @@ _build_web_stats_response = presenter.build_web_stats_response
 _build_daily_trend = presenter.build_daily_trend
 
 
-def record_web_visit_event(payload: dict[str, Any], request: Request) -> None:
-    allowed_paths = tuple(str(path) for path in request.app.state.config.ALLOWED_WEB_TRACK_PATHS)
-    ingest.record_web_visit_event(payload, request, allowed_paths=allowed_paths)
+def record_web_visit_event(command: WebVisitEventCommand) -> None:
+    ingest.record_web_visit_event(command)
 
 
 def get_web_stats(days: int = WEB_STATS_DAYS_DEFAULT, *, allowed_paths: tuple[str, ...] = ("/",)) -> dict[str, Any]:

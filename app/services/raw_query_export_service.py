@@ -7,10 +7,10 @@ from dataclasses import dataclass
 from datetime import datetime, timedelta
 from io import StringIO
 
-from fastapi import HTTPException
-
 from app.db.connection import db_connection
 from app.repositories import event_repository
+from app.services.service_errors import ServiceError, ValidationError
+from app.services.service_models import RawQueryExportCommand
 
 EVENT_TYPE_SEARCH = "search"
 EVENT_TYPE_LAND_CLICK = "land_click"
@@ -24,44 +24,40 @@ class RawQueryCsvExportResult:
     effective_limit: int
 
 
-def export_raw_query_csv(
-    *,
-    event_type: str,
-    date_from: str | None,
-    date_to: str | None,
-    limit: int,
-    max_rows: int = 100000,
-    timeout_s: float = 30.0,
-) -> RawQueryCsvExportResult:
-    if event_type not in {"all", EVENT_TYPE_SEARCH, EVENT_TYPE_LAND_CLICK}:
-        raise HTTPException(status_code=400, detail="event_type must be one of: all, search, land_click.")
+def export_raw_query_csv(command: RawQueryExportCommand) -> RawQueryCsvExportResult:
+    if command.event_type not in {"all", EVENT_TYPE_SEARCH, EVENT_TYPE_LAND_CLICK}:
+        raise ValidationError(status_code=400, message="event_type must be one of: all, search, land_click.")
 
-    clamped_limit = max(1, min(int(limit), max_rows))
-    created_at_from = parse_date_start(date_from)
-    created_at_to = parse_date_end_exclusive(date_to)
+    clamped_limit = max(1, min(int(command.limit), command.max_rows))
+    created_at_from = parse_date_start(command.date_from)
+    created_at_to = parse_date_end_exclusive(command.date_to)
     if created_at_from is not None and created_at_to is not None and created_at_from >= created_at_to:
-        raise HTTPException(status_code=400, detail="date_from must be earlier than or equal to date_to.")
+        raise ValidationError(status_code=400, message="date_from must be earlier than or equal to date_to.")
 
+    timeout_error: ServiceError | None = None
     with db_connection(row_factory=True) as conn:
-        timer = threading.Timer(timeout_s, conn.interrupt)
+        timer = threading.Timer(command.timeout_s, conn.interrupt)
         timer.start()
         try:
             rows = event_repository.fetch_raw_query_logs(
                 conn,
-                event_type=None if event_type == "all" else event_type,
+                event_type=None if command.event_type == "all" else command.event_type,
                 created_at_from=created_at_from,
                 created_at_to=created_at_to,
                 limit=clamped_limit,
             )
         except sqlite3.OperationalError as exc:
             if "interrupted" in str(exc).lower():
-                raise HTTPException(
+                timeout_error = ServiceError(
                     status_code=503,
-                    detail="쿼리 실행 시간이 초과되었습니다. 조건을 좁혀 다시 시도하세요.",
-                ) from exc
-            raise
+                    message="쿼리 실행 시간이 초과되었습니다. 조건을 좁혀 다시 시도하세요.",
+                )
+            else:
+                raise
         finally:
             timer.cancel()
+    if timeout_error is not None:
+        raise timeout_error
 
     output = StringIO()
     writer = csv.writer(output)
@@ -118,7 +114,7 @@ def parse_date_start(raw: str | None) -> str | None:
     try:
         parsed = datetime.strptime(raw, "%Y-%m-%d")
     except ValueError as exc:
-        raise HTTPException(status_code=400, detail="date_from must be YYYY-MM-DD.") from exc
+        raise ValidationError(status_code=400, message="date_from must be YYYY-MM-DD.") from exc
     return parsed.strftime("%Y-%m-%d 00:00:00")
 
 
@@ -128,5 +124,5 @@ def parse_date_end_exclusive(raw: str | None) -> str | None:
     try:
         parsed = datetime.strptime(raw, "%Y-%m-%d")
     except ValueError as exc:
-        raise HTTPException(status_code=400, detail="date_to must be YYYY-MM-DD.") from exc
+        raise ValidationError(status_code=400, message="date_to must be YYYY-MM-DD.") from exc
     return (parsed + timedelta(days=1)).strftime("%Y-%m-%d 00:00:00")

@@ -4,8 +4,7 @@ from datetime import UTC, datetime, timedelta
 from typing import Any
 from urllib.parse import parse_qsl, urlparse
 
-from fastapi import HTTPException
-
+from app.services.service_errors import ValidationError
 from app.services.web_stats_constants import (
     BOT_UA_PATTERNS,
     WEB_EVENT_TYPES,
@@ -16,14 +15,14 @@ from app.services.web_stats_constants import (
 def normalize_event_type(raw: Any) -> str:
     event_type = str(raw or "").strip()
     if event_type not in WEB_EVENT_TYPES:
-        raise HTTPException(status_code=400, detail="Unsupported eventType.")
+        raise ValidationError(status_code=400, message="Unsupported eventType.")
     return event_type
 
 
 def normalize_required_token(raw: Any, field_name: str) -> str:
     value = str(raw or "").strip()
     if not value:
-        raise HTTPException(status_code=400, detail=f"{field_name} is required.")
+        raise ValidationError(status_code=400, message=f"{field_name} is required.")
     return value[:128]
 
 
@@ -42,7 +41,7 @@ def normalize_optional_int(raw: Any, *, min_value: int, max_value: int) -> int |
     try:
         value = int(raw)
     except (TypeError, ValueError) as exc:
-        raise HTTPException(status_code=400, detail="numeric client context fields must be integer.") from exc
+        raise ValidationError(status_code=400, message="numeric client context fields must be integer.") from exc
     if value < min_value or value > max_value:
         return None
     return value
@@ -51,11 +50,11 @@ def normalize_optional_int(raw: Any, *, min_value: int, max_value: int) -> int |
 def normalize_page_path(raw: Any, *, allowed_paths: tuple[str, ...]) -> str:
     value = str(raw or "").strip() or WEB_TRACKING_PAGE_PATH
     if not value.startswith("/"):
-        raise HTTPException(status_code=400, detail="pagePath must start with '/'.")
+        raise ValidationError(status_code=400, message="pagePath must start with '/'.")
     if len(value) > 256:
-        raise HTTPException(status_code=400, detail="pagePath is too long.")
+        raise ValidationError(status_code=400, message="pagePath is too long.")
     if value not in allowed_paths:
-        raise HTTPException(status_code=400, detail="Unsupported pagePath.")
+        raise ValidationError(status_code=400, message="Unsupported pagePath.")
     return value
 
 
@@ -106,7 +105,7 @@ def parse_client_ts(raw: Any) -> str:
     try:
         ts = float(raw)
     except (TypeError, ValueError) as exc:
-        raise HTTPException(status_code=400, detail="clientTs must be unix timestamp seconds.") from exc
+        raise ValidationError(status_code=400, message="clientTs must be unix timestamp seconds.") from exc
 
     event_dt = datetime.fromtimestamp(ts, tz=UTC)
     now = datetime.now(UTC)

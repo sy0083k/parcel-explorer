@@ -6,6 +6,7 @@ from app.core import get_settings
 from app.db.connection import db_connection
 from app.repositories import land_repository
 from app.services import map_event_service, raw_query_export_service, web_stats_service
+from app.services.service_models import RawQueryExportCommand
 
 
 def get_dashboard_stats(limit: int = 10) -> dict[str, Any]:
@@ -28,12 +29,14 @@ def export_raw_query_csv(
 ) -> raw_query_export_service.RawQueryCsvExportResult:
     settings = get_settings()
     return raw_query_export_service.export_raw_query_csv(
-        event_type=event_type,
-        date_from=date_from,
-        date_to=date_to,
-        limit=limit,
-        max_rows=settings.raw_query_export_max_rows,
-        timeout_s=settings.raw_query_export_timeout_s,
+        RawQueryExportCommand(
+            event_type=event_type,
+            date_from=date_from,
+            date_to=date_to,
+            limit=limit,
+            max_rows=settings.raw_query_export_max_rows,
+            timeout_s=settings.raw_query_export_timeout_s,
+        )
     )
 
 
