@@ -126,6 +126,7 @@
 - `mypy app tests create_hash.py`
 - `ruff check app tests`
 - `scripts/check_quality_warnings.sh` (파일 길이/복잡도 경고 리포트)
+- `cd frontend && npm test`
 - `cd frontend && npm run typecheck`
 - `cd frontend && npm run build`
 - `pytest -q`

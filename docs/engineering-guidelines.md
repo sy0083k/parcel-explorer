@@ -60,7 +60,7 @@
   - `mypy app tests create_hash.py`
   - `ruff check app tests`
   - `scripts/check_quality_warnings.sh`
-  - `cd frontend && npm run typecheck && npm run build`
+  - `cd frontend && npm test && npm run typecheck && npm run build`
   - `pytest -m unit -q`
   - `pytest -m integration -q`
   - `pytest -m e2e -q`
