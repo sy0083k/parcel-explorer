@@ -180,13 +180,14 @@ pytest -q
 선택 실행:
 ```bash
 RUN_HTTP_E2E=1 pytest -q tests/test_e2e_smoke.py
-PLAYWRIGHT_EXECUTABLE_PATH=$(which chromium) RUN_BROWSER_E2E=1 pytest -q tests/test_playwright_e2e.py
+PLAYWRIGHT_EXECUTABLE_PATH=/usr/bin/chromium RUN_BROWSER_E2E=1 pytest -q tests/test_playwright_e2e.py
 ```
 
 시스템 Chromium을 쓰는 경우 예시:
 ```bash
 which chromium
 which google-chrome
+readlink -f "$(which chromium)"
 PLAYWRIGHT_EXECUTABLE_PATH=/usr/bin/chromium RUN_BROWSER_E2E=1 pytest -q tests/test_playwright_e2e.py
 ```
 

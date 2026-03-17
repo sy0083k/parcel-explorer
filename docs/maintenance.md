@@ -138,8 +138,8 @@
 
 ### 선택 실행
 - HTTP E2E 스모크: `RUN_HTTP_E2E=1 pytest -q tests/test_e2e_smoke.py`
-- Playwright 브라우저 E2E: `PLAYWRIGHT_EXECUTABLE_PATH=$(which chromium) RUN_BROWSER_E2E=1 pytest -q tests/test_playwright_e2e.py`
-- Chromium이 `chromium`으로 잡히지 않으면 `which google-chrome` 또는 절대경로(`/usr/bin/chromium` 등)를 사용한다.
+- Playwright 브라우저 E2E: `PLAYWRIGHT_EXECUTABLE_PATH=/usr/bin/chromium RUN_BROWSER_E2E=1 pytest -q tests/test_playwright_e2e.py`
+- `PLAYWRIGHT_EXECUTABLE_PATH`는 절대경로여야 한다. `which chromium`, `which google-chrome`, `readlink -f "$(which chromium)"`로 실제 경로를 확인한 뒤 사용한다.
 
 ## 배포 워크플로 (GitHub Actions)
 - 파일: `.github/workflows/deploy.yml`

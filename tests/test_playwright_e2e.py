@@ -7,6 +7,7 @@ import time
 from collections.abc import Iterator
 from contextlib import contextmanager
 from pathlib import Path
+from shutil import which
 
 import pytest
 import uvicorn
@@ -82,6 +83,44 @@ def _seed_browser_e2e_data() -> None:
         conn.commit()
 
 
+def _validate_browser_executable(raw_path: str | None) -> str:
+    if not raw_path:
+        pytest.fail(
+            "PLAYWRIGHT_EXECUTABLE_PATH is required for browser E2E. "
+            "Install a system Chromium/Chrome and set its absolute executable path."
+        )
+
+    resolved = Path(raw_path.strip())
+    if not raw_path.strip():
+        pytest.fail("PLAYWRIGHT_EXECUTABLE_PATH must not be empty.")
+    if not resolved.is_absolute():
+        candidate = which(raw_path.strip())
+        hint = f" Resolved candidate: {candidate}." if candidate else ""
+        pytest.fail(
+            "PLAYWRIGHT_EXECUTABLE_PATH must be an absolute path to a system browser executable."
+            f"{hint}"
+        )
+    if not resolved.exists():
+        pytest.fail(f"PLAYWRIGHT_EXECUTABLE_PATH does not exist: {resolved}")
+    if not os.access(resolved, os.X_OK):
+        pytest.fail(f"PLAYWRIGHT_EXECUTABLE_PATH is not executable: {resolved}")
+
+    version = subprocess.run(
+        [str(resolved), "--version"],
+        check=False,
+        capture_output=True,
+        text=True,
+    )
+    if version.returncode != 0:
+        details = (version.stdout + version.stderr).strip()
+        pytest.fail(
+            f"System browser preflight failed for {resolved}. "
+            f"`--version` exited with {version.returncode}. {details}"
+        )
+
+    return str(resolved)
+
+
 @contextmanager
 def _run_browser_e2e_server(
     monkeypatch: pytest.MonkeyPatch,
@@ -139,12 +178,7 @@ def test_map_admin_browser_e2e(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) 
         pytest.skip("Set RUN_BROWSER_E2E=1 to run Playwright browser E2E tests.")
 
     frontend_dir = Path(__file__).resolve().parents[1] / "frontend"
-    executable_path = os.getenv("PLAYWRIGHT_EXECUTABLE_PATH")
-    if not executable_path:
-        pytest.fail(
-            "PLAYWRIGHT_EXECUTABLE_PATH is required for browser E2E. "
-            "Install a system Chromium/Chrome and set its absolute executable path."
-        )
+    executable_path = _validate_browser_executable(os.getenv("PLAYWRIGHT_EXECUTABLE_PATH"))
 
     build = subprocess.run(
         ["npm", "run", "build"],
