@@ -149,15 +149,15 @@
 
 ## 배포 워크플로 (GitHub Actions)
 - 파일: `.github/workflows/deploy.yml`
-- 트리거: `main` push, `workflow_dispatch`
-- 동작: 배포 전 품질 게이트 실행 후 SSH로 운영 서버 접속, `docker compose` 재배포, `/health` 검증
+- 트리거: `CI` 성공 후 `workflow_run`, `workflow_dispatch`
+- 동작: frontend test/typecheck/build, `compileall`, `mypy`, `ruff`, `scripts/check_quality_warnings.sh`, `pytest` 실행 후 SSH로 운영 서버 접속, `docker compose` 재배포, `/health` 검증
 
 ### 필수 GitHub Secrets
 - `PROD_HOST`: 운영 서버 호스트/IP
 - `PROD_PORT`: SSH 포트(미설정 시 22)
 - `PROD_USER`: SSH 계정
 - `PROD_SSH_KEY`: 배포용 개인키
-- `PROD_DEPLOY_PATH`: 서버 저장소 경로(미설정 시 `/opt/IdlePublicProperty`)
+- `PROD_DEPLOY_PATH`: 서버 저장소 경로(미설정 시 `/opt/parcel-explorer`)
 
 ### 서버 사전 조건
 - 지정 경로에 저장소가 이미 clone 되어 있어야 한다.

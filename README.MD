@@ -205,11 +205,11 @@ PLAYWRIGHT_EXECUTABLE_PATH=/usr/bin/chromium RUN_BROWSER_E2E=1 pytest -q tests/t
   - Python dev 의존성 설치: `pip install -r requirements-dev.txt`
   - frontend test/typecheck/build
   - Vite manifest 검증
-  - `compileall`, `mypy`, `pytest`
+  - `compileall`, `mypy`, `ruff`, `scripts/check_quality_warnings.sh`, `pytest`
 - Deploy: `.github/workflows/deploy.yml`
   - Python dev 의존성 설치: `pip install -r requirements-dev.txt`
-  - `main` push 또는 수동 실행(`workflow_dispatch`) 시 실행
-  - 배포 전 품질 게이트: frontend test/typecheck/build, `compileall`, `mypy`, `ruff`, `pytest`
+  - `CI` 성공 후(`workflow_run`) 또는 수동 실행(`workflow_dispatch`) 시 실행
+  - 배포 전 품질 게이트: frontend test/typecheck/build, `compileall`, `mypy`, `ruff`, `scripts/check_quality_warnings.sh`, `pytest`
   - SSH 원격 배포: 대상 서버에서 `git pull --ff-only` + `docker compose build --pull` + `docker compose up -d`
   - 배포 후 `curl http://127.0.0.1:8000/health` 헬스체크 확인
 
@@ -218,7 +218,7 @@ PLAYWRIGHT_EXECUTABLE_PATH=/usr/bin/chromium RUN_BROWSER_E2E=1 pytest -q tests/t
 - `PROD_PORT` (미설정 시 `22`)
 - `PROD_USER`
 - `PROD_SSH_KEY`
-- `PROD_DEPLOY_PATH` (미설정 시 `/opt/IdlePublicProperty`)
+- `PROD_DEPLOY_PATH` (미설정 시 `/opt/parcel-explorer`)
 
 ## 🐳 Docker 배포 (IP-only, no-domain)
 도메인 없이 서버 IP로 직접 접속하는 운영을 가정합니다.
