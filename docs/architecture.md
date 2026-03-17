@@ -49,7 +49,8 @@
   - `app/services/public_download_service.py`
   - `app/services/health_service.py`
   - 인증/업로드/설정/공개 다운로드/경계선 작업 시작 흐름은 FastAPI 타입을 서비스 내부로 넘기지 않고 command/result 객체와 `ServiceError` 계열 예외로 경계를 유지한다.
-  - 공개 이벤트/웹 통계 수집도 라우터가 JSON payload에서 명시 필드 command를 조립하고, 서비스는 원본 HTTP payload dict 대신 command와 metadata만 사용한다.
+  - 공개 이벤트/웹 통계 수집은 라우터가 `Request`에서 user-agent, 허용 경로, client IP 같은 primitive만 추출하고, service-side builder가 JSON payload를 command/context로 조립한다.
+  - 서비스는 원본 HTTP payload dict나 FastAPI transport 타입 대신 command/context만 사용한다.
   - 공개 이벤트/웹 통계/원시 로그 export 서비스 내부는 validation, normalize, persist/render 단계를 helper로 분리해 테스트 가능 경계를 유지한다.
   - 공개 이벤트 라우터와 관리자 raw query export 라우터는 rate limit, 서비스 예외의 HTTP 매핑, 감사 로그 payload 조립을 private helper로 통일한다.
 - **리포지토리**: SQL/영속성 처리
@@ -214,7 +215,7 @@
 
 ### 이벤트 수집/통계
 1. 클라이언트가 `/api/events`, `/api/web-events`로 검색/클릭/방문 이벤트를 전송한다.
-2. 라우터는 레이트리밋 적용 후 공개 이벤트/웹 방문 payload를 명시 필드 command로 변환해 서비스에 전달한다.
+2. 라우터는 레이트리밋 적용 후 request primitive를 추출하고, service-side builder로 공개 이벤트/웹 방문 payload를 command/context로 변환해 서비스에 전달한다.
 3. 서버는 command 기반 검증/정규화 후 `map_event_log`, `raw_query_log`, `web_visit_event`에 저장한다.
 4. `/api/web-events`는 referrer/utm/page query/클라이언트 컨텍스트를 optional로 수용하고, UA 기반 브라우저/디바이스/OS 분류 필드를 서버에서 파생 저장한다.
 5. `web_stats_service`는 facade로 남고, 내부적으로 ingest/normalizers/queries/presenter 모듈을 조합한다.

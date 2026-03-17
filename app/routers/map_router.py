@@ -1,19 +1,22 @@
+from collections.abc import Callable
 from typing import Any, NoReturn
 from urllib.parse import quote
 
 from fastapi import APIRouter, HTTPException, Request
 from fastapi.responses import FileResponse, JSONResponse
 
-from app.services import land_service, map_event_service, public_download_service, web_stats_service
-from app.services.service_errors import ServiceError
-from app.services.service_models import (
-    LandClickMapEventCommand,
-    MapEventCommand,
-    RequestMetadata,
-    SearchMapEventCommand,
-    UnknownMapEventCommand,
-    WebVisitEventCommand,
+from app.services import (
+    land_service,
+    map_event_service,
+    public_download_service,
+    web_stats_service,
 )
+from app.services.public_event_commands import (
+    build_map_event_command,
+    build_web_visit_event_command,
+)
+from app.services.service_errors import ServiceError
+from app.services.service_models import WebVisitContext
 
 DEFAULT_LANDS_PAGE_LIMIT = 500
 MAX_LANDS_PAGE_LIMIT = 2000
@@ -77,59 +80,34 @@ def _allow_rate_limited_event(
     return _rate_limited_response(retry_after)
 
 
-def _build_map_event_command(payload: dict[str, Any]) -> MapEventCommand:
-    event_type = str(payload.get("eventType", "")).strip()
-    if event_type == map_event_service.EVENT_TYPE_SEARCH:
-        return SearchMapEventCommand(
-            anon_id=payload.get("anonId"),
-            min_area=payload.get("minArea"),
-            search_term=payload.get("searchTerm"),
-            raw_search_term=payload.get("rawSearchTerm"),
-            raw_min_area_input=payload.get("rawMinAreaInput"),
-            raw_max_area_input=payload.get("rawMaxAreaInput"),
-            raw_rent_only=payload.get("rawRentOnly"),
-        )
-    if event_type == map_event_service.EVENT_TYPE_LAND_CLICK:
-        return LandClickMapEventCommand(
-            anon_id=payload.get("anonId"),
-            land_address=payload.get("landAddress"),
-            land_id=payload.get("landId"),
-            click_source=payload.get("clickSource"),
-        )
-    return UnknownMapEventCommand(
-        event_type=event_type,
-        anon_id=payload.get("anonId"),
-    )
-
-
-def _build_web_visit_event_command(request: Request, payload: dict[str, Any]) -> WebVisitEventCommand:
-    metadata = RequestMetadata(
+def _build_web_visit_context(request: Request) -> WebVisitContext:
+    return WebVisitContext(
         user_agent=request.headers.get("user-agent"),
         allowed_web_track_paths=tuple(str(path) for path in request.app.state.config.ALLOWED_WEB_TRACK_PATHS),
     )
-    return WebVisitEventCommand(
-        event_type=payload.get("eventType"),
-        anon_id=payload.get("anonId"),
-        session_id=payload.get("sessionId"),
-        page_path=payload.get("pagePath"),
-        page_query=payload.get("pageQuery"),
-        client_ts=payload.get("clientTs"),
-        client_tz=payload.get("clientTz"),
-        client_lang=payload.get("clientLang"),
-        platform=payload.get("platform"),
-        referrer_url=payload.get("referrerUrl"),
-        referrer_domain=payload.get("referrerDomain"),
-        utm_source=payload.get("utmSource"),
-        utm_medium=payload.get("utmMedium"),
-        utm_campaign=payload.get("utmCampaign"),
-        utm_term=payload.get("utmTerm"),
-        utm_content=payload.get("utmContent"),
-        screen_width=payload.get("screenWidth"),
-        screen_height=payload.get("screenHeight"),
-        viewport_width=payload.get("viewportWidth"),
-        viewport_height=payload.get("viewportHeight"),
-        metadata=metadata,
+
+
+def _handle_rate_limited_event(
+    request: Request,
+    *,
+    payload: dict[str, Any],
+    prefix: str,
+    limit: int,
+    on_allowed: Callable[[], None],
+) -> JSONResponse | dict[str, bool]:
+    blocked = _allow_rate_limited_event(
+        request,
+        payload=payload,
+        prefix=prefix,
+        limit=limit,
     )
+    if blocked is not None:
+        return blocked
+    try:
+        on_allowed()
+    except ServiceError as exc:
+        _raise_http_from_service_error(exc)
+    return _success_response()
 
 
 def create_router() -> APIRouter:
@@ -158,35 +136,26 @@ def create_router() -> APIRouter:
 
     @router.post("/events")
     async def post_map_event(request: Request, payload: dict[str, Any]):
-        blocked = _allow_rate_limited_event(
+        return _handle_rate_limited_event(
             request,
             payload=payload,
             prefix="events",
             limit=EVENT_LIMIT_PER_MINUTE,
+            on_allowed=lambda: map_event_service.record_map_event(build_map_event_command(payload)),
         )
-        if blocked is not None:
-            return blocked
-        try:
-            map_event_service.record_map_event(_build_map_event_command(payload))
-        except ServiceError as exc:
-            _raise_http_from_service_error(exc)
-        return _success_response()
 
     @router.post("/web-events")
     async def post_web_event(request: Request, payload: dict[str, Any]):
-        blocked = _allow_rate_limited_event(
+        context = _build_web_visit_context(request)
+        return _handle_rate_limited_event(
             request,
             payload=payload,
             prefix="web-events",
             limit=WEB_EVENT_LIMIT_PER_MINUTE,
+            on_allowed=lambda: web_stats_service.record_web_visit_event(
+                build_web_visit_event_command(payload, context=context)
+            ),
         )
-        if blocked is not None:
-            return blocked
-        try:
-            web_stats_service.record_web_visit_event(_build_web_visit_event_command(request, payload))
-        except ServiceError as exc:
-            _raise_http_from_service_error(exc)
-        return _success_response()
 
     @router.get("/public-download")
     async def get_public_download(request: Request):

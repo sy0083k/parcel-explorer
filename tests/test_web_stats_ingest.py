@@ -1,7 +1,7 @@
 from app.db.connection import db_connection
 from app.repositories import web_visit_repository
 from app.services import web_stats_ingest
-from app.services.service_models import RequestMetadata, WebVisitEventCommand
+from app.services.service_models import WebVisitContext, WebVisitEventCommand
 from app.services.web_stats_types import (
     ClientContext,
     MarketingContext,
@@ -33,7 +33,7 @@ def test_web_stats_ingest_persists_normalized_and_derived_fields(
             screen_height=2532,
             viewport_width=430,
             viewport_height=932,
-            metadata=RequestMetadata(
+            context=WebVisitContext(
                 user_agent=(
                     "Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) "
                     "AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Mobile/15E148 Safari/604.1"
@@ -67,12 +67,12 @@ def test_web_stats_ingest_normalize_web_visit_core() -> None:
             page_path="/",
             page_query="?utm_source=google",
             client_ts=1763596800,
-            metadata=RequestMetadata(
+            context=WebVisitContext(
                 user_agent=None,
                 allowed_web_track_paths=("/",),
             ),
         ),
-        RequestMetadata(
+        WebVisitContext(
             user_agent=None,
             allowed_web_track_paths=("/",),
         ),
@@ -99,7 +99,7 @@ def test_web_stats_ingest_normalize_client_context() -> None:
             screen_height="1080",
             viewport_width="1280",
             viewport_height="800",
-            metadata=RequestMetadata(),
+            context=WebVisitContext(),
         )
     )
 
@@ -121,7 +121,7 @@ def test_web_stats_ingest_normalize_marketing_context() -> None:
             referrer_domain=None,
             utm_source=" newsletter ",
             utm_medium=" email ",
-            metadata=RequestMetadata(),
+            context=WebVisitContext(),
         )
     )
 
@@ -133,7 +133,7 @@ def test_web_stats_ingest_normalize_marketing_context() -> None:
 
 def test_web_stats_ingest_derive_user_agent_context() -> None:
     context = web_stats_ingest.derive_user_agent_context(
-        RequestMetadata(
+        WebVisitContext(
             user_agent="Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) Safari/604.1",
             allowed_web_track_paths=("/",),
         )

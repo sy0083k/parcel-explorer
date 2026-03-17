@@ -20,7 +20,7 @@ class UploadedFileInput:
 
 
 @dataclass(frozen=True)
-class RequestMetadata:
+class WebVisitContext:
     user_agent: str | None = None
     allowed_web_track_paths: tuple[str, ...] = ("/",)
 
@@ -52,7 +52,7 @@ class UnknownMapEventCommand:
 
 @dataclass(frozen=True)
 class WebVisitEventCommand:
-    metadata: RequestMetadata
+    context: WebVisitContext
     event_type: object | None
     anon_id: object | None
     session_id: object | None

@@ -1,5 +1,5 @@
 from app.services import web_stats_service
-from app.services.service_models import RequestMetadata, WebVisitEventCommand
+from app.services.service_models import WebVisitContext, WebVisitEventCommand
 from app.services.web_stats_types import WebStatsQueryResult, WebStatsWindow
 
 
@@ -23,7 +23,7 @@ def test_record_web_visit_event_delegates_to_ingest(monkeypatch) -> None:
         screen_height=2532,
         viewport_width=430,
         viewport_height=932,
-        metadata=RequestMetadata(
+        context=WebVisitContext(
             user_agent=(
                 "Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) "
                 "AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Mobile/15E148 Safari/604.1"

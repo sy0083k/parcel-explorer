@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from app.db.connection import db_connection
 from app.repositories import web_visit_repository
-from app.services.service_models import RequestMetadata, WebVisitEventCommand
+from app.services.service_models import WebVisitContext, WebVisitEventCommand
 from app.services.web_stats_normalizers import (
     classify_browser_family,
     classify_device_type,
@@ -33,20 +33,20 @@ def record_web_visit_event(command: WebVisitEventCommand) -> None:
 
 
 def normalize_web_visit_event(command: WebVisitEventCommand) -> NormalizedWebVisitEvent:
-    metadata = command.metadata
-    core = normalize_web_visit_core(command, metadata)
+    context = command.context
+    core = normalize_web_visit_core(command, context)
     client_context = normalize_client_context(command)
     marketing_context = normalize_marketing_context(command)
-    user_agent_context = derive_user_agent_context(metadata)
+    user_agent_context = derive_user_agent_context(context)
     return assemble_normalized_web_visit_event(core, client_context, marketing_context, user_agent_context)
 
 
-def normalize_web_visit_core(command: WebVisitEventCommand, metadata: RequestMetadata) -> NormalizedWebVisitCore:
+def normalize_web_visit_core(command: WebVisitEventCommand, context: WebVisitContext) -> NormalizedWebVisitCore:
     return NormalizedWebVisitCore(
         anon_id=normalize_required_token(command.anon_id, "anonId"),
         session_id=normalize_required_token(command.session_id, "sessionId"),
         event_type=normalize_event_type(command.event_type),
-        page_path=normalize_page_path(command.page_path, allowed_paths=metadata.allowed_web_track_paths),
+        page_path=normalize_page_path(command.page_path, allowed_paths=context.allowed_web_track_paths),
         page_query=normalize_query_string(command.page_query, max_length=1024),
         occurred_at=parse_client_ts(command.client_ts),
     )
@@ -108,8 +108,8 @@ def normalize_marketing_context(command: WebVisitEventCommand) -> MarketingConte
     )
 
 
-def derive_user_agent_context(metadata: RequestMetadata) -> UserAgentContext:
-    user_agent = (metadata.user_agent or "")[:500] or None
+def derive_user_agent_context(context: WebVisitContext) -> UserAgentContext:
+    user_agent = (context.user_agent or "")[:500] or None
     is_bot = is_bot_user_agent(user_agent or "")
     return UserAgentContext(
         user_agent=user_agent,
