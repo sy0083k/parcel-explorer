@@ -2,7 +2,7 @@
 
 프로젝트: 관심 필지 지도 (Parcel Explorer)  
 작성일: 2026-02-23  
-최종 수정일: 2026-03-17  
+최종 수정일: 2026-03-18  
 운영 주기: 매주 1회 (월요일 기준)
 
 ## 목적
@@ -44,12 +44,12 @@
 | RISK-015 | P2 | 파일 업로드 매직 바이트 검증 없음 | done | team | 2026-03-15 | 업로드 파일의 매직 바이트가 선언된 확장자와 일치하는지 검증하는 단계가 추가된다. | `app/validators/land_validators.py`: `_MAGIC_BYTES` + `check_excel_magic_bytes()` 추가. `app/services/upload_service.py`: 크기 검사 직후 8바이트 매직 바이트 검증 삽입, 불일치 시 HTTP 400 + `reason=invalid_magic_bytes` 감사 로그. 신규 종속성 없음. STRIDE §T 관련. |
 | RISK-016 | P2 | CSV formula injection 방어 범위 불완전 | done | team | 2026-03-15 | 방어 대상 prefix 목록이 최신 OWASP CSV Injection 가이드라인 기준으로 검토되고, 필요 시 추가 prefix 또는 대체 직렬화 방식이 적용된다. | `CSV_FORMULA_PREFIXES`에 `\t`(탭, 일부 파서 formula 해석 벡터)·`|`(파이프, LibreOffice Calc DDE 벡터) 추가. 상수 1줄 변경, `_safe_csv_string()` 함수 본체 무수정. 파이프라인 통합 테스트 1개 추가, pytest 전체 통과. STRIDE §I 관련. |
 | RISK-017 | P2 | ALLOWED_WEB_TRACK_PATHS 오구성 시 과수집 위험 | done | team | 2026-03-15 | 허용 경로 최대 개수 상한, 기본값 변경 근거 문서화, 운영 가이드에 최소 경로 원칙이 명시된다. | `_MAX_ALLOWED_WEB_TRACK_PATHS=20` 상수 추가 및 중복 제거 후 상한 초과 시 `SettingsError` 발생(`config.py`). `"/"` 포함 시 lifespan 시작 WARNING 로그 추가(`main.py`). `.env.example` 주석에 과수집 위험 명시. `docs/maintenance.md` 최소 경로 원칙 섹션 추가. `stride-lite.md` §I 공백 해소. 신규 단위 테스트 1개(21개 경로 초과 거부), pytest 전체 통과. |
-| RISK-018 | P1 | Admin 라우터 통합 테스트 보강 | todo | unassigned | - | POST `/admin/settings`, POST `/admin/password`, CSRF 거부(403) 시나리오를 HTTP 수준에서 커버하는 통합 테스트가 추가된다. | `app/routers/admin.py` 275줄 대비 현재 6개 유틸 함수 테스트만 존재. 상태 변경 엔드포인트와 CSRF 검증 경로 미커버. 관련: `tests/test_admin_router.py`, `tests/test_security_regression.py` |
-| RISK-019 | P1 | Land Service 단독 단위 테스트 부재 | todo | unassigned | - | land_service의 주요 경로(집계, 페이지네이션 경계, 빈 결과)를 검증하는 단위 테스트 파일이 추가된다. | `app/services/land_service.py` 전용 테스트 없음. repository 테스트를 통해 간접 커버만 되는 상태. 관련: `app/services/land_service.py`, `app/repositories/land_repository.py` |
-| RISK-020 | P2 | Chart.js 타입 안전성 부재 | todo | unassigned | - | `@types/chart.js` 도입 또는 명시적 타입 가드 추가로 `any` 사용이 제거되고 `npm run typecheck`가 통과한다. | `frontend/src/admin/charts.ts`: `declare const Chart: any`, 차트 인스턴스 변수 4개 `any`. 외부 라이브러리 타입 정의 미도입. 관련: `frontend/src/admin/charts.ts:1,13-16,18` |
-| RISK-021 | P2 | SQL 테이블명 f-string 보간 | todo | unassigned | - | `TABLE_NAME`이 모듈 수준 하드코딩 상수임을 명시하는 주석이 추가되거나, f-string 보간이 제거된다. | `app/repositories/land_repository.py` 9개 쿼리에서 `f"... {TABLE_NAME} ..."` 직접 보간. 현재는 상수라 injection 위험 없으나, 향후 변수화 시 SQL injection 벡터 생성 가능. 관련: `land_repository.py:28,41,44,53,88,90,97,103,111` |
-| RISK-022 | P2 | .env.example 신규 설정 누락 | todo | unassigned | - | RISK-012에서 추가된 두 설정이 기본값 및 용도 주석과 함께 `.env.example`에 반영된다. | `RAW_QUERY_EXPORT_MAX_ROWS`(기본 100000), `RAW_QUERY_EXPORT_TIMEOUT_S`(기본 30.0)가 `.env.example`에 미반영. 운영자 초기 구성 시 설정 존재 여부 확인 불가. 관련: `.env.example`, `app/core/config.py` |
-| RISK-023 | P2 | Admin 에러 메시지 포맷 중복 코드 | todo | unassigned | - | 중복 패턴이 유틸 함수로 추출되어 3곳에서 재사용되고, `npm run typecheck && npm run build`가 통과한다. | `const message = error instanceof HttpError ? error.message : String(error)` 패턴이 `stats.ts:119`, `upload.ts:47`, `geom-refresh.ts:75` 3곳에 중복. 관련: `frontend/src/admin/stats.ts`, `upload.ts`, `geom-refresh.ts` |
+| RISK-018 | P1 | Admin 라우터 통합 테스트 보강 | todo | unassigned | - | POST `/admin/settings`, POST `/admin/password`의 missing/invalid CSRF 거부(403) 시나리오를 HTTP 수준에서 커버하는 통합 테스트가 추가된다. | `/admin/settings`, `/admin/password` 성공 경로는 이미 `tests/test_admin_settings_route.py`에서 HTTP 수준으로 검증 중이다. 다만 상태 변경 엔드포인트의 CSRF 거부 회귀 테스트는 부재. 관련: `tests/test_admin_settings_route.py`, `tests/test_security_regression.py`, `app/routers/admin.py` |
+| RISK-019 | P1 | Land Service 단독 단위 테스트 부재 | todo | unassigned | - | `land_service`의 빈 결과, `nextCursor` 경계, 공개 필드 필터링을 검증하는 서비스 단위 테스트가 추가된다. | `tests/test_services.py`에 기본 GeoJSON 변환 테스트 1건이 있고, `tests/test_map_pagination.py`에서 API 레벨 페이지네이션을 커버한다. 다만 서비스 단위의 경계 시나리오 검증은 부족하다. 관련: `app/services/land_service.py`, `tests/test_services.py`, `tests/test_map_pagination.py` |
+| RISK-020 | P2 | Chart.js 타입 안전성 부재 | todo | unassigned | - | `frontend/src/admin/charts.ts`의 `any` 사용이 제거되고, 현재 로딩 방식에 맞는 타입 선언 또는 타입 가드가 추가되어 `npm run typecheck`가 통과한다. | `frontend/src/admin/charts.ts`는 `declare const Chart: any`와 차트 인스턴스 `any` 4개로 타입 검사를 우회한다. 현재 Chart.js는 `templates/admin.html`에서 CDN UMD 스크립트로 로드되므로, 해결책은 npm 타입 패키지 고정이 아니라 현 구조에 맞는 타입 보강이어야 한다. |
+| RISK-021 | P2 | SQL 테이블명 f-string 보간 | todo | unassigned | - | `TABLE_NAME`이 모듈 수준 하드코딩 상수임을 명시하는 주석이 추가되거나, f-string 식별자 보간이 제거된다. | `app/repositories/land_repository.py`의 9개 쿼리에서 `f"... {TABLE_NAME} ..."` 패턴을 사용한다. 현재 `TABLE_NAME`은 상수라 즉시 취약점은 아니지만, 향후 동적 식별자 도입 시 위험한 선례로 오해되기 쉬운 패턴이다. 관련: `app/repositories/land_repository.py` |
+| RISK-022 | P2 | .env.example 신규 설정 누락 | todo | unassigned | - | RISK-012에서 추가된 두 설정이 기본값 및 용도 주석과 함께 `.env.example`에 반영된다. | `RAW_QUERY_EXPORT_MAX_ROWS`(기본 100000), `RAW_QUERY_EXPORT_TIMEOUT_S`(기본 30.0)가 `.env.example`에 미반영이다. `README.MD`와 운영 문서에는 이미 언급되어 있으나 운영자 초기 구성 시 설정 존재 여부를 `.env.example`만 보고는 확인할 수 없다. 관련: `.env.example`, `app/core/config.py`, `README.MD` |
+| RISK-023 | P2 | Admin 에러 메시지 포맷 중복 코드 | todo | unassigned | - | Admin UI 내부의 `HttpError` 메시지 정규화 패턴이 공용 유틸로 정리되고, `npm run typecheck && npm run build`가 통과한다. | `error instanceof HttpError ? error.message : ...` 패턴이 `frontend/src/admin/stats.ts` 1곳, `frontend/src/admin/upload.ts` 2곳, `frontend/src/admin/geom-refresh.ts` 2곳에 중복된다. 즉시 장애 리스크보다는 유지보수성 개선 과제에 가깝다. |
 
 ## 주간 리뷰 로그
 - 2026-02-23 | reviewer: team | 초기 백로그 문서 생성 및 5개 리스크 등록 | 다음 액션: RISK-001, RISK-002 우선 설계안 작성
@@ -82,3 +82,4 @@
 - 2026-03-15 | reviewer: team | RISK-017 구현 완료: `ALLOWED_WEB_TRACK_PATHS` 최대 20개 상한 추가(초과 시 `SettingsError`), `"/"` 포함 시 시작 WARNING 로그, `.env.example` 주석 과수집 위험 명시, `docs/maintenance.md` 최소 경로 원칙 섹션, stride-lite §I 공백 해소. 신규 단위 테스트 1개, pytest 전체 통과 | 다음 액션: 잔여 P2 항목 없음 — P1 항목 검토
 - 2026-03-16 | reviewer: team | 첫 배포 준비 기준을 문서화: `README.MD`/`docs/architecture.md`의 로그아웃·설정 반영 설명을 코드 기준으로 정정하고, `docs/maintenance.md`에 `첫 배포 전 실행 순서`(P0/P1/P2)를 추가 | 다음 액션: 전체 품질 게이트 종료 시간과 첫 배포 리허설 결과를 운영 기록으로 남김
 - 2026-03-17 | reviewer: team | 코드베이스 진단 후속: 발견 이슈 6건을 RISK-018~023으로 등록 (Admin 라우터 테스트 미흡 P1, Land Service 테스트 부재 P1, Chart.js any 타입 P2, SQL f-string 보간 P2, .env.example 누락 P2, Admin 에러 포맷 중복 P2) | 다음 액션: RISK-018, RISK-019 P1 항목 우선 착수 검토
+- 2026-03-18 | reviewer: team | RISK-018~023 진단 결과를 반영해 notes/success criteria 정정: 기존 성공 경로 테스트 존재 여부, land_service 커버 범위, Chart.js CDN 로딩 구조, `.env.example` 누락 근거, admin UI 에러 메시지 중복 범위를 실제 코드 상태와 일치하도록 보정 | 다음 액션: RISK-018, RISK-019 P1 항목 우선 착수 검토
