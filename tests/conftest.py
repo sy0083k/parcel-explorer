@@ -12,6 +12,7 @@ from tests.helpers import temp_env
 TEST_MARKER_BY_FILE: dict[str, str] = {
     "test_access_policy.py": "unit",
     "test_admin_settings_route.py": "integration",
+    "test_admin_router.py": "unit",
     "test_assets.py": "unit",
     "test_auth_flow.py": "integration",
     "test_clients.py": "unit",
@@ -23,6 +24,7 @@ TEST_MARKER_BY_FILE: dict[str, str] = {
     "test_job_repository_split.py": "unit",
     "test_land_repository_split.py": "unit",
     "test_map_event_service.py": "unit",
+    "test_map_router.py": "unit",
     "test_map_pagination.py": "integration",
     "test_observability_headers.py": "integration",
     "test_phase1.py": "integration",

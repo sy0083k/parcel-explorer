@@ -214,3 +214,63 @@ def test_export_timeout_sets_log_reason(db_path: object, monkeypatch: pytest.Mon
 
     assert exc.value.status_code == 503
     assert exc.value.log_reason == "query_timeout"
+
+
+def test_fetch_raw_query_export_rows_returns_rows(db_path: object) -> None:
+    with db_connection() as conn:
+        event_repository.init_event_schema(conn)
+        event_repository.insert_raw_query_log(
+            conn,
+            event_type="search",
+            anon_id="anon-1",
+            raw_region_query="예천동",
+            raw_min_area_input="120",
+            raw_max_area_input=None,
+            raw_rent_only_input=None,
+            raw_land_id_input=None,
+            raw_land_address_input=None,
+            raw_click_source_input=None,
+            raw_payload_json="{}",
+        )
+        conn.commit()
+
+    validated = raw_query_export_service.validate_raw_query_export_command(
+        RawQueryExportCommand(
+            event_type="search",
+            date_from=None,
+            date_to=None,
+            limit=100,
+        )
+    )
+
+    rows = raw_query_export_service.fetch_raw_query_export_rows(validated)
+
+    assert len(rows) == 1
+    assert rows[0]["event_type"] == "search"
+
+
+def test_render_raw_query_csv_renders_rows_and_headers() -> None:
+    rows = [
+        {
+            "id": 1,
+            "created_at": "2026-02-22 00:00:00",
+            "event_type": "search",
+            "anon_id": "=anon-1",
+            "raw_region_query": "예천동",
+            "raw_min_area_input": "120",
+            "raw_max_area_input": None,
+            "raw_rent_only_input": None,
+            "raw_land_id_input": None,
+            "raw_land_address_input": None,
+            "raw_click_source_input": None,
+            "raw_payload_json": "{}",
+        }
+    ]
+
+    result = raw_query_export_service.render_raw_query_csv(rows, effective_limit=100)
+
+    assert "event_type" in result.csv_text
+    assert "search" in result.csv_text
+    assert "'=anon-1" in result.csv_text
+    assert result.row_count == 1
+    assert result.effective_limit == 100

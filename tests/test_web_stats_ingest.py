@@ -2,6 +2,12 @@ from app.db.connection import db_connection
 from app.repositories import web_visit_repository
 from app.services import web_stats_ingest
 from app.services.service_models import RequestMetadata, WebVisitEventCommand
+from app.services.web_stats_types import (
+    ClientContext,
+    MarketingContext,
+    NormalizedWebVisitCore,
+    UserAgentContext,
+)
 
 
 def test_web_stats_ingest_persists_normalized_and_derived_fields(
@@ -77,3 +83,104 @@ def test_web_stats_ingest_normalize_web_visit_core() -> None:
     assert core.event_type == "visit_start"
     assert core.page_path == "/"
     assert core.page_query == "utm_source=google"
+
+
+def test_web_stats_ingest_normalize_client_context() -> None:
+    context = web_stats_ingest.normalize_client_context(
+        WebVisitEventCommand(
+            event_type="visit_start",
+            anon_id="anon-1",
+            session_id="session-1",
+            page_path="/",
+            client_tz=" Asia/Seoul ",
+            client_lang=" ko-KR ",
+            platform=" Linux ",
+            screen_width="1920",
+            screen_height="1080",
+            viewport_width="1280",
+            viewport_height="800",
+            metadata=RequestMetadata(),
+        )
+    )
+
+    assert context.client_tz == "Asia/Seoul"
+    assert context.client_lang == "ko-KR"
+    assert context.platform == "Linux"
+    assert context.screen_width == 1920
+    assert context.viewport_height == 800
+
+
+def test_web_stats_ingest_normalize_marketing_context() -> None:
+    context = web_stats_ingest.normalize_marketing_context(
+        WebVisitEventCommand(
+            event_type="visit_start",
+            anon_id="anon-1",
+            session_id="session-1",
+            page_path="/",
+            referrer_url="https://Example.com/path?q=1",
+            referrer_domain=None,
+            utm_source=" newsletter ",
+            utm_medium=" email ",
+            metadata=RequestMetadata(),
+        )
+    )
+
+    assert context.referrer_url == "https://Example.com/path"
+    assert context.referrer_domain == "example.com"
+    assert context.utm_source == "newsletter"
+    assert context.utm_medium == "email"
+
+
+def test_web_stats_ingest_derive_user_agent_context() -> None:
+    context = web_stats_ingest.derive_user_agent_context(
+        RequestMetadata(
+            user_agent="Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) Safari/604.1",
+            allowed_web_track_paths=("/",),
+        )
+    )
+
+    assert context.user_agent is not None
+    assert context.is_bot is False
+    assert context.device_type == "mobile"
+
+
+def test_web_stats_ingest_assemble_normalized_web_visit_event() -> None:
+    event = web_stats_ingest.assemble_normalized_web_visit_event(
+        NormalizedWebVisitCore(
+            anon_id="anon-1",
+            session_id="session-1",
+            event_type="visit_start",
+            page_path="/",
+            page_query="utm_source=google",
+            occurred_at="2026-02-20 00:00:00",
+        ),
+        ClientContext(
+            client_tz="Asia/Seoul",
+            client_lang="ko-KR",
+            platform="Linux",
+            screen_width=1920,
+            screen_height=1080,
+            viewport_width=1280,
+            viewport_height=800,
+        ),
+        MarketingContext(
+            referrer_url="https://google.com/search",
+            referrer_domain="google.com",
+            utm_source="google",
+            utm_medium="search",
+            utm_campaign=None,
+            utm_term=None,
+            utm_content=None,
+        ),
+        UserAgentContext(
+            user_agent="Mozilla/5.0",
+            is_bot=False,
+            browser_family="chrome",
+            device_type="desktop",
+            os_family="linux",
+        ),
+    )
+
+    assert event.anon_id == "anon-1"
+    assert event.referrer_domain == "google.com"
+    assert event.user_agent.browser_family == "chrome"

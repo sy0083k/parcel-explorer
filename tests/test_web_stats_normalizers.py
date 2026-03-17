@@ -8,6 +8,12 @@ def test_web_stats_normalizers_basic_helpers() -> None:
     assert web_stats_normalizers.normalize_query_string("?utm_source=google", max_length=1024) == "utm_source=google"
 
 
+def test_web_stats_normalizers_parse_client_ts_returns_sql_datetime() -> None:
+    parsed = web_stats_normalizers.parse_client_ts(1763596800)
+    assert len(parsed) == 19
+    assert parsed.count(":") == 2
+
+
 def test_web_stats_normalizers_page_and_referrer_handling() -> None:
     assert web_stats_normalizers.normalize_page_path("/readme", allowed_paths=("/", "/readme")) == "/readme"
     assert web_stats_normalizers.normalize_referrer_url("https://example.com/path?a=1#x") == "https://example.com/path"
