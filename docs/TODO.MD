@@ -2,7 +2,7 @@
 
 프로젝트: 관심 필지 지도 (Parcel Explorer)  
 작성일: 2026-02-23  
-최종 수정일: 2026-03-18  
+최종 수정일: 2026-03-19  
 운영 주기: 매주 1회 (월요일 기준)
 
 ## 목적
@@ -49,7 +49,7 @@
 | RISK-020 | P2 | Chart.js 타입 안전성 부재 | todo | unassigned | - | `frontend/src/admin/charts.ts`의 `any` 사용이 제거되고, 현재 로딩 방식에 맞는 타입 선언 또는 타입 가드가 추가되어 `npm run typecheck`가 통과한다. | `frontend/src/admin/charts.ts`는 `declare const Chart: any`와 차트 인스턴스 `any` 4개로 타입 검사를 우회한다. 현재 Chart.js는 `templates/admin.html`에서 CDN UMD 스크립트로 로드되므로, 해결책은 npm 타입 패키지 고정이 아니라 현 구조에 맞는 타입 보강이어야 한다. |
 | RISK-021 | P2 | SQL 테이블명 f-string 보간 | todo | unassigned | - | `TABLE_NAME`이 모듈 수준 하드코딩 상수임을 명시하는 주석이 추가되거나, f-string 식별자 보간이 제거된다. | `app/repositories/land_repository.py`의 9개 쿼리에서 `f"... {TABLE_NAME} ..."` 패턴을 사용한다. 현재 `TABLE_NAME`은 상수라 즉시 취약점은 아니지만, 향후 동적 식별자 도입 시 위험한 선례로 오해되기 쉬운 패턴이다. 관련: `app/repositories/land_repository.py` |
 | RISK-022 | P2 | .env.example 신규 설정 누락 | done | team | 2026-03-18 | RISK-012에서 추가된 두 설정이 기본값 및 용도 주석과 함께 `.env.example`에 반영된다. | `.env.example`에 `RAW_QUERY_EXPORT_MAX_ROWS=100000`, `RAW_QUERY_EXPORT_TIMEOUT_S=30.0` 및 용도 주석 추가. `app/core/config.py` 기본값과 일치하도록 정렬. `README.MD`, `docs/maintenance.md`, `docs/architecture.md`의 기존 언급과 정합성 확보. |
-| RISK-023 | P2 | Admin 에러 메시지 포맷 중복 코드 | todo | unassigned | - | Admin UI 내부의 `HttpError` 메시지 정규화 패턴이 공용 유틸로 정리되고, `npm run typecheck && npm run build`가 통과한다. | `error instanceof HttpError ? error.message : ...` 패턴이 `frontend/src/admin/stats.ts` 1곳, `frontend/src/admin/upload.ts` 2곳, `frontend/src/admin/geom-refresh.ts` 2곳에 중복된다. 즉시 장애 리스크보다는 유지보수성 개선 과제에 가깝다. |
+| RISK-023 | P2 | Admin 에러 메시지 포맷 중복 코드 | done | team | 2026-03-19 | Admin UI 내부의 `HttpError` 메시지 정규화 패턴이 공용 유틸로 정리되고, `npm run typecheck && npm run build`가 통과한다. | `frontend/src/admin/errors.ts`의 `resolveAdminErrorMessage()`로 admin 오류 표시를 단일화. `stats.ts`, `upload.ts`, `geom-refresh.ts`가 공통 유틸을 재사용하도록 정리하고, vitest 단위 테스트 1개 추가. |
 
 ## 주간 리뷰 로그
 - 2026-02-23 | reviewer: team | 초기 백로그 문서 생성 및 5개 리스크 등록 | 다음 액션: RISK-001, RISK-002 우선 설계안 작성
@@ -84,3 +84,4 @@
 - 2026-03-17 | reviewer: team | 코드베이스 진단 후속: 발견 이슈 6건을 RISK-018~023으로 등록 (Admin 라우터 테스트 미흡 P1, Land Service 테스트 부재 P1, Chart.js any 타입 P2, SQL f-string 보간 P2, .env.example 누락 P2, Admin 에러 포맷 중복 P2) | 다음 액션: RISK-018, RISK-019 P1 항목 우선 착수 검토
 - 2026-03-18 | reviewer: team | RISK-018~023 진단 결과를 반영해 notes/success criteria 정정: 기존 성공 경로 테스트 존재 여부, land_service 커버 범위, Chart.js CDN 로딩 구조, `.env.example` 누락 근거, admin UI 에러 메시지 중복 범위를 실제 코드 상태와 일치하도록 보정 | 다음 액션: RISK-018, RISK-019 P1 항목 우선 착수 검토
 - 2026-03-18 | reviewer: team | RISK-022 해결: `.env.example`에 `RAW_QUERY_EXPORT_MAX_ROWS`, `RAW_QUERY_EXPORT_TIMEOUT_S`와 기본값/주석을 추가해 export 제한 설정의 초기 구성 가시성을 복구 | 다음 액션: 잔여 P2 항목(RISK-020, RISK-021, RISK-023) 검토
+- 2026-03-19 | reviewer: team | RISK-023 해결: admin 프런트에 `resolveAdminErrorMessage()` 공통 유틸을 추가하고 `stats`/`upload`/`geom-refresh`의 중복 `HttpError` 표시 로직을 단일화. 프런트 단위 테스트 추가 후 typecheck/build 검증 예정 | 다음 액션: 잔여 P2 항목(RISK-020, RISK-021) 검토

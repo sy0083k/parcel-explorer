@@ -1,6 +1,7 @@
-import { HttpError, fetchJson } from "../http";
+import { fetchJson } from "../http";
 
 import { requireElement } from "./dom";
+import { resolveAdminErrorMessage } from "./errors";
 import type { StatsResponse, WebStatsResponse } from "./types";
 
 type AdminStatsCharts = {
@@ -116,7 +117,7 @@ export function createAdminStatsController(charts: AdminStatsCharts): AdminStats
       webStatus.style.color = "#16a34a";
       webStatus.innerText = "웹 통계 갱신 완료";
     } catch (error) {
-      const message = error instanceof HttpError ? error.message : "통계를 불러오지 못했습니다.";
+      const message = resolveAdminErrorMessage(error, "통계를 불러오지 못했습니다.");
       status.style.color = "#dc2626";
       status.innerText = message;
       webStatus.style.color = "#dc2626";

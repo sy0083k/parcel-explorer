@@ -1,6 +1,7 @@
-import { HttpError, fetchJson } from "../http";
+import { fetchJson } from "../http";
 
 import { requireElement } from "./dom";
+import { resolveAdminErrorMessage } from "./errors";
 import type { GeomRefreshStartResponse, GeomRefreshStatusResponse } from "./types";
 
 type GeomRefreshController = {
@@ -72,7 +73,7 @@ export function createGeomRefreshController(csrfToken: string, reloadStats: Relo
       status.style.color = "#dc2626";
       status.innerText = "작업 상태 확인 시간이 초과되었습니다. 잠시 후 다시 시도해주세요.";
     } catch (error) {
-      const message = error instanceof HttpError ? error.message : "작업 상태를 불러오지 못했습니다.";
+      const message = resolveAdminErrorMessage(error, "작업 상태를 불러오지 못했습니다.");
       status.style.color = "#dc2626";
       status.innerText = message;
     } finally {
@@ -105,7 +106,7 @@ export function createGeomRefreshController(csrfToken: string, reloadStats: Relo
       status.innerText = `${payload.message} (작업 ID: ${payload.jobId})`;
       await poll(payload.jobId);
     } catch (error) {
-      const message = error instanceof HttpError ? error.message : "작업 시작에 실패했습니다.";
+      const message = resolveAdminErrorMessage(error, "작업 시작에 실패했습니다.");
       status.style.color = "#dc2626";
       status.innerText = message;
       triggerBtn.disabled = false;

@@ -1,6 +1,7 @@
-import { HttpError, fetchJson } from "../http";
+import { fetchJson } from "../http";
 
 import { requireElement } from "./dom";
+import { resolveAdminErrorMessage } from "./errors";
 import type { PublicDownloadUploadResponse, UploadResponse } from "./types";
 
 type AdminUploadActions = {
@@ -44,7 +45,7 @@ export function createAdminUploadActions(csrfToken: string): AdminUploadActions 
       alert("서버에서 데이터 처리를 시작했습니다. 창을 닫아도 작업은 계속됩니다.");
     } catch (error) {
       status.style.color = "red";
-      const message = error instanceof HttpError ? error.message : String(error);
+      const message = resolveAdminErrorMessage(error, "업로드에 실패했습니다.");
       status.innerText = `오류 발생: ${message}`;
     }
   }
@@ -80,7 +81,7 @@ export function createAdminUploadActions(csrfToken: string): AdminUploadActions 
       status.innerText = result.filename ? `업로드 완료: ${result.filename}` : "업로드가 완료되었습니다.";
     } catch (error) {
       status.style.color = "red";
-      const message = error instanceof HttpError ? error.message : String(error);
+      const message = resolveAdminErrorMessage(error, "다운로드 파일 업로드에 실패했습니다.");
       status.innerText = `오류 발생: ${message}`;
     }
   }
