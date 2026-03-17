@@ -1,6 +1,6 @@
 from types import SimpleNamespace
 
-from app.routers import admin
+from app.routers import admin_support
 from app.services.raw_query_export_service import RawQueryCsvExportResult
 
 
@@ -11,7 +11,7 @@ def test_build_raw_query_export_log_context_uses_request_metadata() -> None:
         client=SimpleNamespace(host="127.0.0.1"),
     )
 
-    context = admin._build_raw_query_export_log_context(
+    context = admin_support.build_raw_query_export_log_context(
         request,
         event_type="search",
         date_from="2026-02-22",
@@ -31,13 +31,13 @@ def test_build_raw_query_export_log_context_uses_request_metadata() -> None:
 
 
 def test_raw_query_export_filename_uses_yyyymmdd() -> None:
-    filename = admin._raw_query_export_filename(now=admin.datetime(2026, 3, 17))
+    filename = admin_support.build_raw_query_export_filename(now=admin_support.datetime(2026, 3, 17))
 
     assert filename == "raw-queries-20260317.csv"
 
 
 def test_build_raw_query_export_response_sets_headers() -> None:
-    response = admin._build_raw_query_export_response(
+    response = admin_support.build_raw_query_export_response(
         RawQueryCsvExportResult(
             csv_text="id,event_type\n1,search\n",
             row_count=1,
@@ -48,3 +48,15 @@ def test_build_raw_query_export_response_sets_headers() -> None:
 
     assert response.headers["content-disposition"] == 'attachment; filename="raw-queries-20260317.csv"'
     assert response.media_type == "text/csv; charset=utf-8"
+
+
+def test_build_request_log_context_uses_request_metadata() -> None:
+    request = SimpleNamespace(
+        state=SimpleNamespace(request_id="req-2"),
+        session={"user": "admin"},
+        client=SimpleNamespace(host="127.0.0.2"),
+    )
+
+    context = admin_support.build_request_log_context(request)
+
+    assert context == {"request_id": "req-2", "actor": "admin", "ip": "127.0.0.2"}

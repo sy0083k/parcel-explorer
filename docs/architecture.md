@@ -52,7 +52,8 @@
   - 공개 이벤트/웹 통계 수집은 라우터가 `Request`에서 user-agent, 허용 경로, client IP 같은 primitive만 추출하고, service-side builder가 JSON payload를 command/context로 조립한다.
   - 서비스는 원본 HTTP payload dict나 FastAPI transport 타입 대신 command/context만 사용한다.
   - 공개 이벤트/웹 통계/원시 로그 export 서비스 내부는 validation, normalize, persist/render 단계를 helper로 분리해 테스트 가능 경계를 유지한다.
-  - 공개 이벤트 라우터와 관리자 raw query export 라우터는 rate limit, 서비스 예외의 HTTP 매핑, 감사 로그 payload 조립을 private helper로 통일한다.
+  - 공개 이벤트 라우터는 rate limit, 서비스 예외의 HTTP 매핑, payload-to-command 조립을 private helper로 통일한다.
+  - 관리자 라우터는 request context 조립, 서비스 예외의 HTTP 매핑, raw query export 감사 로그/CSV 응답 생성을 transport helper(`app/routers/admin_support.py`)로 분리한다.
 - **리포지토리**: SQL/영속성 처리
   - `app/repositories/land_repository.py`
   - `app/repositories/job_repository.py`
@@ -227,7 +228,7 @@
 4. `/api/web-events`는 referrer/utm/page query/클라이언트 컨텍스트를 optional로 수용하고, UA 기반 브라우저/디바이스/OS 분류 필드를 서버에서 파생 저장한다.
 5. `web_stats_service`는 facade로 남고, 내부적으로 ingest/normalizers/queries/presenter 모듈을 조합한다.
 6. 관리자는 `/admin/stats`, `/admin/stats/web`에서 집계 지표를 조회한다(`/admin/stats/web`: 채널/디바이스/브라우저/상위 페이지/UTM/referrer breakdown 포함).
-7. `admin.router`는 `admin_stats_service`를 통해 관리자 대시보드 payload를 조립하고, 내부적으로 `map_event_service`, `web_stats_service`, `raw_query_export_service`, `land_repository`를 사용한다.
+7. `admin.router`는 HTTP 입출력 매핑과 background task 등록을 담당하고, request context/logging/CSV 응답 조립은 `admin_support.py` helper를 재사용한다. 통계/export 설정 주입은 `admin_stats_service`가 담당한다.
 8. `/api/v1/web-events`는 `/api/web-events`와 동등 계약을 유지한다(확장 필드 optional 호환).
 9. CSV 내보내기 시 문자열 셀은 formula injection 방지를 위해 선두 `=`, `+`, `-`, `@` 값을 `'` 접두 처리한다.
 9. `/admin/raw-queries/export`는 필터 조건, 요청 limit, 실제 내보낸 건수를 구조화 감사 로그로 기록한다.
