@@ -54,12 +54,12 @@
   - 공개 이벤트/웹 통계/원시 로그 export 서비스 내부는 validation, normalize, persist/render 단계를 helper로 분리해 테스트 가능 경계를 유지한다.
   - 공개 이벤트 라우터와 관리자 raw query export 라우터는 rate limit, 서비스 예외의 HTTP 매핑, 감사 로그 payload 조립을 private helper로 통일한다.
 - **리포지토리**: SQL/영속성 처리
-  - `app/repositories/poi_repository.py` (Compatibility Facade; schema bootstrap/legacy import only)
   - `app/repositories/land_repository.py`
   - `app/repositories/job_repository.py`
   - `app/repositories/event_repository.py`
   - `app/repositories/web_visit_repository.py` (Facade)
-  - 서비스 계층의 기본 진입점은 세부 repository(`land/job/event/web_visit`)이며, `poi_repository.py`는 점진 축소 대상 호환 facade로만 유지한다.
+  - `app/repositories/schema_repository.py`
+  - 서비스 계층의 기본 진입점은 세부 repository(`land/job/event/web_visit`)이며, 앱 스키마 bootstrap만 `schema_repository.py`가 묶어서 제공한다.
   - `app/repositories/web_visit_schema_repository.py`
   - `app/repositories/web_visit_write_repository.py`
   - `app/repositories/web_visit_query_repository.py`

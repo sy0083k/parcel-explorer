@@ -6,8 +6,9 @@ import httpx
 import pytest
 
 from app.db.connection import db_connection
-from app.repositories import event_repository, poi_repository
+from app.repositories import event_repository
 from app.routers import map_router
+from tests.db_helpers import init_test_db
 
 CSRF_PATTERN = r'name="csrf_token" value="([^"]+)"'
 
@@ -39,8 +40,7 @@ async def _get_admin_csrf(client: httpx.AsyncClient) -> str:
 
 @pytest.mark.anyio
 async def test_map_event_and_admin_stats_flow(async_client: httpx.AsyncClient, db_path: object) -> None:
-    with db_connection() as conn:
-        poi_repository.init_db(conn)
+    init_test_db()
 
     event_search = await async_client.post(
         "/api/events",
@@ -141,8 +141,7 @@ async def test_admin_geom_refresh_routes(
 async def test_search_empty_region_is_excluded_from_top_regions_but_min_area_counted(
     async_client: httpx.AsyncClient, db_path: object
 ) -> None:
-    with db_connection() as conn:
-        poi_repository.init_db(conn)
+    init_test_db()
 
     response = await async_client.post(
         "/api/events",
@@ -177,8 +176,7 @@ async def test_map_event_rejects_invalid_payload(async_client: httpx.AsyncClient
 
 @pytest.mark.anyio
 async def test_web_event_and_web_stats_flow(async_client: httpx.AsyncClient, db_path: object) -> None:
-    with db_connection() as conn:
-        poi_repository.init_db(conn)
+    init_test_db()
 
     event_start = await async_client.post(
         "/api/web-events",
@@ -239,8 +237,7 @@ async def test_web_event_and_web_stats_flow(async_client: httpx.AsyncClient, db_
 
 @pytest.mark.anyio
 async def test_web_event_v1_alias_supports_extended_payload(async_client: httpx.AsyncClient, db_path: object) -> None:
-    with db_connection() as conn:
-        poi_repository.init_db(conn)
+    init_test_db()
 
     response = await async_client.post(
         "/api/v1/web-events",
@@ -278,8 +275,7 @@ async def test_web_event_rejects_invalid_page_path(async_client: httpx.AsyncClie
 
 @pytest.mark.anyio
 async def test_web_event_accepts_legacy_payload(async_client: httpx.AsyncClient, db_path: object) -> None:
-    with db_connection() as conn:
-        poi_repository.init_db(conn)
+    init_test_db()
 
     response = await async_client.post(
         "/api/web-events",
@@ -298,8 +294,7 @@ async def test_web_event_accepts_legacy_payload(async_client: httpx.AsyncClient,
 
 @pytest.mark.anyio
 async def test_admin_can_export_raw_query_csv(async_client: httpx.AsyncClient, db_path: object) -> None:
-    with db_connection() as conn:
-        poi_repository.init_db(conn)
+    init_test_db()
 
     search_response = await async_client.post(
         "/api/events",
@@ -350,8 +345,8 @@ async def test_admin_can_export_raw_query_csv(async_client: httpx.AsyncClient, d
 async def test_admin_raw_query_export_emits_audit_logs(
     async_client: httpx.AsyncClient, db_path: object, caplog: pytest.LogCaptureFixture
 ) -> None:
+    init_test_db()
     with db_connection() as conn:
-        poi_repository.init_db(conn)
         event_repository.init_event_schema(conn)
         event_repository.insert_raw_query_log(
             conn,
@@ -400,8 +395,7 @@ async def test_admin_raw_query_export_logs_rejected_requests(
 async def test_map_events_rate_limit_blocks_and_separates_by_anon_id(
     async_client: httpx.AsyncClient, db_path: object, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    with db_connection() as conn:
-        poi_repository.init_db(conn)
+    init_test_db()
 
     monkeypatch.setattr(map_router, "EVENT_LIMIT_PER_MINUTE", 2)
 
@@ -437,8 +431,7 @@ async def test_map_events_rate_limit_blocks_and_separates_by_anon_id(
 async def test_map_events_rate_limit_falls_back_to_ip_when_anon_id_missing(
     async_client: httpx.AsyncClient, db_path: object, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    with db_connection() as conn:
-        poi_repository.init_db(conn)
+    init_test_db()
 
     monkeypatch.setattr(map_router, "EVENT_LIMIT_PER_MINUTE", 1)
 
@@ -468,8 +461,7 @@ async def test_map_events_rate_limit_falls_back_to_ip_when_anon_id_missing(
 async def test_web_events_rate_limit_applies_on_v1_route(
     async_client: httpx.AsyncClient, db_path: object, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    with db_connection() as conn:
-        poi_repository.init_db(conn)
+    init_test_db()
 
     monkeypatch.setattr(map_router, "WEB_EVENT_LIMIT_PER_MINUTE", 2)
 

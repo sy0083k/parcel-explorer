@@ -1,10 +1,11 @@
 from app.db.connection import db_connection
-from app.repositories import event_repository, land_repository, poi_repository, web_visit_repository
+from app.repositories import event_repository, land_repository, web_visit_repository
+from tests.db_helpers import init_test_db
 
 
-def test_poi_repository_crud(db_path: object) -> None:
+def test_land_repository_crud(db_path: object) -> None:
+    init_test_db()
     with db_connection() as conn:
-        poi_repository.init_db(conn)
         land_repository.delete_all(conn)
         land_repository.insert_land(
             conn,
@@ -28,8 +29,8 @@ def test_poi_repository_crud(db_path: object) -> None:
 
 
 def test_map_event_repository_aggregations(db_path: object) -> None:
+    init_test_db()
     with db_connection(row_factory=True) as conn:
-        poi_repository.init_db(conn)
         event_repository.insert_map_event(
             conn,
             event_type="search",
@@ -93,8 +94,8 @@ def test_map_event_repository_aggregations(db_path: object) -> None:
 
 
 def test_web_visit_repository_aggregations(db_path: object) -> None:
+    init_test_db()
     with db_connection(row_factory=True) as conn:
-        poi_repository.init_db(conn)
         web_visit_repository.insert_web_visit_event(
             conn,
             anon_id="anon-a",
@@ -150,8 +151,8 @@ def test_web_visit_repository_aggregations(db_path: object) -> None:
 
 
 def test_raw_query_log_repository_insert_and_filter(db_path: object) -> None:
+    init_test_db()
     with db_connection(row_factory=True) as conn:
-        poi_repository.init_db(conn)
         event_repository.insert_raw_query_log(
             conn,
             event_type="search",

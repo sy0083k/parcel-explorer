@@ -1,11 +1,12 @@
 from app.db.connection import db_connection
-from app.repositories import land_repository, poi_repository
+from app.repositories import land_repository
 from app.services import land_service
+from tests.db_helpers import init_test_db
 
 
 def test_land_service_returns_geojson(db_path: object) -> None:
+    init_test_db()
     with db_connection() as conn:
-        poi_repository.init_db(conn)
         land_repository.delete_all(conn)
         land_repository.insert_land(
             conn,

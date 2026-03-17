@@ -9,6 +9,7 @@ from _pytest.monkeypatch import MonkeyPatch
 from app.services import upload_service
 from app.services.service_errors import AuthError, ValidationError
 from app.services.service_models import RequestContext, UploadedFileInput
+from tests.db_helpers import init_test_db
 
 
 class DummyExcelFile:
@@ -53,11 +54,7 @@ def _valid_dataframe() -> pd.DataFrame:
 
 def test_upload_service_success(build_app: Any, monkeypatch: MonkeyPatch, db_path: Any) -> None:
     build_app()
-    from app.db.connection import db_connection
-    from app.repositories import poi_repository
-
-    with db_connection() as conn:
-        poi_repository.init_db(conn)
+    init_test_db()
 
     monkeypatch.setattr(pd, "ExcelFile", lambda *_args, **_kwargs: DummyExcelFile(sheet_names=["목록"]))
     monkeypatch.setattr(pd, "read_excel", lambda *_args, **_kwargs: _valid_dataframe())
@@ -78,11 +75,7 @@ def test_upload_service_emits_audit_log_on_success(
     build_app: Any, monkeypatch: MonkeyPatch, db_path: Any, caplog: pytest.LogCaptureFixture
 ) -> None:
     build_app()
-    from app.db.connection import db_connection
-    from app.repositories import poi_repository
-
-    with db_connection() as conn:
-        poi_repository.init_db(conn)
+    init_test_db()
 
     monkeypatch.setattr(pd, "ExcelFile", lambda *_args, **_kwargs: DummyExcelFile(sheet_names=["목록"]))
     monkeypatch.setattr(pd, "read_excel", lambda *_args, **_kwargs: _valid_dataframe())
@@ -166,11 +159,7 @@ def test_upload_service_missing_columns(monkeypatch: MonkeyPatch) -> None:
 
 def test_upload_service_sheet_name_fallback(build_app: Any, monkeypatch: MonkeyPatch, db_path: Any) -> None:
     build_app()
-    from app.db.connection import db_connection
-    from app.repositories import poi_repository
-
-    with db_connection() as conn:
-        poi_repository.init_db(conn)
+    init_test_db()
 
     called: dict[str, object] = {}
 
@@ -220,11 +209,7 @@ def test_upload_service_selects_excel_engine_by_extension(
     content: bytes,
 ) -> None:
     build_app()
-    from app.db.connection import db_connection
-    from app.repositories import poi_repository
-
-    with db_connection() as conn:
-        poi_repository.init_db(conn)
+    init_test_db()
 
     called: dict[str, object] = {}
 

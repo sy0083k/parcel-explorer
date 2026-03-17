@@ -1,11 +1,12 @@
 from app.db.connection import db_connection
-from app.repositories import land_repository, poi_repository, web_visit_repository
+from app.repositories import land_repository, web_visit_repository
 from app.services import admin_stats_service
+from tests.db_helpers import init_test_db
 
 
 def test_admin_stats_service_get_web_stats(db_path: object) -> None:
+    init_test_db()
     with db_connection() as conn:
-        poi_repository.init_db(conn)
         web_visit_repository.insert_web_visit_event(
             conn,
             anon_id="anon-a",
@@ -48,8 +49,8 @@ def test_admin_stats_service_get_web_stats(db_path: object) -> None:
 
 
 def test_admin_stats_service_get_dashboard_stats_includes_land_summary(db_path: object) -> None:
+    init_test_db()
     with db_connection() as conn:
-        poi_repository.init_db(conn)
         land_repository.delete_all(conn)
         land_repository.insert_land(
             conn,

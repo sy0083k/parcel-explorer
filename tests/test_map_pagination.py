@@ -1,35 +1,12 @@
 import httpx
 import pytest
 
-from app.db.connection import db_connection
-from app.repositories import land_repository, poi_repository
-
-
-def _seed_lands(count: int) -> None:
-    with db_connection() as conn:
-        poi_repository.init_db(conn)
-        land_repository.delete_all(conn)
-        for idx in range(count):
-            land_repository.insert_land(
-                conn,
-                address=f"addr-{idx}",
-                land_type="type",
-                area=1.0 + idx,
-                adm_property="adm",
-                gen_property="gen",
-                contact="010",
-            )
-        conn.commit()
-
-        missing = land_repository.fetch_missing_geom(conn)
-        for item_id, _ in missing:
-            land_repository.update_geom(conn, item_id, '{"type":"Point","coordinates":[0,0]}')
-        conn.commit()
+from tests.db_helpers import seed_lands
 
 
 @pytest.mark.anyio
 async def test_lands_pagination_cursor(async_client: httpx.AsyncClient, db_path: object) -> None:
-    _seed_lands(3)
+    seed_lands(count=3)
 
     first = await async_client.get("/api/lands?limit=2")
     assert first.status_code == 200
@@ -47,7 +24,7 @@ async def test_lands_pagination_cursor(async_client: httpx.AsyncClient, db_path:
 
 @pytest.mark.anyio
 async def test_map_v1_router_matches_map_router(async_client: httpx.AsyncClient, db_path: object) -> None:
-    _seed_lands(1)
+    seed_lands(count=1)
 
     v0 = await async_client.get("/api/lands?limit=5")
     v1 = await async_client.get("/api/v1/lands?limit=5")

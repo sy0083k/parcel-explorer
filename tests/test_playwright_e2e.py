@@ -12,6 +12,7 @@ from shutil import which
 import pytest
 import uvicorn
 
+from tests.db_helpers import seed_browser_e2e_lands
 from tests.helpers import temp_env
 
 
@@ -43,44 +44,7 @@ def _pick_free_port() -> int:
 
 
 def _seed_browser_e2e_data() -> None:
-    from app.db.connection import db_connection
-    from app.repositories import poi_repository
-
-    with db_connection() as conn:
-        poi_repository.init_db(conn)
-        poi_repository.delete_all(conn)
-        poi_repository.insert_land(
-            conn,
-            address="충남 서산시 예천동 100-1",
-            land_type="답",
-            area=150.0,
-            adm_property="O",
-            gen_property="대부 가능",
-            contact="010-1111-1111",
-        )
-        poi_repository.insert_land(
-            conn,
-            address="충남 서산시 예천동 100-2",
-            land_type="전",
-            area=80.0,
-            adm_property="O",
-            gen_property="대부 가능",
-            contact="010-2222-2222",
-        )
-        poi_repository.insert_land(
-            conn,
-            address="충남 서산시 읍내동 55-1",
-            land_type="대",
-            area=220.0,
-            adm_property="N",
-            gen_property="매각",
-            contact="010-3333-3333",
-        )
-        conn.commit()
-
-        for item_id, _ in poi_repository.fetch_missing_geom(conn):
-            poi_repository.update_geom(conn, item_id, '{"type":"Point","coordinates":[126.45,36.78]}')
-        conn.commit()
+    seed_browser_e2e_lands()
 
 
 def _validate_browser_executable(raw_path: str | None) -> str:

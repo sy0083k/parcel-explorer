@@ -6,7 +6,8 @@ from app.clients.vworld_client import VWorldClient
 from app.core import get_settings
 from app.db.connection import db_connection
 from app.logging_utils import RequestIdFilter
-from app.repositories import event_repository, job_repository, land_repository, web_visit_repository
+from app.repositories import job_repository, land_repository
+from app.repositories.schema_repository import init_app_schema
 from app.services.service_errors import AuthError, NotFoundError
 from app.services.service_models import RequestContext
 
@@ -29,10 +30,7 @@ class GeomRefreshStartResult:
 
 def init_db() -> None:
     with db_connection() as conn:
-        land_repository.init_land_schema(conn)
-        job_repository.init_job_schema(conn)
-        event_repository.init_event_schema(conn)
-        web_visit_repository.init_web_visit_schema(conn)
+        init_app_schema(conn)
         conn.commit()
 
 
