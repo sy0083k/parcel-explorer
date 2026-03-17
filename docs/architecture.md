@@ -87,13 +87,16 @@
   - `map-view.ts`: OpenLayers 초기화, 레이어 전환, 피처 렌더링/선택/팝업
   - `filters.ts`: 검색 입력값 수집, 필터 계산, 엔터 처리
   - `list-panel.ts`: 목록 렌더링, 선택/네비게이션, 모바일 바텀시트
-  - `telemetry.ts`: 검색/클릭 이벤트 전송
+  - `telemetry.ts`: 검색/클릭 이벤트 전송, anon ID/web-event 전송 facade
   - `download-client.ts`: 공개 다운로드 API 호출/파일 저장
   - `map-page-events.ts`: 데스크톱/모바일 이벤트 바인딩
   - `map-bootstrap.ts`: 초기 config 로드와 `streamLandFeatures` 기반 첫 렌더/후속 배치 반영
   - `selection-controller.ts`: 필터 적용, 선택 상태, 상세 패널/리스트 연계
   - `mobile-map-ui.ts`: 모바일 뷰 상태 및 history 동기화
-  - `session-tracker.ts`: 방문 세션 쿠키, heartbeat/pagehide 이벤트 전송
+  - `session-tracker.ts`: 방문 lifecycle 오케스트레이션 facade
+  - `web-session-store.ts`: 방문 세션 쿠키 조회/재사용/만료 판정
+  - `web-visit-context.ts`: 방문 페이지/리퍼러/UTM/viewport 컨텍스트 수집
+  - `browser-client.ts`: 지도 telemetry 공용 쿠키/클라이언트 ID 유틸
   - `lands-client.ts`: `/api/lands` 500건 배치 페이지네이션 로더(첫 배치 즉시 반영, 잔여 페이지 백그라운드 수집)
   - `state.ts`: 지도 화면 상태 저장소
   - `types.ts`: 지도 화면 공통 타입
