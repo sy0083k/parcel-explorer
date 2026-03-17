@@ -2,7 +2,7 @@ from app.db.connection import db_connection
 from app.repositories import event_repository
 from app.services import map_event_service
 from app.services.service_errors import ValidationError
-from app.services.service_models import MapEventCommand
+from app.services.service_models import LandClickMapEventCommand, SearchMapEventCommand
 
 
 def test_map_event_service_helpers() -> None:
@@ -18,14 +18,11 @@ def test_map_event_service_record_map_event(db_path: object) -> None:
         conn.commit()
 
     map_event_service.record_map_event(
-        MapEventCommand(
-            payload={
-                "eventType": "search",
-                "anonId": "anon-1",
-                "minArea": 120,
-                "searchTerm": "대산읍12",
-                "rawSearchTerm": "대산읍12",
-            }
+        SearchMapEventCommand(
+            anon_id="anon-1",
+            min_area=120,
+            search_term="대산읍12",
+            raw_search_term="대산읍12",
         )
     )
 
@@ -37,7 +34,7 @@ def test_map_event_service_record_map_event(db_path: object) -> None:
 def test_map_event_service_invalid_land_click_raises_validation_error() -> None:
     try:
         map_event_service.record_map_event(
-            MapEventCommand(payload={"eventType": "land_click", "anonId": "anon-1"})
+            LandClickMapEventCommand(anon_id="anon-1", land_address=None)
         )
         raise AssertionError("expected ValidationError")
     except ValidationError as exc:

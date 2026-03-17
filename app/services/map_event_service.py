@@ -7,7 +7,12 @@ from typing import Any
 from app.db.connection import db_connection
 from app.repositories import event_repository
 from app.services.service_errors import ValidationError
-from app.services.service_models import MapEventCommand
+from app.services.service_models import (
+    LandClickMapEventCommand,
+    MapEventCommand,
+    SearchMapEventCommand,
+    UnknownMapEventCommand,
+)
 
 EVENT_TYPE_SEARCH = "search"
 EVENT_TYPE_LAND_CLICK = "land_click"
@@ -23,15 +28,23 @@ DIGIT_RE = re.compile(r"\d+")
 
 
 def record_map_event(command: MapEventCommand) -> None:
-    payload = command.payload
-    event_type = str(payload.get("eventType", "")).strip()
-    anon_id = normalize_anon_id(payload.get("anonId"))
-    raw_payload_json = serialize_raw_payload(payload)
-
-    if event_type == EVENT_TYPE_SEARCH:
-        min_area = parse_min_area(payload.get("minArea"))
+    if isinstance(command, SearchMapEventCommand):
+        anon_id = normalize_anon_id(command.anon_id)
+        raw_payload_json = serialize_raw_payload(
+            {
+                "eventType": EVENT_TYPE_SEARCH,
+                "anonId": command.anon_id,
+                "minArea": command.min_area,
+                "searchTerm": command.search_term,
+                "rawSearchTerm": command.raw_search_term,
+                "rawMinAreaInput": command.raw_min_area_input,
+                "rawMaxAreaInput": command.raw_max_area_input,
+                "rawRentOnly": command.raw_rent_only,
+            }
+        )
+        min_area = parse_min_area(command.min_area)
         min_area_bucket = min_area_bucket_for(min_area)
-        region_name = normalize_search_term(payload.get("searchTerm"))
+        region_name = normalize_search_term(command.search_term)
         normalized_region_name = region_name if region_name else None
 
         with db_connection() as conn:
@@ -49,13 +62,15 @@ def record_map_event(command: MapEventCommand) -> None:
                 event_type=EVENT_TYPE_SEARCH,
                 anon_id=anon_id,
                 raw_region_query=normalize_raw_text(
-                    payload.get("rawSearchTerm", payload.get("searchTerm")), max_length=1000
+                    command.raw_search_term if command.raw_search_term is not None else command.search_term,
+                    max_length=1000,
                 ),
                 raw_min_area_input=normalize_raw_text(
-                    payload.get("rawMinAreaInput", payload.get("minArea")), max_length=1000
+                    command.raw_min_area_input if command.raw_min_area_input is not None else command.min_area,
+                    max_length=1000,
                 ),
-                raw_max_area_input=normalize_raw_text(payload.get("rawMaxAreaInput"), max_length=1000),
-                raw_rent_only_input=normalize_raw_text(payload.get("rawRentOnly"), max_length=32),
+                raw_max_area_input=normalize_raw_text(command.raw_max_area_input, max_length=1000),
+                raw_rent_only_input=normalize_raw_text(command.raw_rent_only, max_length=32),
                 raw_land_id_input=None,
                 raw_land_address_input=None,
                 raw_click_source_input=None,
@@ -64,8 +79,18 @@ def record_map_event(command: MapEventCommand) -> None:
             conn.commit()
         return
 
-    if event_type == EVENT_TYPE_LAND_CLICK:
-        land_address = normalize_land_address(payload.get("landAddress"))
+    if isinstance(command, LandClickMapEventCommand):
+        anon_id = normalize_anon_id(command.anon_id)
+        raw_payload_json = serialize_raw_payload(
+            {
+                "eventType": EVENT_TYPE_LAND_CLICK,
+                "anonId": command.anon_id,
+                "landAddress": command.land_address,
+                "landId": command.land_id,
+                "clickSource": command.click_source,
+            }
+        )
+        land_address = normalize_land_address(command.land_address)
         if not land_address:
             raise ValidationError(status_code=400, message="landAddress is required for land_click.")
         with db_connection() as conn:
@@ -83,13 +108,16 @@ def record_map_event(command: MapEventCommand) -> None:
                 raw_min_area_input=None,
                 raw_max_area_input=None,
                 raw_rent_only_input=None,
-                raw_land_id_input=normalize_raw_text(payload.get("landId"), max_length=64),
-                raw_land_address_input=normalize_raw_text(payload.get("landAddress"), max_length=1000),
-                raw_click_source_input=normalize_raw_text(payload.get("clickSource"), max_length=32),
+                raw_land_id_input=normalize_raw_text(command.land_id, max_length=64),
+                raw_land_address_input=normalize_raw_text(command.land_address, max_length=1000),
+                raw_click_source_input=normalize_raw_text(command.click_source, max_length=32),
                 raw_payload_json=raw_payload_json,
             )
             conn.commit()
         return
+
+    if isinstance(command, UnknownMapEventCommand):
+        raise ValidationError(status_code=400, message="Unsupported eventType.")
 
     raise ValidationError(status_code=400, message="Unsupported eventType.")
 

@@ -13,22 +13,20 @@ def test_web_stats_ingest_persists_normalized_and_derived_fields(
 
     web_stats_ingest.record_web_visit_event(
         WebVisitEventCommand(
-            payload={
-                "eventType": "visit_start",
-                "anonId": " anon-1 ",
-                "sessionId": " session-1 ",
-                "pagePath": "/",
-                "pageQuery": "?utm_source=google",
-                "clientTs": 1763596800,
-                "clientTz": " Asia/Seoul ",
-                "clientLang": " ko-KR ",
-                "platform": " iPhone ",
-                "referrerUrl": "https://Example.com/search?q=test",
-                "screenWidth": 1170,
-                "screenHeight": 2532,
-                "viewportWidth": 430,
-                "viewportHeight": 932,
-            },
+            event_type="visit_start",
+            anon_id=" anon-1 ",
+            session_id=" session-1 ",
+            page_path="/",
+            page_query="?utm_source=google",
+            client_ts=1763596800,
+            client_tz=" Asia/Seoul ",
+            client_lang=" ko-KR ",
+            platform=" iPhone ",
+            referrer_url="https://Example.com/search?q=test",
+            screen_width=1170,
+            screen_height=2532,
+            viewport_width=430,
+            viewport_height=932,
             metadata=RequestMetadata(
                 user_agent=(
                     "Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) "

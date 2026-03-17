@@ -1,7 +1,5 @@
 from __future__ import annotations
 
-from typing import Any
-
 from app.db.connection import db_connection
 from app.repositories import web_visit_repository
 from app.services.service_models import RequestMetadata, WebVisitEventCommand
@@ -34,17 +32,16 @@ def record_web_visit_event(command: WebVisitEventCommand) -> None:
 
 
 def normalize_web_visit_event(command: WebVisitEventCommand) -> NormalizedWebVisitEvent:
-    payload = command.payload
     metadata = command.metadata
-    event_type = normalize_event_type(payload.get("eventType"))
-    anon_id = normalize_required_token(payload.get("anonId"), "anonId")
-    session_id = normalize_required_token(payload.get("sessionId"), "sessionId")
-    page_path = normalize_page_path(payload.get("pagePath"), allowed_paths=metadata.allowed_web_track_paths)
-    page_query = normalize_query_string(payload.get("pageQuery"), max_length=1024)
-    occurred_at = parse_client_ts(payload.get("clientTs"))
+    event_type = normalize_event_type(command.event_type)
+    anon_id = normalize_required_token(command.anon_id, "anonId")
+    session_id = normalize_required_token(command.session_id, "sessionId")
+    page_path = normalize_page_path(command.page_path, allowed_paths=metadata.allowed_web_track_paths)
+    page_query = normalize_query_string(command.page_query, max_length=1024)
+    occurred_at = parse_client_ts(command.client_ts)
 
-    client_context = normalize_client_context(payload)
-    marketing_context = normalize_marketing_context(payload)
+    client_context = normalize_client_context(command)
+    marketing_context = normalize_marketing_context(command)
     user_agent_context = derive_user_agent_context(metadata)
 
     return NormalizedWebVisitEvent(
@@ -72,28 +69,28 @@ def normalize_web_visit_event(command: WebVisitEventCommand) -> NormalizedWebVis
     )
 
 
-def normalize_client_context(payload: dict[str, Any]) -> ClientContext:
+def normalize_client_context(command: WebVisitEventCommand) -> ClientContext:
     return ClientContext(
-        client_tz=normalize_optional_string(payload.get("clientTz"), max_length=64),
-        client_lang=normalize_optional_string(payload.get("clientLang"), max_length=64),
-        platform=normalize_optional_string(payload.get("platform"), max_length=64),
-        screen_width=normalize_optional_int(payload.get("screenWidth"), min_value=0, max_value=20000),
-        screen_height=normalize_optional_int(payload.get("screenHeight"), min_value=0, max_value=20000),
-        viewport_width=normalize_optional_int(payload.get("viewportWidth"), min_value=0, max_value=20000),
-        viewport_height=normalize_optional_int(payload.get("viewportHeight"), min_value=0, max_value=20000),
+        client_tz=normalize_optional_string(command.client_tz, max_length=64),
+        client_lang=normalize_optional_string(command.client_lang, max_length=64),
+        platform=normalize_optional_string(command.platform, max_length=64),
+        screen_width=normalize_optional_int(command.screen_width, min_value=0, max_value=20000),
+        screen_height=normalize_optional_int(command.screen_height, min_value=0, max_value=20000),
+        viewport_width=normalize_optional_int(command.viewport_width, min_value=0, max_value=20000),
+        viewport_height=normalize_optional_int(command.viewport_height, min_value=0, max_value=20000),
     )
 
 
-def normalize_marketing_context(payload: dict[str, Any]) -> MarketingContext:
-    referrer_url = normalize_referrer_url(payload.get("referrerUrl"))
+def normalize_marketing_context(command: WebVisitEventCommand) -> MarketingContext:
+    referrer_url = normalize_referrer_url(command.referrer_url)
     return MarketingContext(
         referrer_url=referrer_url,
-        referrer_domain=normalize_referrer_domain(payload.get("referrerDomain"), referrer_url),
-        utm_source=normalize_optional_string(payload.get("utmSource"), max_length=256),
-        utm_medium=normalize_optional_string(payload.get("utmMedium"), max_length=256),
-        utm_campaign=normalize_optional_string(payload.get("utmCampaign"), max_length=256),
-        utm_term=normalize_optional_string(payload.get("utmTerm"), max_length=256),
-        utm_content=normalize_optional_string(payload.get("utmContent"), max_length=256),
+        referrer_domain=normalize_referrer_domain(command.referrer_domain, referrer_url),
+        utm_source=normalize_optional_string(command.utm_source, max_length=256),
+        utm_medium=normalize_optional_string(command.utm_medium, max_length=256),
+        utm_campaign=normalize_optional_string(command.utm_campaign, max_length=256),
+        utm_term=normalize_optional_string(command.utm_term, max_length=256),
+        utm_content=normalize_optional_string(command.utm_content, max_length=256),
     )
 
 
