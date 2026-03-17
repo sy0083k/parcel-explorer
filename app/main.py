@@ -4,7 +4,7 @@ import os
 import sys
 import time
 import uuid
-from collections.abc import AsyncIterator, Awaitable, Callable
+from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 from pathlib import Path
 from typing import cast
@@ -13,7 +13,9 @@ from fastapi import FastAPI, HTTPException, Request
 from fastapi.responses import FileResponse, HTMLResponse, Response
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
+from starlette.datastructures import MutableHeaders
 from starlette.middleware.sessions import SessionMiddleware
+from starlette.types import ASGIApp, Message, Receive, Scope, Send
 
 from app.auth_security import LoginAttemptLimiter
 from app.core import get_settings
@@ -36,6 +38,82 @@ logger.addFilter(RequestIdFilter())
 settings = get_settings()
 
 
+class SecurityHeadersMiddleware:
+    def __init__(self, app: ASGIApp) -> None:
+        self.app = app
+
+    async def __call__(self, scope: Scope, receive: Receive, send: Send) -> None:
+        if scope["type"] != "http":
+            await self.app(scope, receive, send)
+            return
+
+        async def send_with_security_headers(message: Message) -> None:
+            if message["type"] == "http.response.start":
+                headers = MutableHeaders(scope=message)
+                headers["X-Frame-Options"] = "DENY"
+                headers["X-Content-Type-Options"] = "nosniff"
+                headers["Content-Security-Policy"] = (
+                    "default-src 'self' https://cdn.jsdelivr.net https://api.vworld.kr; "
+                    "script-src 'self' https://cdn.jsdelivr.net https://api.vworld.kr; "
+                    "style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; "
+                    "img-src 'self' data: https://api.vworld.kr https://xdworld.vworld.kr;"
+                )
+            await send(message)
+
+        await self.app(scope, receive, send_with_security_headers)
+
+
+class RequestContextMiddleware:
+    def __init__(self, app: ASGIApp) -> None:
+        self.app = app
+
+    async def __call__(self, scope: Scope, receive: Receive, send: Send) -> None:
+        if scope["type"] != "http":
+            await self.app(scope, receive, send)
+            return
+
+        started = time.perf_counter()
+        headers = MutableHeaders(scope=scope)
+        request_id = headers.get("x-request-id") or str(uuid.uuid4())
+        scope.setdefault("state", {})
+        scope["state"]["request_id"] = request_id
+        client = scope.get("client")
+        client_ip = client[0] if client else "unknown"
+        status_code: int | None = None
+        request_logged = False
+
+        async def send_with_request_context(message: Message) -> None:
+            nonlocal request_logged, status_code
+            if message["type"] == "http.response.start":
+                status_code = int(message["status"])
+                response_headers = MutableHeaders(scope=message)
+                response_headers["X-Request-ID"] = request_id
+            await send(message)
+            if (
+                message["type"] == "http.response.body"
+                and not message.get("more_body", False)
+                and not request_logged
+            ):
+                request_logged = True
+                resolved_status = status_code or 500
+                logger.info(
+                    "request completed",
+                    extra={
+                        "request_id": request_id,
+                        "event": "http.request.completed",
+                        "actor": "anonymous",
+                        "ip": client_ip,
+                        "method": scope["method"],
+                        "path": scope["path"],
+                        "status": resolved_status,
+                        "status_class": f"{resolved_status // 100}xx",
+                        "latency_ms": round((time.perf_counter() - started) * 1000, 2),
+                    },
+                )
+
+        await self.app(scope, receive, send_with_request_context)
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     init_db()
@@ -55,51 +133,6 @@ app = FastAPI(lifespan=lifespan)
 app.add_exception_handler(HTTPException, http_exception_handler)
 app.add_exception_handler(Exception, unhandled_exception_handler)
 
-
-@app.middleware("http")
-async def add_request_context(
-    request: Request, call_next: Callable[[Request], Awaitable[Response]]
-) -> Response:
-    started = time.perf_counter()
-    request_id = request.headers.get("x-request-id") or str(uuid.uuid4())
-    request.state.request_id = request_id
-    response = await call_next(request)
-    latency_ms = round((time.perf_counter() - started) * 1000, 2)
-    client_ip = request.client.host if request.client else "unknown"
-    response.headers["X-Request-ID"] = request_id
-    logger.info(
-        "request completed",
-        extra={
-            "request_id": request_id,
-            "event": "http.request.completed",
-            "actor": "anonymous",
-            "ip": client_ip,
-            "method": request.method,
-            "path": request.url.path,
-            "status": response.status_code,
-            "status_class": f"{response.status_code // 100}xx",
-            "latency_ms": latency_ms,
-        },
-    )
-    return response
-
-
-@app.middleware("http")
-async def add_security_headers(
-    request: Request, call_next: Callable[[Request], Awaitable[Response]]
-) -> Response:
-    response = await call_next(request)
-    response.headers["X-Frame-Options"] = "DENY"
-    response.headers["X-Content-Type-Options"] = "nosniff"
-    response.headers["Content-Security-Policy"] = (
-        "default-src 'self' https://cdn.jsdelivr.net https://api.vworld.kr; "
-        "script-src 'self' https://cdn.jsdelivr.net https://api.vworld.kr; "
-        "style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; "
-        "img-src 'self' data: https://api.vworld.kr https://xdworld.vworld.kr;"
-    )
-    return response
-
-
 app.add_middleware(
     SessionMiddleware,
     secret_key=settings.secret_key,
@@ -108,6 +141,8 @@ app.add_middleware(
     session_cookie=settings.session_cookie_name,
     same_site="lax",
 )
+app.add_middleware(SecurityHeadersMiddleware)
+app.add_middleware(RequestContextMiddleware)
 
 BASE_DIR = settings.base_dir
 app.mount("/static", StaticFiles(directory=os.path.join(BASE_DIR, "static")), name="static")

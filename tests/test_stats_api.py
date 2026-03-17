@@ -1,6 +1,7 @@
 import logging
 import re
 
+import anyio
 import httpx
 import pytest
 
@@ -121,7 +122,8 @@ async def test_admin_geom_refresh_routes(
     await _login_as_admin(async_client)
     csrf_token = await _get_admin_csrf(async_client)
 
-    start = await async_client.post("/admin/lands/geom-refresh", data={"csrf_token": csrf_token})
+    with anyio.fail_after(3):
+        start = await async_client.post("/admin/lands/geom-refresh", data={"csrf_token": csrf_token})
     assert start.status_code == 200
     start_payload = start.json()
     assert start_payload["success"] is True
