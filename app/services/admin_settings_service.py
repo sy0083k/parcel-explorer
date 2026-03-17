@@ -8,12 +8,11 @@ from pathlib import Path
 from typing import Any, Literal
 
 import bcrypt
-from fastapi import HTTPException, Request
 from starlette.datastructures import FormData
 
 from app.core.config import get_settings
-from app.core.runtime_config import rebuild_runtime_state
-from app.dependencies import validate_csrf_token
+from app.services.service_errors import AuthError, ValidationError
+from app.services.service_models import RequestContext
 
 FieldKind = Literal["str", "int", "float", "bool", "network_list"]
 
@@ -24,6 +23,35 @@ class AdminSettingField:
     form_field: str
     settings_attr: str
     kind: FieldKind
+
+
+@dataclass(frozen=True)
+class SettingsUpdateCommand:
+    context: RequestContext
+    settings_password: str
+    current_password_hash: str
+    base_dir: str
+    updates: dict[str, str]
+
+
+@dataclass(frozen=True)
+class PasswordUpdateCommand:
+    context: RequestContext
+    current_password: str
+    new_password: str
+    new_password_confirm: str
+    current_password_hash: str
+    base_dir: str
+
+
+@dataclass(frozen=True)
+class SettingsUpdateResult:
+    applied_updates: dict[str, str]
+
+
+@dataclass(frozen=True)
+class PasswordUpdateResult:
+    new_password_hash: str
 
 
 ADMIN_SETTINGS_FIELDS: tuple[AdminSettingField, ...] = (
@@ -51,6 +79,8 @@ ADMIN_SETTINGS_FIELDS: tuple[AdminSettingField, ...] = (
 )
 
 ADMIN_SETTINGS_FIELD_BY_KEY = {field.env_key: field for field in ADMIN_SETTINGS_FIELDS}
+
+
 def get_current_settings() -> dict[str, str]:
     settings = get_settings()
     return {
@@ -107,6 +137,57 @@ def update_admin_password_hash(base_dir: str, password_hash: str) -> None:
     update_env_file(base_dir, {"ADMIN_PW_HASH": password_hash})
 
 
+def get_admin_settings_fields() -> tuple[AdminSettingField, ...]:
+    return ADMIN_SETTINGS_FIELDS
+
+
+def get_admin_settings_form_names() -> tuple[str, ...]:
+    return tuple(field.form_field for field in ADMIN_SETTINGS_FIELDS)
+
+
+def apply_settings_update(command: SettingsUpdateCommand) -> SettingsUpdateResult:
+    if not command.context.csrf_valid:
+        raise AuthError(status_code=403, message="CSRF 토큰 검증에 실패했습니다.")
+    if not command.settings_password:
+        raise ValidationError(status_code=400, message="관리자 비밀번호를 입력해주세요.")
+    if not bcrypt.checkpw(
+        command.settings_password.encode("utf-8"),
+        command.current_password_hash.encode("utf-8"),
+    ):
+        raise AuthError(status_code=401, message="관리자 비밀번호가 올바르지 않습니다.")
+    try:
+        cleaned = validate_updates(command.updates)
+    except ValueError as exc:
+        raise ValidationError(status_code=400, message=str(exc)) from exc
+
+    update_env_file(command.base_dir, cleaned)
+    os.environ.update(cleaned)
+    get_settings.cache_clear()
+    return SettingsUpdateResult(applied_updates=cleaned)
+
+
+def apply_password_update(command: PasswordUpdateCommand) -> PasswordUpdateResult:
+    if not command.context.csrf_valid:
+        raise AuthError(status_code=403, message="CSRF 토큰 검증에 실패했습니다.")
+    if not command.current_password or not command.new_password:
+        raise ValidationError(status_code=400, message="비밀번호를 입력해주세요.")
+    if command.new_password != command.new_password_confirm:
+        raise ValidationError(status_code=400, message="새 비밀번호가 일치하지 않습니다.")
+    if len(command.new_password) < 8:
+        raise ValidationError(status_code=400, message="새 비밀번호는 8자 이상이어야 합니다.")
+    if not bcrypt.checkpw(
+        command.current_password.encode("utf-8"),
+        command.current_password_hash.encode("utf-8"),
+    ):
+        raise AuthError(status_code=401, message="현재 비밀번호가 올바르지 않습니다.")
+
+    new_hash = bcrypt.hashpw(command.new_password.encode("utf-8"), bcrypt.gensalt()).decode("utf-8")
+    update_admin_password_hash(command.base_dir, new_hash)
+    os.environ["ADMIN_PW_HASH"] = new_hash
+    get_settings.cache_clear()
+    return PasswordUpdateResult(new_password_hash=new_hash)
+
+
 def _format_env_value(value: str) -> str:
     if " " in value or "#" in value:
         return f"\"{value}\""
@@ -147,70 +228,3 @@ def _normalize_update_value(field: AdminSettingField, value: str) -> str:
                 raise ValueError(f"Invalid {field.env_key} entry: {candidate}") from exc
         return raw
     return raw
-
-
-def get_admin_settings_fields() -> tuple[AdminSettingField, ...]:
-    return ADMIN_SETTINGS_FIELDS
-
-
-def get_admin_settings_form_names() -> tuple[str, ...]:
-    return tuple(field.form_field for field in ADMIN_SETTINGS_FIELDS)
-
-
-def apply_settings_update(
-    request: Request,
-    *,
-    csrf_token: str,
-    settings_password: str,
-    updates: dict[str, str],
-) -> None:
-    if not validate_csrf_token(request, csrf_token):
-        raise HTTPException(status_code=403, detail="CSRF 토큰 검증에 실패했습니다.")
-
-    if not settings_password:
-        raise HTTPException(status_code=400, detail="관리자 비밀번호를 입력해주세요.")
-
-    config = request.app.state.config
-    if not bcrypt.checkpw(settings_password.encode("utf-8"), config.ADMIN_PW_HASH.encode("utf-8")):
-        raise HTTPException(status_code=401, detail="관리자 비밀번호가 올바르지 않습니다.")
-
-    try:
-        cleaned = validate_updates(updates)
-    except ValueError as exc:
-        raise HTTPException(status_code=400, detail=str(exc)) from exc
-
-    update_env_file(config.BASE_DIR, cleaned)
-    os.environ.update(cleaned)
-    get_settings.cache_clear()
-    rebuild_runtime_state(request.app, get_settings())
-
-
-def apply_password_update(
-    request: Request,
-    *,
-    csrf_token: str,
-    current_password: str,
-    new_password: str,
-    new_password_confirm: str,
-) -> None:
-    if not validate_csrf_token(request, csrf_token):
-        raise HTTPException(status_code=403, detail="CSRF 토큰 검증에 실패했습니다.")
-
-    if not current_password or not new_password:
-        raise HTTPException(status_code=400, detail="비밀번호를 입력해주세요.")
-
-    if new_password != new_password_confirm:
-        raise HTTPException(status_code=400, detail="새 비밀번호가 일치하지 않습니다.")
-
-    if len(new_password) < 8:
-        raise HTTPException(status_code=400, detail="새 비밀번호는 8자 이상이어야 합니다.")
-
-    config = request.app.state.config
-    if not bcrypt.checkpw(current_password.encode("utf-8"), config.ADMIN_PW_HASH.encode("utf-8")):
-        raise HTTPException(status_code=401, detail="현재 비밀번호가 올바르지 않습니다.")
-
-    new_hash = bcrypt.hashpw(new_password.encode("utf-8"), bcrypt.gensalt()).decode("utf-8")
-    update_admin_password_hash(config.BASE_DIR, new_hash)
-    os.environ["ADMIN_PW_HASH"] = new_hash
-    get_settings.cache_clear()
-    rebuild_runtime_state(request.app, get_settings())

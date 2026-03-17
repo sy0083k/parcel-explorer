@@ -1,10 +1,24 @@
 import io
 import re
+from pathlib import Path
 
 import httpx
 import pytest
+from fastapi.responses import Response
+
+from app.routers import map_router
 
 CSRF_PATTERN = r'name="csrf_token" value="([^"]+)"'
+
+
+class PatchedFileResponse(Response):
+    def __init__(self, path: str | Path, media_type: str | None = None, headers: dict[str, str] | None = None):
+        super().__init__(content=Path(path).read_bytes(), media_type=media_type, headers=headers)
+
+
+@pytest.fixture(autouse=True)
+def patch_file_response(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(map_router, "FileResponse", PatchedFileResponse)
 
 
 async def _login_as_admin(client: httpx.AsyncClient) -> None:

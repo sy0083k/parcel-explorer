@@ -1,17 +1,30 @@
 import logging
 import time
-
-from fastapi import BackgroundTasks, HTTPException, Request
+from dataclasses import dataclass
 
 from app.clients.vworld_client import VWorldClient
 from app.core import get_settings
 from app.db.connection import db_connection
-from app.dependencies import validate_csrf_token
 from app.logging_utils import RequestIdFilter
 from app.repositories import poi_repository
+from app.services.service_errors import AuthError, NotFoundError
+from app.services.service_models import RequestContext
 
 logger = logging.getLogger(__name__)
 logger.addFilter(RequestIdFilter())
+
+
+@dataclass(frozen=True)
+class GeomRefreshStartCommand:
+    context: RequestContext
+
+
+@dataclass(frozen=True)
+class GeomRefreshStartResult:
+    success: bool
+    job_id: int
+    started: bool
+    message: str
 
 
 def init_db() -> None:
@@ -106,35 +119,28 @@ def run_geom_update_job(job_id: int, max_retries: int = 5) -> tuple[int, int]:
     return updated_count, failed_count
 
 
-def start_geom_refresh_job(
-    request: Request,
-    background_tasks: BackgroundTasks,
-    *,
-    csrf_token: str,
-) -> dict[str, object]:
-    if not validate_csrf_token(request, csrf_token):
-        raise HTTPException(status_code=403, detail="CSRF 토큰 검증에 실패했습니다.")
-
+def start_geom_refresh_job(command: GeomRefreshStartCommand) -> GeomRefreshStartResult:
+    if not command.context.csrf_valid:
+        raise AuthError(status_code=403, message="CSRF 토큰 검증에 실패했습니다.")
     with db_connection(row_factory=True) as conn:
         active_job = poi_repository.fetch_latest_active_geom_job(conn)
 
     if active_job is not None:
         job_id = int(active_job["id"])
-        return {
-            "success": True,
-            "jobId": job_id,
-            "started": False,
-            "message": "이미 실행 중인 경계선 수집 작업이 있습니다.",
-        }
+        return GeomRefreshStartResult(
+            success=True,
+            job_id=job_id,
+            started=False,
+            message="이미 실행 중인 경계선 수집 작업이 있습니다.",
+        )
 
     job_id = enqueue_geom_update_job()
-    background_tasks.add_task(run_geom_update_job, job_id, 5)
-    return {
-        "success": True,
-        "jobId": job_id,
-        "started": True,
-        "message": "경계선 정보 수집 작업을 시작했습니다.",
-    }
+    return GeomRefreshStartResult(
+        success=True,
+        job_id=job_id,
+        started=True,
+        message="경계선 정보 수집 작업을 시작했습니다.",
+    )
 
 
 def get_geom_refresh_job_status(job_id: int) -> dict[str, object]:
@@ -142,7 +148,7 @@ def get_geom_refresh_job_status(job_id: int) -> dict[str, object]:
         row = poi_repository.fetch_geom_job(conn, job_id)
 
     if row is None:
-        raise HTTPException(status_code=404, detail="작업을 찾을 수 없습니다.")
+        raise NotFoundError(status_code=404, message="작업을 찾을 수 없습니다.")
 
     return {
         "id": int(row["id"]),

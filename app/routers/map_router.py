@@ -1,9 +1,11 @@
 from typing import Any
+from urllib.parse import quote
 
 from fastapi import APIRouter, HTTPException, Request
-from fastapi.responses import JSONResponse
+from fastapi.responses import FileResponse, JSONResponse
 
 from app.services import land_service, map_event_service, public_download_service, web_stats_service
+from app.services.service_errors import ServiceError
 
 DEFAULT_LANDS_PAGE_LIMIT = 500
 MAX_LANDS_PAGE_LIMIT = 2000
@@ -100,7 +102,24 @@ def create_router() -> APIRouter:
         )
         if not allowed:
             return _rate_limited_response(retry_after)
-        return public_download_service.get_public_download_file_response(request)
+        config = request.app.state.config
+        try:
+            result = public_download_service.get_public_download_file(
+                public_download_service.PublicDownloadConfig(
+                    base_dir=config.BASE_DIR,
+                    public_download_dir=config.PUBLIC_DOWNLOAD_DIR,
+                    allowed_exts=tuple(config.PUBLIC_DOWNLOAD_ALLOWED_EXTS),
+                    max_size_mb=int(config.PUBLIC_DOWNLOAD_MAX_SIZE_MB),
+                )
+            )
+        except ServiceError as exc:
+            raise HTTPException(status_code=exc.status_code, detail=exc.message) from exc
+        quoted = quote(result.download_filename)
+        return FileResponse(
+            path=result.path,
+            media_type=result.media_type,
+            headers={"Content-Disposition": f"attachment; filename*=UTF-8''{quoted}"},
+        )
 
     return router
 

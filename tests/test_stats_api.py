@@ -89,15 +89,17 @@ async def test_admin_geom_refresh_routes(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     from app.services import geo_service
+    from app.services.service_models import RequestContext
 
-    def _fake_start_job(
-        request: object,
-        background_tasks: object,
-        *,
-        csrf_token: str,
-    ) -> dict[str, object]:
-        assert csrf_token
-        return {"success": True, "jobId": 101, "started": True, "message": "started"}
+    def _fake_start_job(command: object) -> object:
+        assert isinstance(command, geo_service.GeomRefreshStartCommand)
+        assert isinstance(command.context, RequestContext)
+        return geo_service.GeomRefreshStartResult(
+            success=True,
+            job_id=101,
+            started=True,
+            message="started",
+        )
 
     def _fake_status(job_id: int) -> dict[str, object]:
         assert job_id == 101
@@ -114,6 +116,7 @@ async def test_admin_geom_refresh_routes(
 
     monkeypatch.setattr(geo_service, "start_geom_refresh_job", _fake_start_job)
     monkeypatch.setattr(geo_service, "get_geom_refresh_job_status", _fake_status)
+    monkeypatch.setattr(geo_service, "run_geom_update_job", lambda *_args, **_kwargs: (0, 0))
 
     await _login_as_admin(async_client)
     csrf_token = await _get_admin_csrf(async_client)

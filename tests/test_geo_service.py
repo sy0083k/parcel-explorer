@@ -1,8 +1,11 @@
+import pytest
 from _pytest.monkeypatch import MonkeyPatch
 
 from app.db.connection import db_connection
 from app.repositories import poi_repository
 from app.services import geo_service
+from app.services.service_errors import AuthError, NotFoundError
+from app.services.service_models import RequestContext
 
 
 def test_geo_service_updates_geom(db_path: object, monkeypatch: MonkeyPatch) -> None:
@@ -164,3 +167,45 @@ def test_geo_service_job_lifecycle(db_path: object, monkeypatch: MonkeyPatch) ->
     assert row[1] >= 1
     assert row[2] == 1
     assert row[3] == 0
+
+
+def test_start_geom_refresh_job_reuses_active_job(db_path: object) -> None:
+    with db_connection() as conn:
+        poi_repository.init_db(conn)
+        job_id = poi_repository.create_geom_update_job(conn)
+        poi_repository.mark_geom_job_running(conn, job_id)
+        conn.commit()
+
+    result = geo_service.start_geom_refresh_job(
+        geo_service.GeomRefreshStartCommand(
+            context=RequestContext(
+                request_id="req-1",
+                actor="admin",
+                client_ip="127.0.0.1",
+                csrf_valid=True,
+            )
+        )
+    )
+    assert result.job_id == job_id
+    assert result.started is False
+
+
+def test_start_geom_refresh_job_rejects_invalid_csrf() -> None:
+    with pytest.raises(AuthError) as exc:
+        geo_service.start_geom_refresh_job(
+            geo_service.GeomRefreshStartCommand(
+                context=RequestContext(
+                    request_id="req-1",
+                    actor="admin",
+                    client_ip="127.0.0.1",
+                    csrf_valid=False,
+                )
+            )
+        )
+    assert exc.value.status_code == 403
+
+
+def test_get_geom_refresh_job_status_raises_not_found() -> None:
+    with pytest.raises(NotFoundError) as exc:
+        geo_service.get_geom_refresh_job_status(999999)
+    assert exc.value.status_code == 404

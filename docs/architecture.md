@@ -48,6 +48,7 @@
   - `app/services/admin_settings_service.py`
   - `app/services/public_download_service.py`
   - `app/services/health_service.py`
+  - 인증/업로드/설정/공개 다운로드/경계선 작업 시작 흐름은 FastAPI 타입을 서비스 내부로 넘기지 않고 command/result 객체와 `ServiceError` 계열 예외로 경계를 유지한다.
 - **리포지토리**: SQL/영속성 처리
   - `app/repositories/poi_repository.py` (Facade)
   - `app/repositories/land_repository.py`
