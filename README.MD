@@ -180,8 +180,14 @@ pytest -q
 선택 실행:
 ```bash
 RUN_HTTP_E2E=1 pytest -q tests/test_e2e_smoke.py
-RUN_BROWSER_E2E=1 pytest -q tests/test_playwright_e2e.py
-cd frontend && npx playwright install chromium
+PLAYWRIGHT_EXECUTABLE_PATH=$(which chromium) RUN_BROWSER_E2E=1 pytest -q tests/test_playwright_e2e.py
+```
+
+시스템 Chromium을 쓰는 경우 예시:
+```bash
+which chromium
+which google-chrome
+PLAYWRIGHT_EXECUTABLE_PATH=/usr/bin/chromium RUN_BROWSER_E2E=1 pytest -q tests/test_playwright_e2e.py
 ```
 
 ## ⚙️ CI/CD 워크플로

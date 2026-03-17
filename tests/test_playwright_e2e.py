@@ -139,6 +139,12 @@ def test_map_admin_browser_e2e(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) 
         pytest.skip("Set RUN_BROWSER_E2E=1 to run Playwright browser E2E tests.")
 
     frontend_dir = Path(__file__).resolve().parents[1] / "frontend"
+    executable_path = os.getenv("PLAYWRIGHT_EXECUTABLE_PATH")
+    if not executable_path:
+        pytest.fail(
+            "PLAYWRIGHT_EXECUTABLE_PATH is required for browser E2E. "
+            "Install a system Chromium/Chrome and set its absolute executable path."
+        )
 
     build = subprocess.run(
         ["npm", "run", "build"],
@@ -156,7 +162,11 @@ def test_map_admin_browser_e2e(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) 
             check=False,
             capture_output=True,
             text=True,
-            env={**os.environ, "PLAYWRIGHT_BASE_URL": base_url},
+            env={
+                **os.environ,
+                "PLAYWRIGHT_BASE_URL": base_url,
+                "PLAYWRIGHT_EXECUTABLE_PATH": executable_path,
+            },
         )
 
     assert result.returncode == 0, result.stdout + result.stderr
