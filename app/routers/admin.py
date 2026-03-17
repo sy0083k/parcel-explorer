@@ -24,9 +24,9 @@ from app.dependencies import (
 from app.logging_utils import RequestIdFilter
 from app.services import (
     admin_settings_service,
+    admin_stats_service,
     geo_service,
     public_download_service,
-    stats_service,
     upload_service,
 )
 
@@ -143,9 +143,7 @@ async def update_password(
 
 @router.get("/stats", dependencies=[Depends(check_internal_network), Depends(require_authenticated)])
 async def get_stats(limit: int = 10) -> dict:
-    payload = stats_service.get_admin_stats(limit=limit)
-    payload["landSummary"] = stats_service.get_land_stats()
-    return payload
+    return admin_stats_service.get_dashboard_stats(limit=limit)
 
 
 @router.post("/lands/geom-refresh", dependencies=[Depends(check_internal_network), Depends(require_authenticated)])
@@ -171,7 +169,7 @@ async def get_land_geom_refresh_status(job_id: int) -> dict:
 
 @router.get("/stats/web", dependencies=[Depends(check_internal_network), Depends(require_authenticated)])
 async def get_web_stats(days: int = 30) -> dict:
-    return stats_service.get_web_stats(days=days)
+    return admin_stats_service.get_web_stats(days=days)
 
 
 @router.get("/raw-queries/export", dependencies=[Depends(check_internal_network), Depends(require_authenticated)])
@@ -187,7 +185,7 @@ async def export_raw_queries(
     client_ip = request.client.host if request.client else "unknown"
     filename = f"raw-queries-{datetime.now().strftime('%Y%m%d')}.csv"
     try:
-        result = stats_service.export_raw_query_csv(
+        result = admin_stats_service.export_raw_query_csv(
             event_type=event_type,
             date_from=date_from,
             date_to=date_to,

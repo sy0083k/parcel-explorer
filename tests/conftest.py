@@ -33,7 +33,7 @@ TEST_MARKER_BY_FILE: dict[str, str] = {
     "test_security_regression.py": "integration",
     "test_services.py": "unit",
     "test_stats_api.py": "integration",
-    "test_stats_service.py": "unit",
+    "test_admin_stats_service.py": "unit",
     "test_upload_service.py": "unit",
     "test_validators.py": "unit",
     "test_web_stats_service.py": "unit",

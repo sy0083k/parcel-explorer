@@ -3,7 +3,7 @@ from typing import Any
 from fastapi import APIRouter, HTTPException, Request
 from fastapi.responses import JSONResponse
 
-from app.services import land_service, public_download_service, stats_service
+from app.services import land_service, map_event_service, public_download_service, web_stats_service
 
 DEFAULT_LANDS_PAGE_LIMIT = 500
 MAX_LANDS_PAGE_LIMIT = 2000
@@ -75,7 +75,7 @@ def create_router() -> APIRouter:
         )
         if not allowed:
             return _rate_limited_response(retry_after)
-        stats_service.record_map_event(payload)
+        map_event_service.record_map_event(payload)
         return {"success": True}
 
     @router.post("/web-events")
@@ -88,7 +88,7 @@ def create_router() -> APIRouter:
         )
         if not allowed:
             return _rate_limited_response(retry_after)
-        stats_service.record_web_visit_event(payload, request)
+        web_stats_service.record_web_visit_event(payload, request)
         return {"success": True}
 
     @router.get("/public-download")
