@@ -40,6 +40,10 @@
   - `app/services/admin_stats_service.py`
   - `app/services/map_event_service.py`
   - `app/services/web_stats_service.py`
+  - `app/services/web_stats_ingest.py`
+  - `app/services/web_stats_normalizers.py`
+  - `app/services/web_stats_queries.py`
+  - `app/services/web_stats_presenter.py`
   - `app/services/raw_query_export_service.py`
   - `app/services/admin_settings_service.py`
   - `app/services/public_download_service.py`
@@ -203,11 +207,12 @@
 1. 클라이언트가 `/api/events`, `/api/web-events`로 검색/클릭/방문 이벤트를 전송한다.
 2. 서버는 레이트리밋 적용 후 `map_event_log`, `raw_query_log`, `web_visit_event`에 저장한다.
 3. `/api/web-events`는 referrer/utm/page query/클라이언트 컨텍스트를 optional로 수용하고, UA 기반 브라우저/디바이스/OS 분류 필드를 서버에서 파생 저장한다.
-4. 관리자는 `/admin/stats`, `/admin/stats/web`에서 집계 지표를 조회한다(`/admin/stats/web`: 채널/디바이스/브라우저/상위 페이지/UTM/referrer breakdown 포함).
-5. `admin.router`는 `admin_stats_service`를 통해 관리자 대시보드 payload를 조립하고, 내부적으로 `map_event_service`, `web_stats_service`, `raw_query_export_service`, `land_repository`를 사용한다.
-6. `/api/v1/web-events`는 `/api/web-events`와 동등 계약을 유지한다(확장 필드 optional 호환).
-7. CSV 내보내기 시 문자열 셀은 formula injection 방지를 위해 선두 `=`, `+`, `-`, `@` 값을 `'` 접두 처리한다.
-8. `/admin/raw-queries/export`는 필터 조건, 요청 limit, 실제 내보낸 건수를 구조화 감사 로그로 기록한다.
+4. `web_stats_service`는 facade로 남고, 내부적으로 ingest/normalizers/queries/presenter 모듈을 조합한다.
+5. 관리자는 `/admin/stats`, `/admin/stats/web`에서 집계 지표를 조회한다(`/admin/stats/web`: 채널/디바이스/브라우저/상위 페이지/UTM/referrer breakdown 포함).
+6. `admin.router`는 `admin_stats_service`를 통해 관리자 대시보드 payload를 조립하고, 내부적으로 `map_event_service`, `web_stats_service`, `raw_query_export_service`, `land_repository`를 사용한다.
+7. `/api/v1/web-events`는 `/api/web-events`와 동등 계약을 유지한다(확장 필드 optional 호환).
+8. CSV 내보내기 시 문자열 셀은 formula injection 방지를 위해 선두 `=`, `+`, `-`, `@` 값을 `'` 접두 처리한다.
+9. `/admin/raw-queries/export`는 필터 조건, 요청 limit, 실제 내보낸 건수를 구조화 감사 로그로 기록한다.
 
 ### 헬스체크
 1. `GET /health`는 DB ping 결과를 반환한다.

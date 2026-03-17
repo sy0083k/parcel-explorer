@@ -36,6 +36,10 @@ TEST_MARKER_BY_FILE: dict[str, str] = {
     "test_admin_stats_service.py": "unit",
     "test_upload_service.py": "unit",
     "test_validators.py": "unit",
+    "test_web_stats_ingest.py": "unit",
+    "test_web_stats_normalizers.py": "unit",
+    "test_web_stats_presenter.py": "unit",
+    "test_web_stats_queries.py": "unit",
     "test_web_stats_service.py": "unit",
     "test_web_visit_repository_split.py": "unit",
 }
