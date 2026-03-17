@@ -1,4 +1,4 @@
-from typing import Any
+from typing import Any, NoReturn
 from urllib.parse import quote
 
 from fastapi import APIRouter, HTTPException, Request
@@ -49,6 +49,32 @@ def _rate_limited_response(retry_after: int) -> JSONResponse:
         content={"success": False, "message": "요청이 너무 많습니다. 잠시 후 다시 시도해주세요."},
         headers={"Retry-After": str(retry_after)},
     )
+
+
+def _success_response() -> dict[str, bool]:
+    return {"success": True}
+
+
+def _raise_http_from_service_error(exc: ServiceError) -> NoReturn:
+    raise HTTPException(status_code=exc.status_code, detail=exc.message) from exc
+
+
+def _allow_rate_limited_event(
+    request: Request,
+    *,
+    payload: dict[str, Any],
+    prefix: str,
+    limit: int,
+) -> JSONResponse | None:
+    key = _rate_limit_key(request, payload)
+    allowed, retry_after = request.app.state.event_rate_limiter.allow(
+        key=f"{prefix}:{key}",
+        limit=limit,
+        window_seconds=RATE_LIMIT_WINDOW_SECONDS,
+    )
+    if allowed:
+        return None
+    return _rate_limited_response(retry_after)
 
 
 def _build_map_event_command(payload: dict[str, Any]) -> MapEventCommand:
@@ -132,35 +158,35 @@ def create_router() -> APIRouter:
 
     @router.post("/events")
     async def post_map_event(request: Request, payload: dict[str, Any]):
-        key = _rate_limit_key(request, payload)
-        allowed, retry_after = request.app.state.event_rate_limiter.allow(
-            key=f"events:{key}",
+        blocked = _allow_rate_limited_event(
+            request,
+            payload=payload,
+            prefix="events",
             limit=EVENT_LIMIT_PER_MINUTE,
-            window_seconds=RATE_LIMIT_WINDOW_SECONDS,
         )
-        if not allowed:
-            return _rate_limited_response(retry_after)
+        if blocked is not None:
+            return blocked
         try:
             map_event_service.record_map_event(_build_map_event_command(payload))
         except ServiceError as exc:
-            raise HTTPException(status_code=exc.status_code, detail=exc.message) from exc
-        return {"success": True}
+            _raise_http_from_service_error(exc)
+        return _success_response()
 
     @router.post("/web-events")
     async def post_web_event(request: Request, payload: dict[str, Any]):
-        key = _rate_limit_key(request, payload)
-        allowed, retry_after = request.app.state.event_rate_limiter.allow(
-            key=f"web-events:{key}",
+        blocked = _allow_rate_limited_event(
+            request,
+            payload=payload,
+            prefix="web-events",
             limit=WEB_EVENT_LIMIT_PER_MINUTE,
-            window_seconds=RATE_LIMIT_WINDOW_SECONDS,
         )
-        if not allowed:
-            return _rate_limited_response(retry_after)
+        if blocked is not None:
+            return blocked
         try:
             web_stats_service.record_web_visit_event(_build_web_visit_event_command(request, payload))
         except ServiceError as exc:
-            raise HTTPException(status_code=exc.status_code, detail=exc.message) from exc
-        return {"success": True}
+            _raise_http_from_service_error(exc)
+        return _success_response()
 
     @router.get("/public-download")
     async def get_public_download(request: Request):
@@ -182,7 +208,7 @@ def create_router() -> APIRouter:
                 )
             )
         except ServiceError as exc:
-            raise HTTPException(status_code=exc.status_code, detail=exc.message) from exc
+            _raise_http_from_service_error(exc)
         quoted = quote(result.download_filename)
         return FileResponse(
             path=result.path,
