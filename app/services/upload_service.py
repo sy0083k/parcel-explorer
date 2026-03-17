@@ -7,7 +7,7 @@ import pandas as pd
 
 from app.db.connection import db_connection
 from app.logging_utils import RequestIdFilter
-from app.repositories import poi_repository
+from app.repositories import land_repository
 from app.services import geo_service
 from app.services.service_errors import AuthError, ValidationError
 from app.services.service_models import RequestContext, UploadedFileInput
@@ -301,9 +301,9 @@ def _validate_upload_dataframe(
 
 def _replace_land_data(rows: list[dict[str, object]]) -> None:
     with db_connection() as conn:
-        poi_repository.delete_all(conn)
+        land_repository.delete_all(conn)
         for row in rows:
-            poi_repository.insert_land(
+            land_repository.insert_land(
                 conn,
                 address=str(row["address"]),
                 land_type=str(row["land_type"]),

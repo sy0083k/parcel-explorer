@@ -1,12 +1,12 @@
 from app.db.connection import db_connection
-from app.repositories import land_repository, poi_repository
+from app.repositories import land_repository, poi_repository, web_visit_repository
 from app.services import admin_stats_service
 
 
 def test_admin_stats_service_get_web_stats(db_path: object) -> None:
     with db_connection() as conn:
         poi_repository.init_db(conn)
-        poi_repository.insert_web_visit_event(
+        web_visit_repository.insert_web_visit_event(
             conn,
             anon_id="anon-a",
             session_id="session-a",
@@ -17,7 +17,7 @@ def test_admin_stats_service_get_web_stats(db_path: object) -> None:
             user_agent="Mozilla/5.0",
             is_bot=False,
         )
-        poi_repository.insert_web_visit_event(
+        web_visit_repository.insert_web_visit_event(
             conn,
             anon_id="anon-a",
             session_id="session-a",
@@ -28,7 +28,7 @@ def test_admin_stats_service_get_web_stats(db_path: object) -> None:
             user_agent="Mozilla/5.0",
             is_bot=False,
         )
-        poi_repository.insert_web_visit_event(
+        web_visit_repository.insert_web_visit_event(
             conn,
             anon_id="anon-b",
             session_id="session-b",

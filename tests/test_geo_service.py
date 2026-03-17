@@ -2,7 +2,7 @@ import pytest
 from _pytest.monkeypatch import MonkeyPatch
 
 from app.db.connection import db_connection
-from app.repositories import poi_repository
+from app.repositories import job_repository, land_repository, poi_repository
 from app.services import geo_service
 from app.services.service_errors import AuthError, NotFoundError
 from app.services.service_models import RequestContext
@@ -11,8 +11,8 @@ from app.services.service_models import RequestContext
 def test_geo_service_updates_geom(db_path: object, monkeypatch: MonkeyPatch) -> None:
     with db_connection() as conn:
         poi_repository.init_db(conn)
-        poi_repository.delete_all(conn)
-        poi_repository.insert_land(
+        land_repository.delete_all(conn)
+        land_repository.insert_land(
             conn,
             address="addr",
             land_type="type",
@@ -39,8 +39,8 @@ def test_geo_service_updates_geom(db_path: object, monkeypatch: MonkeyPatch) -> 
 def test_geo_service_handles_missing_geom(db_path: object, monkeypatch: MonkeyPatch) -> None:
     with db_connection() as conn:
         poi_repository.init_db(conn)
-        poi_repository.delete_all(conn)
-        poi_repository.insert_land(
+        land_repository.delete_all(conn)
+        land_repository.insert_land(
             conn,
             address="addr",
             land_type="type",
@@ -74,8 +74,8 @@ def test_recover_no_stale_jobs(db_path: object) -> None:
 def test_recover_stale_jobs_no_missing_geom(db_path: object) -> None:
     with db_connection() as conn:
         poi_repository.init_db(conn)
-        poi_repository.delete_all(conn)
-        job_id = poi_repository.create_geom_update_job(conn)
+        land_repository.delete_all(conn)
+        job_id = job_repository.create_geom_update_job(conn)
         conn.commit()
 
     assert geo_service.recover_interrupted_geom_jobs() is None
@@ -92,13 +92,13 @@ def test_recover_stale_jobs_no_missing_geom(db_path: object) -> None:
 def test_recover_stale_jobs_with_missing_geom(db_path: object) -> None:
     with db_connection() as conn:
         poi_repository.init_db(conn)
-        poi_repository.delete_all(conn)
-        poi_repository.insert_land(
+        land_repository.delete_all(conn)
+        land_repository.insert_land(
             conn, address="addr", land_type="t", area=1.0,
             adm_property="a", gen_property="g", contact="010",
         )
-        old_job_id = poi_repository.create_geom_update_job(conn)
-        poi_repository.mark_geom_job_running(conn, old_job_id)
+        old_job_id = job_repository.create_geom_update_job(conn)
+        job_repository.mark_geom_job_running(conn, old_job_id)
         conn.commit()
 
     new_job_id = geo_service.recover_interrupted_geom_jobs()
@@ -119,8 +119,8 @@ def test_recover_stale_jobs_with_missing_geom(db_path: object) -> None:
 def test_recover_no_stale_jobs_with_missing_geom(db_path: object) -> None:
     with db_connection() as conn:
         poi_repository.init_db(conn)
-        poi_repository.delete_all(conn)
-        poi_repository.insert_land(
+        land_repository.delete_all(conn)
+        land_repository.insert_land(
             conn, address="addr", land_type="t", area=1.0,
             adm_property="a", gen_property="g", contact="010",
         )
@@ -131,8 +131,8 @@ def test_recover_no_stale_jobs_with_missing_geom(db_path: object) -> None:
 def test_geo_service_job_lifecycle(db_path: object, monkeypatch: MonkeyPatch) -> None:
     with db_connection() as conn:
         poi_repository.init_db(conn)
-        poi_repository.delete_all(conn)
-        poi_repository.insert_land(
+        land_repository.delete_all(conn)
+        land_repository.insert_land(
             conn,
             address="addr",
             land_type="type",
@@ -172,8 +172,8 @@ def test_geo_service_job_lifecycle(db_path: object, monkeypatch: MonkeyPatch) ->
 def test_start_geom_refresh_job_reuses_active_job(db_path: object) -> None:
     with db_connection() as conn:
         poi_repository.init_db(conn)
-        job_id = poi_repository.create_geom_update_job(conn)
-        poi_repository.mark_geom_job_running(conn, job_id)
+        job_id = job_repository.create_geom_update_job(conn)
+        job_repository.mark_geom_job_running(conn, job_id)
         conn.commit()
 
     result = geo_service.start_geom_refresh_job(
