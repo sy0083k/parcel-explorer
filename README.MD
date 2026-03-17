@@ -56,8 +56,16 @@ python create_hash.py
 - `RAW_QUERY_EXPORT_MAX_ROWS`, `RAW_QUERY_EXPORT_TIMEOUT_S`
 
 ### 3) 의존성 설치
+앱 실행만 필요한 경우:
+
 ```bash
 pip install -r requirements.txt
+```
+
+테스트/타입체크/린트까지 포함한 개발 환경:
+
+```bash
+pip install -r requirements-dev.txt
 cd frontend
 npm ci
 cd ..
@@ -165,6 +173,7 @@ uvicorn app.main:app --reload
 
 ## ✅ 테스트 및 품질 체크
 ```bash
+pip install -r requirements-dev.txt
 python -m compileall -q app tests
 mypy app tests create_hash.py
 ruff check app tests
@@ -193,10 +202,12 @@ PLAYWRIGHT_EXECUTABLE_PATH=/usr/bin/chromium RUN_BROWSER_E2E=1 pytest -q tests/t
 
 ## ⚙️ CI/CD 워크플로
 - CI: `.github/workflows/ci.yml`
+  - Python dev 의존성 설치: `pip install -r requirements-dev.txt`
   - frontend test/typecheck/build
   - Vite manifest 검증
   - `compileall`, `mypy`, `pytest`
 - Deploy: `.github/workflows/deploy.yml`
+  - Python dev 의존성 설치: `pip install -r requirements-dev.txt`
   - `main` push 또는 수동 실행(`workflow_dispatch`) 시 실행
   - 배포 전 품질 게이트: frontend test/typecheck/build, `compileall`, `mypy`, `ruff`, `pytest`
   - SSH 원격 배포: 대상 서버에서 `git pull --ff-only` + `docker compose build --pull` + `docker compose up -d`
@@ -237,6 +248,7 @@ curl http://127.0.0.1:8000/health
 - `docker-compose.yml`은 IP-only 환경을 위해 `SESSION_HTTPS_ONLY=false`, `TRUST_PROXY_HEADERS=false`를 기본값으로 사용합니다.
 - SQLite 및 공개 다운로드 파일은 `./data` 볼륨으로 영속화됩니다.
 - 현재 Compose 운영 기준은 단일 `app` 인스턴스 1개이며, scale-out은 지원하지 않습니다.
+- Docker 이미지는 런타임 전용 `requirements.txt`만 설치하며, 테스트/린트 도구는 포함하지 않습니다.
 
 ## 📂 디렉터리 구조
 ```text

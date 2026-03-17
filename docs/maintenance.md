@@ -2,7 +2,7 @@
 
 프로젝트: 관심 필지 지도 (Parcel Explorer)  
 작성일: 2026-02-11  
-최종 수정일: 2026-03-16
+최종 수정일: 2026-03-18
 
 ## 목적
 운영 중인 서비스의 안정성과 보안을 유지하기 위해 필요한 점검, 변경, 장애 대응 절차를 정의한다.
@@ -55,6 +55,12 @@
 - SQLite 잠금 징후(`database is locked`) 및 장기 쿼리 발생 여부 점검
 - 로그/통계 테이블(`map_event_log`, `raw_query_log`, `web_visit_event`) 증가 추이 점검
 - 공개 다운로드 파일(`data/public_download/current.*`) 및 메타(`current.json`) 무결성 점검
+
+## Python 의존성 설치 정책
+- 운영/컨테이너 런타임: `pip install -r requirements.txt`
+- 로컬 개발/CI/품질 게이트: `pip install -r requirements-dev.txt`
+- `requirements-dev.txt`는 `-r requirements.txt`를 포함하며 테스트/타입체크/린트 도구를 추가 설치한다.
+- `scripts/run_nonfunctional_checks.py`는 `httpx`가 필요하므로 dev 의존성 환경에서 실행한다.
 
 ## 배포 전 체크리스트
 1. `python -m compileall -q app tests`
