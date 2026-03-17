@@ -168,3 +168,49 @@ def test_raw_query_export_service_invalid_event_type_raises_validation_error() -
         )
     assert exc.value.status_code == 400
     assert exc.value.message == "event_type must be one of: all, search, land_click."
+
+
+def test_validate_raw_query_export_command_builds_validated_command() -> None:
+    validated = raw_query_export_service.validate_raw_query_export_command(
+        RawQueryExportCommand(
+            event_type="all",
+            date_from="2026-02-22",
+            date_to="2026-02-23",
+            limit=999999,
+            max_rows=500,
+            timeout_s=15.0,
+        )
+    )
+
+    assert validated.event_type_filter is None
+    assert validated.effective_limit == 500
+    assert validated.created_at_from == "2026-02-22 00:00:00"
+    assert validated.created_at_to == "2026-02-24 00:00:00"
+    assert validated.timeout_s == 15.0
+
+
+def test_export_timeout_sets_log_reason(db_path: object, monkeypatch: pytest.MonkeyPatch) -> None:
+    def _interrupted(*_args: object, **_kwargs: object) -> None:
+        raise sqlite3.OperationalError("interrupted")
+
+    monkeypatch.setattr(event_repository, "fetch_raw_query_logs", _interrupted)
+
+    validated = raw_query_export_service.validate_raw_query_export_command(
+        RawQueryExportCommand(
+            event_type="all",
+            date_from=None,
+            date_to=None,
+            limit=100,
+            timeout_s=30.0,
+        )
+    )
+
+    with db_connection() as conn:
+        event_repository.init_event_schema(conn)
+        conn.commit()
+
+    with pytest.raises(ServiceError) as exc:
+        raw_query_export_service.fetch_raw_query_export_rows(validated)
+
+    assert exc.value.status_code == 503
+    assert exc.value.log_reason == "query_timeout"

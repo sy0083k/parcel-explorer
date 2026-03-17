@@ -50,3 +50,30 @@ def test_web_stats_ingest_persists_normalized_and_derived_fields(
     assert row["browser_family"] == "safari"
     assert row["device_type"] == "mobile"
     assert row["os_family"] == "macos"
+
+
+def test_web_stats_ingest_normalize_web_visit_core() -> None:
+    core = web_stats_ingest.normalize_web_visit_core(
+        WebVisitEventCommand(
+            event_type="visit_start",
+            anon_id=" anon-1 ",
+            session_id=" session-1 ",
+            page_path="/",
+            page_query="?utm_source=google",
+            client_ts=1763596800,
+            metadata=RequestMetadata(
+                user_agent=None,
+                allowed_web_track_paths=("/",),
+            ),
+        ),
+        RequestMetadata(
+            user_agent=None,
+            allowed_web_track_paths=("/",),
+        ),
+    )
+
+    assert core.anon_id == "anon-1"
+    assert core.session_id == "session-1"
+    assert core.event_type == "visit_start"
+    assert core.page_path == "/"
+    assert core.page_query == "utm_source=google"

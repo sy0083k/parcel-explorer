@@ -31,6 +31,46 @@ def test_map_event_service_record_map_event(db_path: object) -> None:
         assert int(summary["search_count"] or 0) == 1
 
 
+def test_normalize_search_map_event_builds_normalized_payload() -> None:
+    normalized = map_event_service.normalize_search_map_event(
+        SearchMapEventCommand(
+            anon_id=" anon-1 ",
+            min_area="120",
+            search_term="대산읍12",
+            raw_search_term=" 대산읍12 ",
+            raw_min_area_input=" 120 ",
+            raw_max_area_input=" 500 ",
+            raw_rent_only="true",
+        )
+    )
+
+    assert normalized.anon_id == "anon-1"
+    assert normalized.min_area_value == 120.0
+    assert normalized.min_area_bucket == "100-199"
+    assert normalized.region_name == "대산읍"
+    assert normalized.raw_region_query == " 대산읍12 "
+    assert normalized.raw_min_area_input == " 120 "
+    assert normalized.raw_max_area_input == " 500 "
+    assert normalized.raw_rent_only_input == "true"
+
+
+def test_normalize_land_click_map_event_builds_normalized_payload() -> None:
+    normalized = map_event_service.normalize_land_click_map_event(
+        LandClickMapEventCommand(
+            anon_id=" anon-2 ",
+            land_address=" 충남 서산시 대산읍 독곶리 1-1 ",
+            land_id=99,
+            click_source="map_click",
+        )
+    )
+
+    assert normalized.anon_id == "anon-2"
+    assert normalized.land_address == "충남 서산시 대산읍 독곶리 1-1"
+    assert normalized.raw_land_id_input == "99"
+    assert normalized.raw_land_address_input == " 충남 서산시 대산읍 독곶리 1-1 "
+    assert normalized.raw_click_source_input == "map_click"
+
+
 def test_map_event_service_invalid_land_click_raises_validation_error() -> None:
     try:
         map_event_service.record_map_event(

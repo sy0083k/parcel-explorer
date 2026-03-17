@@ -21,6 +21,7 @@ from app.services.web_stats_normalizers import (
 from app.services.web_stats_types import (
     ClientContext,
     MarketingContext,
+    NormalizedWebVisitCore,
     NormalizedWebVisitEvent,
     UserAgentContext,
 )
@@ -33,24 +34,37 @@ def record_web_visit_event(command: WebVisitEventCommand) -> None:
 
 def normalize_web_visit_event(command: WebVisitEventCommand) -> NormalizedWebVisitEvent:
     metadata = command.metadata
-    event_type = normalize_event_type(command.event_type)
-    anon_id = normalize_required_token(command.anon_id, "anonId")
-    session_id = normalize_required_token(command.session_id, "sessionId")
-    page_path = normalize_page_path(command.page_path, allowed_paths=metadata.allowed_web_track_paths)
-    page_query = normalize_query_string(command.page_query, max_length=1024)
-    occurred_at = parse_client_ts(command.client_ts)
-
+    core = normalize_web_visit_core(command, metadata)
     client_context = normalize_client_context(command)
     marketing_context = normalize_marketing_context(command)
     user_agent_context = derive_user_agent_context(metadata)
+    return assemble_normalized_web_visit_event(core, client_context, marketing_context, user_agent_context)
 
+
+def normalize_web_visit_core(command: WebVisitEventCommand, metadata: RequestMetadata) -> NormalizedWebVisitCore:
+    return NormalizedWebVisitCore(
+        anon_id=normalize_required_token(command.anon_id, "anonId"),
+        session_id=normalize_required_token(command.session_id, "sessionId"),
+        event_type=normalize_event_type(command.event_type),
+        page_path=normalize_page_path(command.page_path, allowed_paths=metadata.allowed_web_track_paths),
+        page_query=normalize_query_string(command.page_query, max_length=1024),
+        occurred_at=parse_client_ts(command.client_ts),
+    )
+
+
+def assemble_normalized_web_visit_event(
+    core: NormalizedWebVisitCore,
+    client_context: ClientContext,
+    marketing_context: MarketingContext,
+    user_agent_context: UserAgentContext,
+) -> NormalizedWebVisitEvent:
     return NormalizedWebVisitEvent(
-        anon_id=anon_id,
-        session_id=session_id,
-        event_type=event_type,
-        page_path=page_path,
-        page_query=page_query,
-        occurred_at=occurred_at,
+        anon_id=core.anon_id,
+        session_id=core.session_id,
+        event_type=core.event_type,
+        page_path=core.page_path,
+        page_query=core.page_query,
+        occurred_at=core.occurred_at,
         client_tz=client_context.client_tz,
         client_lang=client_context.client_lang,
         platform=client_context.platform,

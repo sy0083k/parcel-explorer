@@ -50,6 +50,7 @@
   - `app/services/health_service.py`
   - 인증/업로드/설정/공개 다운로드/경계선 작업 시작 흐름은 FastAPI 타입을 서비스 내부로 넘기지 않고 command/result 객체와 `ServiceError` 계열 예외로 경계를 유지한다.
   - 공개 이벤트/웹 통계 수집도 라우터가 JSON payload에서 명시 필드 command를 조립하고, 서비스는 원본 HTTP payload dict 대신 command와 metadata만 사용한다.
+  - 공개 이벤트/웹 통계/원시 로그 export 서비스 내부는 validation, normalize, persist/render 단계를 helper로 분리해 테스트 가능 경계를 유지한다.
 - **리포지토리**: SQL/영속성 처리
   - `app/repositories/poi_repository.py` (Facade)
   - `app/repositories/land_repository.py`

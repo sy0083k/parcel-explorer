@@ -39,6 +39,16 @@ class NormalizedWebVisitEvent:
 
 
 @dataclass(frozen=True)
+class NormalizedWebVisitCore:
+    anon_id: str
+    session_id: str
+    event_type: str
+    page_path: str
+    page_query: str | None
+    occurred_at: str
+
+
+@dataclass(frozen=True)
 class ClientContext:
     client_tz: str | None
     client_lang: str | None

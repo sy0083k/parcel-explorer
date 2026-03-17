@@ -9,6 +9,7 @@ from io import StringIO
 
 from app.db.connection import db_connection
 from app.repositories import event_repository
+from app.services.raw_query_export_types import ValidatedRawQueryExport
 from app.services.service_errors import ServiceError, ValidationError
 from app.services.service_models import RawQueryExportCommand
 
@@ -25,32 +26,47 @@ class RawQueryCsvExportResult:
 
 
 def export_raw_query_csv(command: RawQueryExportCommand) -> RawQueryCsvExportResult:
+    validated = validate_raw_query_export_command(command)
+    rows = fetch_raw_query_export_rows(validated)
+    return render_raw_query_csv(rows, effective_limit=validated.effective_limit)
+
+
+def validate_raw_query_export_command(command: RawQueryExportCommand) -> ValidatedRawQueryExport:
     if command.event_type not in {"all", EVENT_TYPE_SEARCH, EVENT_TYPE_LAND_CLICK}:
         raise ValidationError(status_code=400, message="event_type must be one of: all, search, land_click.")
 
-    clamped_limit = max(1, min(int(command.limit), command.max_rows))
     created_at_from = parse_date_start(command.date_from)
     created_at_to = parse_date_end_exclusive(command.date_to)
     if created_at_from is not None and created_at_to is not None and created_at_from >= created_at_to:
         raise ValidationError(status_code=400, message="date_from must be earlier than or equal to date_to.")
+    return ValidatedRawQueryExport(
+        event_type_filter=None if command.event_type == "all" else command.event_type,
+        effective_limit=max(1, min(int(command.limit), command.max_rows)),
+        created_at_from=created_at_from,
+        created_at_to=created_at_to,
+        timeout_s=command.timeout_s,
+    )
 
+
+def fetch_raw_query_export_rows(validated: ValidatedRawQueryExport) -> list[sqlite3.Row]:
     timeout_error: ServiceError | None = None
     with db_connection(row_factory=True) as conn:
-        timer = threading.Timer(command.timeout_s, conn.interrupt)
+        timer = threading.Timer(validated.timeout_s, conn.interrupt)
         timer.start()
         try:
             rows = event_repository.fetch_raw_query_logs(
                 conn,
-                event_type=None if command.event_type == "all" else command.event_type,
-                created_at_from=created_at_from,
-                created_at_to=created_at_to,
-                limit=clamped_limit,
+                event_type=validated.event_type_filter,
+                created_at_from=validated.created_at_from,
+                created_at_to=validated.created_at_to,
+                limit=validated.effective_limit,
             )
         except sqlite3.OperationalError as exc:
             if "interrupted" in str(exc).lower():
                 timeout_error = ServiceError(
                     status_code=503,
                     message="쿼리 실행 시간이 초과되었습니다. 조건을 좁혀 다시 시도하세요.",
+                    log_reason="query_timeout",
                 )
             else:
                 raise
@@ -58,7 +74,10 @@ def export_raw_query_csv(command: RawQueryExportCommand) -> RawQueryCsvExportRes
             timer.cancel()
     if timeout_error is not None:
         raise timeout_error
+    return list(rows)
 
+
+def render_raw_query_csv(rows: list[sqlite3.Row], *, effective_limit: int) -> RawQueryCsvExportResult:
     output = StringIO()
     writer = csv.writer(output)
     writer.writerow(
@@ -97,7 +116,7 @@ def export_raw_query_csv(command: RawQueryExportCommand) -> RawQueryCsvExportRes
     return RawQueryCsvExportResult(
         csv_text=output.getvalue(),
         row_count=len(rows),
-        effective_limit=clamped_limit,
+        effective_limit=effective_limit,
     )
 
 
