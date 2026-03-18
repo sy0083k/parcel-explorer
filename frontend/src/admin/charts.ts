@@ -1,6 +1,5 @@
-declare const Chart: any;
-
 import { requireElement } from "./dom";
+import type { ChartConfig, ChartConstructor, ChartInstance } from "./chart-types";
 import type { StatsResponse, WebStatsResponse } from "./types";
 
 type AdminCharts = {
@@ -10,15 +9,27 @@ type AdminCharts = {
 };
 
 export function createAdminCharts(): AdminCharts {
-  let regionChart: any = null;
-  let minAreaChart: any = null;
-  let trendChart: any = null;
-  let webTrendChart: any = null;
+  let regionChart: ChartInstance | null = null;
+  let minAreaChart: ChartInstance | null = null;
+  let trendChart: ChartInstance | null = null;
+  let webTrendChart: ChartInstance | null = null;
 
-  function destroyChart(chart: any): void {
+  function getChartConstructor(): ChartConstructor | null {
+    return window.Chart ?? null;
+  }
+
+  function destroyChart(chart: ChartInstance | null): void {
     if (chart) {
       chart.destroy();
     }
+  }
+
+  function createChart(canvas: HTMLCanvasElement, config: ChartConfig): ChartInstance | null {
+    const ChartCtor = getChartConstructor();
+    if (!ChartCtor) {
+      return null;
+    }
+    return new ChartCtor(canvas, config);
   }
 
   return {
@@ -35,7 +46,7 @@ export function createAdminCharts(): AdminCharts {
       trendChart = null;
 
       if (regionCanvas) {
-        regionChart = new Chart(regionCanvas, {
+        regionChart = createChart(regionCanvas, {
           type: "bar",
           data: {
             labels: payload.topRegions.map((item) => item.region),
@@ -50,7 +61,7 @@ export function createAdminCharts(): AdminCharts {
       }
 
       if (minAreaCanvas) {
-        minAreaChart = new Chart(minAreaCanvas, {
+        minAreaChart = createChart(minAreaCanvas, {
           type: "bar",
           data: {
             labels: payload.topMinAreaBuckets.map((item) => item.bucket),
@@ -65,7 +76,7 @@ export function createAdminCharts(): AdminCharts {
       }
 
       if (trendCanvas) {
-        trendChart = new Chart(trendCanvas, {
+        trendChart = createChart(trendCanvas, {
           type: "line",
           data: {
             labels: payload.dailyTrend.map((item) => item.date),
@@ -100,7 +111,7 @@ export function createAdminCharts(): AdminCharts {
         return;
       }
       destroyChart(webTrendChart);
-      webTrendChart = new Chart(canvas, {
+      webTrendChart = createChart(canvas, {
         type: "line",
         data: {
           labels: payload.dailyTrend.map((item) => item.date),
