@@ -48,6 +48,35 @@ async def _get_admin_csrf(client: httpx.AsyncClient) -> str:
     return match.group(1)
 
 
+def _valid_settings_form(*, csrf_token: str) -> dict[str, str]:
+    return {
+        "csrf_token": csrf_token,
+        "settings_password": "admin-password",
+        "app_name": "관심 필지 지도 (Parcel Explorer)",
+        "vworld_wmts_key": "test-key",
+        "vworld_geocoder_key": "test-key",
+        "allowed_ips": "127.0.0.1/32,::1/128",
+        "max_upload_size_mb": "10",
+        "max_upload_rows": "10",
+        "login_max_attempts": "5",
+        "login_cooldown_seconds": "300",
+        "vworld_timeout_s": "5.0",
+        "vworld_retries": "3",
+        "vworld_backoff_s": "0.5",
+        "session_https_only": "false",
+        "trust_proxy_headers": "false",
+        "trusted_proxy_ips": "",
+        "upload_sheet_name": "목록",
+        "public_download_rate_limit_per_minute": "10",
+    }
+
+
+def _assert_csrf_rejected(response: httpx.Response) -> None:
+    assert response.status_code == 403
+    assert response.json()["detail"] == "CSRF 토큰 검증에 실패했습니다."
+    assert response.json()["request_id"]
+
+
 def test_admin_settings_metadata_matches_current_settings_keys() -> None:
     fields = admin_settings_service.get_admin_settings_fields()
     current_settings = admin_settings_service.get_current_settings()
@@ -234,6 +263,50 @@ async def test_admin_settings_updates_runtime_config(
 
 
 @pytest.mark.anyio
+async def test_admin_settings_rejects_missing_csrf(
+    client_and_app: tuple[httpx.AsyncClient, object],
+    monkeypatch: MonkeyPatch,
+) -> None:
+    client, _app = client_and_app
+    update_calls = 0
+
+    def _capture_env_update(*_args: object, **_kwargs: object) -> None:
+        nonlocal update_calls
+        update_calls += 1
+
+    monkeypatch.setattr("app.services.admin_settings_service.update_env_file", _capture_env_update)
+
+    await _login_as_admin(client)
+
+    response = await client.post("/admin/settings", data=_valid_settings_form(csrf_token=""))
+
+    _assert_csrf_rejected(response)
+    assert update_calls == 0
+
+
+@pytest.mark.anyio
+async def test_admin_settings_rejects_invalid_csrf(
+    client_and_app: tuple[httpx.AsyncClient, object],
+    monkeypatch: MonkeyPatch,
+) -> None:
+    client, _app = client_and_app
+    update_calls = 0
+
+    def _capture_env_update(*_args: object, **_kwargs: object) -> None:
+        nonlocal update_calls
+        update_calls += 1
+
+    monkeypatch.setattr("app.services.admin_settings_service.update_env_file", _capture_env_update)
+
+    await _login_as_admin(client)
+
+    response = await client.post("/admin/settings", data=_valid_settings_form(csrf_token="invalid-csrf-token"))
+
+    _assert_csrf_rejected(response)
+    assert update_calls == 0
+
+
+@pytest.mark.anyio
 async def test_admin_password_update_reflects_in_runtime_config(
     client_and_app: tuple[httpx.AsyncClient, object],
     monkeypatch: MonkeyPatch,
@@ -263,3 +336,73 @@ async def test_admin_password_update_reflects_in_runtime_config(
     new_hash = app.state.config.ADMIN_PW_HASH
     assert new_hash != original_hash
     assert bcrypt.checkpw(b"new-password-123", new_hash.encode("utf-8"))
+
+
+@pytest.mark.anyio
+async def test_admin_password_rejects_missing_csrf(
+    client_and_app: tuple[httpx.AsyncClient, object],
+    monkeypatch: MonkeyPatch,
+) -> None:
+    client, app = client_and_app
+    update_calls = 0
+
+    def _capture_password_update(*_args: object, **_kwargs: object) -> None:
+        nonlocal update_calls
+        update_calls += 1
+
+    monkeypatch.setattr(
+        "app.services.admin_settings_service.update_admin_password_hash",
+        _capture_password_update,
+    )
+
+    await _login_as_admin(client)
+    original_hash = app.state.config.ADMIN_PW_HASH
+
+    response = await client.post(
+        "/admin/password",
+        data={
+            "csrf_token": "",
+            "current_password": "admin-password",
+            "new_password": "new-password-123",
+            "new_password_confirm": "new-password-123",
+        },
+    )
+
+    _assert_csrf_rejected(response)
+    assert update_calls == 0
+    assert app.state.config.ADMIN_PW_HASH == original_hash
+
+
+@pytest.mark.anyio
+async def test_admin_password_rejects_invalid_csrf(
+    client_and_app: tuple[httpx.AsyncClient, object],
+    monkeypatch: MonkeyPatch,
+) -> None:
+    client, app = client_and_app
+    update_calls = 0
+
+    def _capture_password_update(*_args: object, **_kwargs: object) -> None:
+        nonlocal update_calls
+        update_calls += 1
+
+    monkeypatch.setattr(
+        "app.services.admin_settings_service.update_admin_password_hash",
+        _capture_password_update,
+    )
+
+    await _login_as_admin(client)
+    original_hash = app.state.config.ADMIN_PW_HASH
+
+    response = await client.post(
+        "/admin/password",
+        data={
+            "csrf_token": "invalid-csrf-token",
+            "current_password": "admin-password",
+            "new_password": "new-password-123",
+            "new_password_confirm": "new-password-123",
+        },
+    )
+
+    _assert_csrf_rejected(response)
+    assert update_calls == 0
+    assert app.state.config.ADMIN_PW_HASH == original_hash
