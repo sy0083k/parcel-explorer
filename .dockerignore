@@ -13,6 +13,5 @@ __pycache__
 *.pyo
 *.pyd
 *.log
-data/database.db
-data/public_download
+
 docs/reports

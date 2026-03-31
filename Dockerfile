@@ -23,6 +23,7 @@ COPY app ./app
 COPY templates ./templates
 COPY static ./static
 COPY scripts ./scripts
+COPY data ./data
 COPY create_hash.py README.MD ./
 
 COPY --from=frontend-builder /build/static/dist ./static/dist
