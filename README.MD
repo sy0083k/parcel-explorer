@@ -172,6 +172,8 @@ uvicorn app.main:app --reload
 - 첫 배포 리허설에서는 `/health`, `/api/config`, `/api/lands`, `/api/public-download`, `/admin/login`, `/admin/stats`, `POST /logout`를 최소 smoke set으로 확인합니다.
 
 ## ✅ 테스트 및 품질 체크
+프런트 품질 체크를 실행하기 전 `frontend` 디렉터리에서 `npm ci`를 먼저 완료하세요.
+
 ```bash
 pip install -r requirements-dev.txt
 python -m compileall -q app tests
