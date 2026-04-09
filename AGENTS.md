@@ -24,11 +24,6 @@
   - 충돌 지점(있다면)과 사유/대안
 - `docs/refactoring-strategy.md`, `docs/reports/*`는 아카이브/기준선 참고용이며 현행 강제 규칙으로 사용하지 않는다.
 
-## Response Requirements (필수)
-- 저장소 파일을 수정한 작업의 최종 응답에는 적절한 git commit title을 함께 제안한다.
-- 저장소 파일 변경에는 코드와 문서 변경을 모두 포함한다.
-- 파일 변경이 없는 리뷰/조사/계획 작업에는 commit title 제안 의무가 없다.
-
 ## Execution Reference
 - 앱 실행: `uvicorn app.main:app --reload`
 - Python 런타임 의존성 설치: `pip install -r requirements.txt`
@@ -79,3 +74,8 @@
 - 구조화 로그와 예외 처리 기준은 `docs/engineering-guidelines.md`를 따른다.
 - 관리자 설정/비밀번호 변경은 `app.state.config` hot-reload 대상이지만, `SESSION_HTTPS_ONLY`는 `SessionMiddleware` 초기화 시 고정되므로 변경 시 재시작 필요성을 명시한다.
 - 로그인/이벤트 레이트리밋은 인메모리 기반이므로 멀티 인스턴스 한계를 설명한다.
+
+## Response Requirements (필수)
+- 저장소 파일을 수정한 작업의 최종 응답에는 적절한 git commit title을 함께 제안한다.
+- 저장소 파일 변경에는 코드와 문서 변경을 모두 포함한다.
+- 파일 변경이 없는 리뷰/조사/계획 작업에는 commit title 제안 의무가 없다.
