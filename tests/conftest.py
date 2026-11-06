@@ -16,6 +16,7 @@ TEST_MARKER_BY_FILE: dict[str, str] = {
     "test_assets.py": "unit",
     "test_auth_flow.py": "integration",
     "test_clients.py": "unit",
+    "test_contest_hardening.py": "integration",
     "test_e2e_smoke.py": "e2e",
     "test_env_contract.py": "unit",
     "test_event_repository_split.py": "unit",

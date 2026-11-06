@@ -22,7 +22,14 @@ async def require_authenticated(request: Request) -> None:
 
 
 async def check_internal_network(request: Request) -> bool:
+    ensure_internal_network(request)
+    return True
+
+
+def ensure_internal_network(request: Request) -> None:
     config = request.app.state.config
+    if not config.ADMIN_ENABLED:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Not Found")
     if not request.client:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Client Unknown")
 
@@ -34,7 +41,6 @@ async def check_internal_network(request: Request) -> bool:
             status_code=status.HTTP_403_FORBIDDEN,
             detail="관리자 페이지는 내부 행정망에서만 접근 가능합니다.",
         )
-    return True
 
 
 def _resolve_client_ip(request: Request) -> IPv4Address | IPv6Address:

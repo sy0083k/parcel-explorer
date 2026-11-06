@@ -283,3 +283,19 @@ project-root/
 
 ## 📄 라이선스
 MIT License
+
+## Railway 시연 배포
+
+공개 데이터만 제공하는 시연 환경입니다. 관리자 기능은 꺼 두며, 볼륨 없이 시작할 때마다 `seed/lands.json`에서 필지를 적재합니다. 재배포하면 방문·이벤트 로그는 초기화됩니다.
+
+| 변수 | 값 |
+|---|---|
+| `ADMIN_ENABLED` | `false` |
+| `SEED_LANDS_ON_EMPTY` | `true` |
+| `FORWARDED_ALLOW_IPS` | `*` (Railway 프록시로만 접근 가능한 환경에 한정) |
+| `SESSION_HTTPS_ONLY` | `true` |
+| `VWORLD_WMTS_KEY` | Railway 도메인을 등록한 유효한 키 |
+| `SECRET_KEY` | 새로 생성한 무작위 값 |
+| `ADMIN_ID`, `ADMIN_PW_HASH`, `VWORLD_GEOCODER_KEY` | 필수 변수. 관리자 비활성 상태에서는 쓰이지 않으며 공개 예시 해시는 재사용하지 않음 |
+
+그 밖의 환경에서 프록시를 쓰면 `FORWARDED_ALLOW_IPS`를 프록시 주소로 지정합니다. 기본값은 `127.0.0.1`입니다.

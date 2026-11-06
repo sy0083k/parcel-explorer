@@ -38,6 +38,7 @@ class RuntimeConfig:
         self.PUBLIC_DOWNLOAD_RATE_LIMIT_PER_MINUTE = s.public_download_rate_limit_per_minute
         self.PUBLIC_DOWNLOAD_ALLOWED_EXTS = s.public_download_allowed_exts
         self.PUBLIC_DOWNLOAD_DIR = s.public_download_dir
+        self.ADMIN_ENABLED = s.admin_enabled
 
 
 def rebuild_runtime_state(app: Any, new_settings: Settings) -> None:

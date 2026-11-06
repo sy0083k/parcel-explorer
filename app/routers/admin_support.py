@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import logging
 from datetime import datetime
-from typing import Any
+from typing import Any, NoReturn
 
 from fastapi import HTTPException, Request, UploadFile
 from fastapi.responses import Response
@@ -30,7 +30,7 @@ def build_request_log_context(request: Request) -> dict[str, object]:
     }
 
 
-def raise_http_exception(exc: ServiceError) -> None:
+def raise_http_exception(exc: ServiceError) -> NoReturn:
     raise HTTPException(status_code=exc.status_code, detail=exc.message) from exc
 
 

@@ -107,7 +107,10 @@ def parse_client_ts(raw: Any) -> str:
     except (TypeError, ValueError) as exc:
         raise ValidationError(status_code=400, message="clientTs must be unix timestamp seconds.") from exc
 
-    event_dt = datetime.fromtimestamp(ts, tz=UTC)
+    try:
+        event_dt = datetime.fromtimestamp(ts, tz=UTC)
+    except (OverflowError, OSError, ValueError) as exc:
+        raise ValidationError(status_code=400, message="clientTs must be unix timestamp seconds.") from exc
     now = datetime.now(UTC)
     if event_dt > now + timedelta(minutes=5):
         event_dt = now

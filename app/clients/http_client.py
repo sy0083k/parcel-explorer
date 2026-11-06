@@ -37,10 +37,11 @@ def get_json_with_retry(
         except Exception as exc:
             last_error = exc
             logger.warning(
+                # The URL carries the API key and requests embeds it in str(exc): log the type only.
                 "http get failed (attempt=%s/%s): %s",
                 attempt,
                 retries,
-                str(exc),
+                type(exc).__name__,
                 extra={"request_id": request_id},
             )
             if attempt < retries:

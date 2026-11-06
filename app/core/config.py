@@ -46,6 +46,8 @@ class Settings:
     public_download_dir: str
     raw_query_export_max_rows: int
     raw_query_export_timeout_s: float
+    admin_enabled: bool
+    seed_lands_on_empty: bool
     base_dir: str
 
 
@@ -225,5 +227,7 @@ def get_settings() -> Settings:
         or "data/public_download",
         raw_query_export_max_rows=int(os.getenv("RAW_QUERY_EXPORT_MAX_ROWS", "100000")),
         raw_query_export_timeout_s=float(os.getenv("RAW_QUERY_EXPORT_TIMEOUT_S", "30.0")),
+        admin_enabled=_parse_bool_env("ADMIN_ENABLED", True),
+        seed_lands_on_empty=_parse_bool_env("SEED_LANDS_ON_EMPTY", False),
         base_dir=str(base_dir),
     )

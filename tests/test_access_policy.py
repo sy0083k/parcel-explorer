@@ -9,7 +9,7 @@ def _read_module_ast(relative_path: str) -> ast.Module:
     return ast.parse(source)
 
 
-def _find_route_decorator_call(func_def: ast.AsyncFunctionDef, route_path: str) -> ast.Call | None:
+def _find_route_decorator_call(func_def: ast.FunctionDef | ast.AsyncFunctionDef, route_path: str) -> ast.Call | None:
     for decorator in func_def.decorator_list:
         if isinstance(decorator, ast.Call) and isinstance(decorator.func, ast.Attribute):
             if decorator.func.attr in {"get", "post"}:
@@ -37,7 +37,7 @@ def _dependency_names(dep_list: ast.List) -> set[str]:
 
 def test_login_post_internal_network_guard() -> None:
     module = _read_module_ast("app/routers/auth.py")
-    funcs = [node for node in module.body if isinstance(node, ast.AsyncFunctionDef)]
+    funcs = [node for node in module.body if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef))]
     login_func = next(func for func in funcs if func.name == "login")
     decorator = _find_route_decorator_call(login_func, "/login")
     assert decorator is not None
@@ -49,7 +49,7 @@ def test_login_post_internal_network_guard() -> None:
 
 def test_admin_upload_requires_internal_and_authentication() -> None:
     module = _read_module_ast("app/routers/admin.py")
-    funcs = [node for node in module.body if isinstance(node, ast.AsyncFunctionDef)]
+    funcs = [node for node in module.body if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef))]
     upload_func = next(func for func in funcs if func.name == "upload_excel")
     decorator = _find_route_decorator_call(upload_func, "/upload")
     assert decorator is not None

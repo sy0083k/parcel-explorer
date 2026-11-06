@@ -392,7 +392,7 @@ async def test_admin_raw_query_export_logs_rejected_requests(
 
 
 @pytest.mark.anyio
-async def test_map_events_rate_limit_blocks_and_separates_by_anon_id(
+async def test_map_events_rate_limit_is_not_reset_by_rotating_anon_id(
     async_client: httpx.AsyncClient, db_path: object, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     init_test_db()
@@ -424,7 +424,7 @@ async def test_map_events_rate_limit_blocks_and_separates_by_anon_id(
             "searchTerm": "예천동",
         },
     )
-    assert different_anon.status_code == 200
+    assert different_anon.status_code == 429
 
 
 @pytest.mark.anyio

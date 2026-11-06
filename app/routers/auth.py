@@ -25,7 +25,7 @@ async def login_page(request: Request) -> HTMLResponse:
 
 
 @router.post("/login", dependencies=[Depends(check_internal_network)])
-async def login(
+def login(
     request: Request,
     username: str = Form(...),
     password: str = Form(...),
@@ -66,13 +66,13 @@ async def login(
 
 
 @router.post("/admin/login", dependencies=[Depends(check_internal_network)])
-async def login_admin_alias(
+def login_admin_alias(
     request: Request,
     username: str = Form(...),
     password: str = Form(...),
     csrf_token: str = Form(default=""),
 ):
-    return await login(request=request, username=username, password=password, csrf_token=csrf_token)
+    return login(request=request, username=username, password=password, csrf_token=csrf_token)
 
 
 @router.post("/logout", dependencies=[Depends(check_internal_network), Depends(require_authenticated)])

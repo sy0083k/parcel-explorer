@@ -54,21 +54,24 @@ async def admin_root(request: Request) -> Response:
 
 
 @router.post("/upload", dependencies=[Depends(check_internal_network), Depends(require_authenticated)])
-async def upload_excel(
+def upload_excel(
     request: Request,
     background_tasks: BackgroundTasks,
     csrf_token: str = Form(default=""),
     file: UploadFile = File(...),  # noqa: B008
 ):
-    result = upload_service.handle_excel_upload(
-        upload_service.UploadCommand(
-            context=admin_support.build_request_context(request, csrf_token=csrf_token),
-            requested_sheet=request.app.state.config.UPLOAD_SHEET_NAME,
-            max_upload_size_mb=int(request.app.state.config.MAX_UPLOAD_SIZE_MB),
-            max_upload_rows=int(request.app.state.config.MAX_UPLOAD_ROWS),
-        ),
-        file_input=admin_support.build_uploaded_file_input(file),
-    )
+    try:
+        result = upload_service.handle_excel_upload(
+            upload_service.UploadCommand(
+                context=admin_support.build_request_context(request, csrf_token=csrf_token),
+                requested_sheet=request.app.state.config.UPLOAD_SHEET_NAME,
+                max_upload_size_mb=int(request.app.state.config.MAX_UPLOAD_SIZE_MB),
+                max_upload_rows=int(request.app.state.config.MAX_UPLOAD_ROWS),
+            ),
+            file_input=admin_support.build_uploaded_file_input(file),
+        )
+    except ServiceError as exc:
+        admin_support.raise_http_exception(exc)
     if isinstance(result, upload_service.UploadRejectedResult):
         return JSONResponse(status_code=result.status_code, content=result.payload)
     if result.should_schedule_geom_job:
@@ -77,7 +80,7 @@ async def upload_excel(
 
 
 @router.post("/public-download/upload", dependencies=[Depends(check_internal_network), Depends(require_authenticated)])
-async def upload_public_download_file(
+def upload_public_download_file(
     request: Request,
     csrf_token: str = Form(default=""),
     file: UploadFile = File(...),  # noqa: B008
@@ -103,7 +106,7 @@ async def upload_public_download_file(
 
 
 @router.get("/public-download/meta", dependencies=[Depends(check_internal_network), Depends(require_authenticated)])
-async def get_public_download_meta(request: Request) -> dict:
+def get_public_download_meta(request: Request) -> dict:
     config = request.app.state.config
     return public_download_service.get_public_download_meta(admin_support.build_public_download_config(config))
 
@@ -176,12 +179,12 @@ async def update_password(
 
 
 @router.get("/stats", dependencies=[Depends(check_internal_network), Depends(require_authenticated)])
-async def get_stats(limit: int = 10) -> dict:
+def get_stats(limit: int = 10) -> dict:
     return admin_stats_service.get_dashboard_stats(limit=limit)
 
 
 @router.post("/lands/geom-refresh", dependencies=[Depends(check_internal_network), Depends(require_authenticated)])
-async def start_land_geom_refresh(
+def start_land_geom_refresh(
     request: Request,
     background_tasks: BackgroundTasks,
     csrf_token: str = Form(default=""),
@@ -208,7 +211,7 @@ async def start_land_geom_refresh(
     "/lands/geom-refresh/{job_id}",
     dependencies=[Depends(check_internal_network), Depends(require_authenticated)],
 )
-async def get_land_geom_refresh_status(job_id: int) -> dict:
+def get_land_geom_refresh_status(job_id: int) -> dict:
     try:
         job = geo_service.get_geom_refresh_job_status(job_id)
     except ServiceError as exc:
@@ -217,12 +220,12 @@ async def get_land_geom_refresh_status(job_id: int) -> dict:
 
 
 @router.get("/stats/web", dependencies=[Depends(check_internal_network), Depends(require_authenticated)])
-async def get_web_stats(days: int = 30) -> dict:
+def get_web_stats(days: int = 30) -> dict:
     return admin_stats_service.get_web_stats(days=days)
 
 
 @router.get("/raw-queries/export", dependencies=[Depends(check_internal_network), Depends(require_authenticated)])
-async def export_raw_queries(
+def export_raw_queries(
     request: Request,
     event_type: str = "all",
     date_from: str | None = None,

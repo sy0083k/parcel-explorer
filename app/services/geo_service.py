@@ -14,6 +14,8 @@ from app.services.service_models import RequestContext
 logger = logging.getLogger(__name__)
 logger.addFilter(RequestIdFilter())
 
+GEOM_BATCH_SIZE = 50
+
 
 @dataclass(frozen=True)
 class GeomRefreshStartCommand:
@@ -172,28 +174,30 @@ def update_geoms(max_retries: int = 5) -> tuple[int, int]:
         retries=settings.vworld_retries,
         backoff_s=settings.vworld_backoff_s,
     )
+    updated_count = 0
     with db_connection() as conn:
-        updated_count = 0
-        batch_size = 50
         for attempt in range(1, max_retries + 1):
-            failed_items = land_repository.fetch_missing_geom(conn, limit=batch_size)
+            after_id = 0
+            while True:
+                batch = list(
+                    land_repository.fetch_missing_geom(conn, limit=GEOM_BATCH_SIZE, after_id=after_id)
+                )
+                if not batch:
+                    break
+                for item_id, address in batch:
+                    after_id = item_id
+                    geom_data = client.get_parcel_geometry(address)
+                    if geom_data:
+                        land_repository.update_geom(conn, item_id, geom_data)
+                        # Commit per row: never hold the write lock across a network call.
+                        conn.commit()
+                        updated_count += 1
+                    else:
+                        logger.warning("경계선 획득 실패 (%s)", address)
+                        time.sleep(settings.vworld_backoff_s * attempt)
 
-            if not failed_items:
+            if land_repository.count_missing_geom(conn) == 0:
                 break
-
-            updated_in_batch = 0
-            for item_id, address in failed_items:
-                geom_data = client.get_parcel_geometry(address)
-                if geom_data:
-                    land_repository.update_geom(conn, item_id, geom_data)
-                    updated_count += 1
-                    updated_in_batch += 1
-                else:
-                    logger.warning("경계선 획득 실패 (%s)", address)
-                    time.sleep(settings.vworld_backoff_s * attempt)
-
-            if updated_in_batch:
-                conn.commit()
 
         failed = land_repository.count_missing_geom(conn)
     return updated_count, failed

@@ -33,7 +33,7 @@ python -m compileall -q app tests
 mypy app tests create_hash.py
 ruff check app tests
 scripts/check_quality_warnings.sh
-cd frontend && npm run typecheck && npm run build && cd ..
+cd frontend && npm test && npm run typecheck && npm run build && cd ..
 ```
 
 ### Run tests
@@ -61,7 +61,7 @@ Router -> Service -> Repository -> (DB)
 
 - **Routers** (`app/routers/`): thin HTTP layer only — no business logic, no SQL
 - **Services** (`app/services/`): all business logic and orchestration
-- **Repositories** (`app/repositories/`): all SQL/SQLite access; `poi_repository.py` is a facade
+- **Repositories** (`app/repositories/`): all SQL/SQLite access; schema bootstrap is `schema_repository.py`
 - **Clients** (`app/clients/`): all external API calls (VWorld Geocoder/WFS/WMTS)
 - **Validators** (`app/validators/`): upload normalization and validation
 - **Config** (`app/core/config.py`): loads all settings from environment variables
@@ -82,7 +82,7 @@ When changing the API contract (fields, status codes, or semantics), review the 
 - DB: SQLite at `data/database.db`, initialized on startup via `lifespan` in `main.py`
 - Sessions: Starlette `SessionMiddleware` with bcrypt-hashed admin credentials
 - Security: admin routes require IP allowlist (`ALLOWED_IPS`) + session auth + CSRF on state-changing requests
-- Rate limiting: in-memory sliding window — `POST /api/events` (60/min), `POST /api/web-events` (120/min), `GET /public-download` (config-driven)
+- Rate limiting: in-memory sliding window keyed by IP plus a global cap — `POST /api/events` (60/min), `POST /api/web-events` (120/min), `GET /public-download` (config-driven); event bodies are capped at 16 KiB
 - Background jobs: geometry enrichment via VWorld WFS runs as a FastAPI background task; not durable across restarts
 - Static assets: Vite builds to `static/dist/`; templates use `vite_assets()` helper to resolve hashed filenames
 
@@ -118,10 +118,11 @@ logger.exception("message")  # inside except block — includes traceback automa
 ### Implementation locations
 - IP allowlist: `app/core/config.py` (`_parse_allowed_ips`), enforced in `app/routers/admin.py`
 - Session middleware: `app/main.py`
-- CSRF: admin router (`app/routers/admin.py`)
+- CSRF: token helpers in `app/dependencies.py`; validated in the service layer via `RequestContext.csrf_valid`
 - Login failure limiting: in-memory (`LoginAttemptLimiter` in `app/auth_security.py`, used in `app/services/auth_service.py`); vulnerable to multi-instance bypass (TODO)
 - Formula injection defense: raw-queries CSV export
-- Proxy trust policy: `TRUST_PROXY_HEADERS` / `TRUSTED_PROXY_IPS` — managed in `app/core/config.py`
+- Proxy trust policy: `TRUST_PROXY_HEADERS` / `TRUSTED_PROXY_IPS` — managed in `app/core/config.py`. uvicorn trust comes from `FORWARDED_ALLOW_IPS`; `*` is only safe when the app is reachable solely through the proxy
+- Public demo mode: `ADMIN_ENABLED=false` returns 404 on all admin/login routes; `SEED_LANDS_ON_EMPTY=true` loads `seed/lands.json` (public parcel rows only)
 
 ### Known risks (see docs/TODO.MD)
 - Login failure counter is in-memory — bypassable in multi-instance deployments

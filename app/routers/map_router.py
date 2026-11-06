@@ -22,7 +22,9 @@ DEFAULT_LANDS_PAGE_LIMIT = 500
 MAX_LANDS_PAGE_LIMIT = 2000
 EVENT_LIMIT_PER_MINUTE = 60
 WEB_EVENT_LIMIT_PER_MINUTE = 120
+EVENT_GLOBAL_LIMIT_PER_MINUTE = 1200
 RATE_LIMIT_WINDOW_SECONDS = 60
+MAX_LAND_CURSOR = 2**63 - 1
 
 
 def _client_ip(request: Request) -> str:
@@ -33,17 +35,9 @@ def _parse_cursor(raw_cursor: str | None) -> int | None:
     if raw_cursor is None or raw_cursor.strip() == "":
         return None
     cursor = int(raw_cursor)
-    if cursor < 0:
-        raise ValueError("cursor must be >= 0")
+    if cursor < 0 or cursor > MAX_LAND_CURSOR:
+        raise ValueError("cursor is out of range")
     return cursor
-
-
-def _rate_limit_key(request: Request, payload: dict[str, Any]) -> str:
-    client_ip = _client_ip(request)
-    anon_id = str(payload.get("anonId", "")).strip()
-    if anon_id:
-        return f"{client_ip}:{anon_id}"
-    return client_ip
 
 
 def _rate_limited_response(retry_after: int) -> JSONResponse:
@@ -65,19 +59,23 @@ def _raise_http_from_service_error(exc: ServiceError) -> NoReturn:
 def _allow_rate_limited_event(
     request: Request,
     *,
-    payload: dict[str, Any],
     prefix: str,
     limit: int,
 ) -> JSONResponse | None:
-    key = _rate_limit_key(request, payload)
-    allowed, retry_after = request.app.state.event_rate_limiter.allow(
-        key=f"{prefix}:{key}",
-        limit=limit,
-        window_seconds=RATE_LIMIT_WINDOW_SECONDS,
-    )
-    if allowed:
-        return None
-    return _rate_limited_response(retry_after)
+    # Keyed on IP only: anonId is client-supplied and rotating it must not reset the limit.
+    limiter = request.app.state.event_rate_limiter
+    for key, key_limit in (
+        (f"{prefix}:{_client_ip(request)}", limit),
+        (f"{prefix}:global", EVENT_GLOBAL_LIMIT_PER_MINUTE),
+    ):
+        allowed, retry_after = limiter.allow(
+            key=key,
+            limit=key_limit,
+            window_seconds=RATE_LIMIT_WINDOW_SECONDS,
+        )
+        if not allowed:
+            return _rate_limited_response(retry_after)
+    return None
 
 
 def _build_web_visit_context(request: Request) -> WebVisitContext:
@@ -90,14 +88,12 @@ def _build_web_visit_context(request: Request) -> WebVisitContext:
 def _handle_rate_limited_event(
     request: Request,
     *,
-    payload: dict[str, Any],
     prefix: str,
     limit: int,
     on_allowed: Callable[[], None],
 ) -> JSONResponse | dict[str, bool]:
     blocked = _allow_rate_limited_event(
         request,
-        payload=payload,
         prefix=prefix,
         limit=limit,
     )
@@ -123,7 +119,7 @@ def create_router() -> APIRouter:
         }
 
     @router.get("/lands")
-    async def get_lands(
+    def get_lands(
         limit: int = DEFAULT_LANDS_PAGE_LIMIT,
         cursor: str | None = None,
     ) -> dict[str, Any]:
@@ -135,21 +131,19 @@ def create_router() -> APIRouter:
         return land_service.get_public_land_features_page(cursor=parsed_cursor, limit=clamped_limit)
 
     @router.post("/events")
-    async def post_map_event(request: Request, payload: dict[str, Any]):
+    def post_map_event(request: Request, payload: dict[str, Any]):
         return _handle_rate_limited_event(
             request,
-            payload=payload,
             prefix="events",
             limit=EVENT_LIMIT_PER_MINUTE,
             on_allowed=lambda: map_event_service.record_map_event(build_map_event_command(payload)),
         )
 
     @router.post("/web-events")
-    async def post_web_event(request: Request, payload: dict[str, Any]):
+    def post_web_event(request: Request, payload: dict[str, Any]):
         context = _build_web_visit_context(request)
         return _handle_rate_limited_event(
             request,
-            payload=payload,
             prefix="web-events",
             limit=WEB_EVENT_LIMIT_PER_MINUTE,
             on_allowed=lambda: web_stats_service.record_web_visit_event(
@@ -158,7 +152,7 @@ def create_router() -> APIRouter:
         )
 
     @router.get("/public-download")
-    async def get_public_download(request: Request):
+    def get_public_download(request: Request):
         allowed, retry_after = request.app.state.event_rate_limiter.allow(
             key=f"public-download:{_client_ip(request)}",
             limit=int(request.app.state.config.PUBLIC_DOWNLOAD_RATE_LIMIT_PER_MINUTE),

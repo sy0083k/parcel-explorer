@@ -36,6 +36,7 @@ jobs:
           cd frontend
           if [ ! -f package-lock.json ]; then npm install --package-lock-only; fi
           npm ci
+          npm test
           npm run typecheck
           npm run build
 

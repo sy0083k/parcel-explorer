@@ -5,6 +5,8 @@ import threading
 import time
 from collections import deque
 
+MAX_TRACKED_KEYS = 10_000
+
 
 class SlidingWindowRateLimiter:
     """Thread-safe in-memory rate limiter with per-key sliding windows."""
@@ -18,6 +20,8 @@ class SlidingWindowRateLimiter:
         cutoff = now - float(window_seconds)
 
         with self._lock:
+            if len(self._events) >= MAX_TRACKED_KEYS:
+                self._evict_expired(cutoff)
             bucket = self._events.setdefault(key, deque())
             while bucket and bucket[0] <= cutoff:
                 bucket.popleft()
@@ -29,3 +33,8 @@ class SlidingWindowRateLimiter:
 
             bucket.append(now)
             return True, 0
+
+    def _evict_expired(self, cutoff: float) -> None:
+        expired = [key for key, bucket in self._events.items() if not bucket or bucket[-1] <= cutoff]
+        for key in expired:
+            del self._events[key]

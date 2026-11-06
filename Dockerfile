@@ -24,6 +24,7 @@ COPY templates ./templates
 COPY static ./static
 COPY scripts ./scripts
 COPY data ./data
+COPY seed ./seed
 COPY create_hash.py README.MD ./
 
 COPY --from=frontend-builder /build/static/dist ./static/dist
@@ -33,4 +34,6 @@ RUN mkdir -p /app/data/public_download \
     && /app/scripts/verify_vite_manifest.sh
 
 EXPOSE 8000
-CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000", "--proxy-headers", "--forwarded-allow-ips=*"]
+# Proxy trust comes from FORWARDED_ALLOW_IPS (uvicorn default: 127.0.0.1). Set it to the proxy's
+# address, or to * only where the app is reachable solely through that proxy (e.g. Railway).
+CMD ["sh", "-c", "exec uvicorn app.main:app --host 0.0.0.0 --port ${PORT:-8000} --proxy-headers"]

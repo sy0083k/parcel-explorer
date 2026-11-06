@@ -301,6 +301,8 @@ def _validate_upload_dataframe(
 
 def _replace_land_data(rows: list[dict[str, object]]) -> None:
     with db_connection() as conn:
+        # Keep known boundaries so a re-upload does not blank the public map.
+        known_geoms = land_repository.fetch_geom_by_address(conn)
         land_repository.delete_all(conn)
         for row in rows:
             land_repository.insert_land(
@@ -311,6 +313,7 @@ def _replace_land_data(rows: list[dict[str, object]]) -> None:
                 adm_property=str(row["adm_property"]),
                 gen_property=str(row["gen_property"]),
                 contact=str(row["contact"]),
+                geom=known_geoms.get(str(row["address"])),
             )
         conn.commit()
 

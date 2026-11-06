@@ -1,5 +1,5 @@
 # --- Database ---
-# *.db
+*.db
 
 # --- Python ---
 __pycache__/
@@ -36,3 +36,5 @@ static/dist/
 
 # --- Local agent memory ---
 .agent-memory/
+
+*.hwpx

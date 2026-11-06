@@ -1,7 +1,14 @@
+from datetime import UTC, datetime, timedelta
+
 from app.db.connection import db_connection
 from app.repositories import land_repository, web_visit_repository
 from app.services import admin_stats_service
 from tests.db_helpers import init_test_db
+
+
+def _recent(clock: str) -> str:
+    day = datetime.now(UTC) - timedelta(days=1)
+    return f"{day.strftime('%Y-%m-%d')} {clock}"
 
 
 def test_admin_stats_service_get_web_stats(db_path: object) -> None:
@@ -13,7 +20,7 @@ def test_admin_stats_service_get_web_stats(db_path: object) -> None:
             session_id="session-a",
             event_type="visit_start",
             page_path="/",
-            occurred_at="2026-02-20 00:00:00",
+            occurred_at=_recent("00:00:00"),
             client_tz="Asia/Seoul",
             user_agent="Mozilla/5.0",
             is_bot=False,
@@ -24,7 +31,7 @@ def test_admin_stats_service_get_web_stats(db_path: object) -> None:
             session_id="session-a",
             event_type="heartbeat",
             page_path="/",
-            occurred_at="2026-02-20 00:05:00",
+            occurred_at=_recent("00:05:00"),
             client_tz="Asia/Seoul",
             user_agent="Mozilla/5.0",
             is_bot=False,
@@ -35,7 +42,7 @@ def test_admin_stats_service_get_web_stats(db_path: object) -> None:
             session_id="session-b",
             event_type="visit_start",
             page_path="/",
-            occurred_at="2026-02-20 01:00:00",
+            occurred_at=_recent("01:00:00"),
             client_tz="Asia/Seoul",
             user_agent="Mozilla/5.0",
             is_bot=False,

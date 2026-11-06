@@ -10,21 +10,22 @@ from pathlib import Path
 from typing import cast
 
 from fastapi import FastAPI, HTTPException, Request
-from fastapi.responses import FileResponse, HTMLResponse
+from fastapi.responses import FileResponse, HTMLResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
-from starlette.datastructures import MutableHeaders
+from starlette.datastructures import Headers, MutableHeaders
 from starlette.middleware.sessions import SessionMiddleware
 from starlette.types import ASGIApp, Message, Receive, Scope, Send
 
 from app.auth_security import LoginAttemptLimiter
 from app.core import get_settings
 from app.core.runtime_config import RuntimeConfig
+from app.dependencies import ensure_internal_network
 from app.exceptions import http_exception_handler, unhandled_exception_handler
 from app.logging_utils import RequestIdFilter, configure_logging
 from app.rate_limit import SlidingWindowRateLimiter
 from app.routers import admin, auth, map_router, map_v1_router
-from app.services import health_service
+from app.services import health_service, seed_service
 from app.services.geo_service import init_db, recover_interrupted_geom_jobs, run_geom_update_job
 from app.utils import vite_assets
 
@@ -36,6 +37,30 @@ configure_logging()
 logger = logging.getLogger(__name__)
 logger.addFilter(RequestIdFilter())
 settings = get_settings()
+
+MAX_EVENT_BODY_BYTES = 16 * 1024
+EVENT_BODY_LIMITED_PATHS = frozenset(
+    {"/api/events", "/api/web-events", "/api/v1/events", "/api/v1/web-events"}
+)
+
+
+class EventBodyLimitMiddleware:
+    """Reject oversized public event bodies before they are read into memory."""
+
+    def __init__(self, app: ASGIApp) -> None:
+        self.app = app
+
+    async def __call__(self, scope: Scope, receive: Receive, send: Send) -> None:
+        if scope["type"] == "http" and scope["path"] in EVENT_BODY_LIMITED_PATHS:
+            raw_length = Headers(scope=scope).get("content-length", "")
+            if not raw_length.isdecimal() or int(raw_length) > MAX_EVENT_BODY_BYTES:
+                response = JSONResponse(
+                    status_code=413,
+                    content={"success": False, "message": "요청 본문이 너무 큽니다."},
+                )
+                await response(scope, receive, send)
+                return
+        await self.app(scope, receive, send)
 
 
 class SecurityHeadersMiddleware:
@@ -117,6 +142,8 @@ class RequestContextMiddleware:
 @asynccontextmanager
 async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     init_db()
+    if settings.seed_lands_on_empty:
+        seed_service.seed_lands_if_empty(Path(settings.base_dir) / "seed" / "lands.json")
     job_id = recover_interrupted_geom_jobs()
     if job_id is not None:
         asyncio.create_task(asyncio.to_thread(run_geom_update_job, job_id, 5))
@@ -141,6 +168,7 @@ app.add_middleware(
     session_cookie=settings.session_cookie_name,
     same_site="lax",
 )
+app.add_middleware(EventBodyLimitMiddleware)
 app.add_middleware(SecurityHeadersMiddleware)
 app.add_middleware(RequestContextMiddleware)
 
@@ -175,7 +203,10 @@ async def read_root(request: Request) -> HTMLResponse:
 
 
 @app.get("/health")
-async def healthcheck(request: Request, deep: int = 0) -> dict[str, object]:
+def healthcheck(request: Request, deep: int = 0) -> dict[str, object]:
+    if deep == 1:
+        # The deep check calls VWorld and spends quota, so it is not public.
+        ensure_internal_network(request)
     request_id = getattr(request.state, "request_id", "-")
     checks = health_service.evaluate_health_checks(deep=deep, request_id=request_id)
     return {"status": "ok", "request_id": request_id, "checks": checks}

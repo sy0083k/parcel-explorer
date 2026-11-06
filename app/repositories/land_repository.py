@@ -60,13 +60,14 @@ def insert_land(
     adm_property: str,
     gen_property: str,
     contact: str,
+    geom: str | None = None,
 ) -> None:
     init_land_schema(conn)
     cursor = conn.cursor()
     cursor.execute(
         """
         INSERT INTO poi (address, land_type, area, adm_property, gen_property, contact, geom)
-        VALUES (?,?,?,?,?,?,NULL)
+        VALUES (?,?,?,?,?,?,?)
         """,
         (
             address,
@@ -75,18 +76,37 @@ def insert_land(
             adm_property,
             gen_property,
             contact,
+            geom,
         ),
     )
 
 
-def fetch_missing_geom(conn: sqlite3.Connection, *, limit: int | None = None) -> Iterable[tuple[int, str]]:
+def fetch_missing_geom(
+    conn: sqlite3.Connection,
+    *,
+    limit: int | None = None,
+    after_id: int = 0,
+) -> Iterable[tuple[int, str]]:
     init_land_schema(conn)
     cursor = conn.cursor()
     if limit is None:
-        cursor.execute("SELECT id, address FROM poi WHERE geom IS NULL ORDER BY id")
+        cursor.execute(
+            "SELECT id, address FROM poi WHERE geom IS NULL AND id > ? ORDER BY id",
+            (after_id,),
+        )
     else:
-        cursor.execute("SELECT id, address FROM poi WHERE geom IS NULL ORDER BY id LIMIT ?", (limit,))
+        cursor.execute(
+            "SELECT id, address FROM poi WHERE geom IS NULL AND id > ? ORDER BY id LIMIT ?",
+            (after_id, limit),
+        )
     return cursor.fetchall()
+
+
+def fetch_geom_by_address(conn: sqlite3.Connection) -> dict[str, str]:
+    init_land_schema(conn)
+    cursor = conn.cursor()
+    cursor.execute("SELECT address, geom FROM poi WHERE geom IS NOT NULL")
+    return {str(address): str(geom) for address, geom in cursor.fetchall()}
 
 
 def update_geom(conn: sqlite3.Connection, item_id: int, geom: str) -> None:

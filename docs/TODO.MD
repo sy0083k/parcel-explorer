@@ -2,7 +2,7 @@
 
 프로젝트: 관심 필지 지도 (Parcel Explorer)  
 작성일: 2026-02-23  
-최종 수정일: 2026-03-19  
+최종 수정일: 2026-11-06  
 운영 주기: 매주 1회 (월요일 기준)
 
 ## 목적
@@ -50,6 +50,11 @@
 | RISK-021 | P2 | SQL 테이블명 f-string 보간 | done | team | 2026-03-19 | `app/repositories/land_repository.py`에서 f-string 식별자 보간이 제거되고, 정적 SQL로 동일 동작이 유지된다. | `land_repository.py`의 `TABLE_NAME` 상수를 제거하고 `poi` 테이블명을 정적 SQL 문자열로 직접 명시했다. 값 파라미터 바인딩(`?`)은 유지해 기존 동작/테스트와 정합성을 유지한다. |
 | RISK-022 | P2 | .env.example 신규 설정 누락 | done | team | 2026-03-18 | RISK-012에서 추가된 두 설정이 기본값 및 용도 주석과 함께 `.env.example`에 반영된다. | `.env.example`에 `RAW_QUERY_EXPORT_MAX_ROWS=100000`, `RAW_QUERY_EXPORT_TIMEOUT_S=30.0` 및 용도 주석 추가. `app/core/config.py` 기본값과 일치하도록 정렬. `README.MD`, `docs/maintenance.md`, `docs/architecture.md`의 기존 언급과 정합성 확보. |
 | RISK-023 | P2 | Admin 에러 메시지 포맷 중복 코드 | done | team | 2026-03-19 | Admin UI 내부의 `HttpError` 메시지 정규화 패턴이 공용 유틸로 정리되고, `npm run typecheck && npm run build`가 통과한다. | `frontend/src/admin/errors.ts`의 `resolveAdminErrorMessage()`로 admin 오류 표시를 단일화. `stats.ts`, `upload.ts`, `geom-refresh.ts`가 공통 유틸을 재사용하도록 정리하고, vitest 단위 테스트 1개 추가. |
+| RISK-024 | P0 | uvicorn 프록시 전면 신뢰로 관리자 IP 제한 우회 | done | team | 2026-11-06 | 위조된 `X-Forwarded-For`로 허용 IP를 통과할 수 없다. | Dockerfile의 `--forwarded-allow-ips=*`를 제거하고 `FORWARDED_ALLOW_IPS`로 분리. Railway는 `ADMIN_ENABLED=false`로 관리자 경로를 닫는다. |
+| RISK-025 | P0 | 공개 저장소의 DB 커밋과 과거 API 키 | doing | owner | 2026-11-10 | DB가 추적에서 제외되고 과거 키가 폐기된다. | `data/database.db` 추적 해제, 공개 필지만 `seed/lands.json`으로 분리, `*.db` ignore 복구. 잔여: 커밋 815fbc4의 키 폐기 확인, 이력 재작성 여부 결정. |
+| RISK-026 | P0 | 경계선 수집 250건 상한 및 앞줄 막힘 | done | team | 2026-11-06 | 모든 미수집 행을 순회하고 실패 행이 뒤 행을 막지 않는다. | `update_geoms`를 ID 커서 순회로 변경, 행 단위 커밋으로 쓰기 잠금 축소, 재업로드 시 동일 주소 경계 재사용. 잔여: 같은 주소의 경계 변경은 자동 갱신되지 않음. |
+| RISK-027 | P1 | 공개 API 남용 방어 부족 | done | team | 2026-11-06 | `anonId` 교체로 제한을 피할 수 없고 큰 본문과 비정상 입력이 500을 내지 않는다. | IP 기준+전역 상한, 16 KiB 본문 제한, 키 축출, cursor·clientTs 검증, `/health?deep=1` 비공개, 공개·업로드 경로 `def` 전환. 잔여: 이벤트 보존 정책 없음, 프록시 뒤 IP 위조 시 전역 상한만 유효. |
+| RISK-028 | P1 | VWorld 키 로그 노출 및 업로드 오류 상태 코드 | done | team | 2026-11-06 | 로그에 키가 남지 않고 업로드 오류가 400/403으로 반환된다. | `http_client` 로그를 예외 유형만 기록, `/admin/upload`에서 `ServiceError` 매핑, CI에 `npm test` 추가. |
 
 ## 주간 리뷰 로그
 - 2026-02-23 | reviewer: team | 초기 백로그 문서 생성 및 5개 리스크 등록 | 다음 액션: RISK-001, RISK-002 우선 설계안 작성
@@ -89,3 +94,4 @@
 - 2026-03-18 | reviewer: team | RISK-022 해결: `.env.example`에 `RAW_QUERY_EXPORT_MAX_ROWS`, `RAW_QUERY_EXPORT_TIMEOUT_S`와 기본값/주석을 추가해 export 제한 설정의 초기 구성 가시성을 복구 | 다음 액션: 잔여 P2 항목(RISK-020, RISK-021, RISK-023) 검토
 - 2026-03-19 | reviewer: team | RISK-023 해결: admin 프런트에 `resolveAdminErrorMessage()` 공통 유틸을 추가하고 `stats`/`upload`/`geom-refresh`의 중복 `HttpError` 표시 로직을 단일화. 프런트 단위 테스트 추가 후 typecheck/build 검증 예정 | 다음 액션: 잔여 P2 항목(RISK-020, RISK-021) 검토
 - 2026-03-19 | reviewer: team | RISK-021 해결: `land_repository.py`의 `TABLE_NAME` 상수와 9개 f-string 식별자 보간 쿼리를 제거하고 `poi` 정적 SQL로 정리. repository 회귀 테스트로 동일 동작 확인 | 다음 액션: 잔여 P2 항목 RISK-020 검토
+- 2026-11-06 | reviewer: team | 충청남도 AI 활용 업무혁신 경진대회 출품 대비 RISK-024~028 등록 및 수정. Railway 시연 구성(`ADMIN_ENABLED=false`, 시드 적재) 추가 | 다음 액션: 과거 키 폐기, Railway 배포 확인
