@@ -206,7 +206,8 @@ def test_start_geom_refresh_job_rejects_invalid_csrf() -> None:
     assert exc.value.status_code == 403
 
 
-def test_get_geom_refresh_job_status_raises_not_found() -> None:
+def test_get_geom_refresh_job_status_raises_not_found(db_path: object) -> None:
+    init_test_db()
     with pytest.raises(NotFoundError) as exc:
         geo_service.get_geom_refresh_job_status(999999)
     assert exc.value.status_code == 404

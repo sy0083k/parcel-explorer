@@ -1,5 +1,5 @@
 import importlib
-from collections.abc import AsyncIterator, Callable
+from collections.abc import AsyncIterator, Callable, Iterator
 from pathlib import Path
 
 import httpx
@@ -67,6 +67,18 @@ def app_env() -> dict[str, str]:
         "SESSION_NAMESPACE": "idle-public-property",
         "MAX_UPLOAD_ROWS": "10",
     }
+
+
+@pytest.fixture(autouse=True)
+def baseline_settings_env(app_env: dict[str, str], monkeypatch: MonkeyPatch) -> Iterator[None]:
+    """Give every test the required settings so results never depend on a local .env file."""
+    from app.core import config
+
+    for key, value in app_env.items():
+        monkeypatch.setenv(key, value)
+    config.get_settings.cache_clear()
+    yield
+    config.get_settings.cache_clear()
 
 
 @pytest.fixture
