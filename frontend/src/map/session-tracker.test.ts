@@ -56,7 +56,7 @@ describe("createSessionTracker", () => {
         pagePath: "/",
         pageQuery: "utm_source=google&utm_medium=social",
         clientTs: 1773705600,
-        clientTz: "Asia/Seoul",
+        clientTz: Intl.DateTimeFormat().resolvedOptions().timeZone,
         clientLang: "ko-KR",
         platform: "Linux x86_64",
         referrerUrl: "https://example.com/search",
